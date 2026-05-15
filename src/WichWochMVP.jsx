@@ -6,31 +6,60 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtteHBhY2hvbGx2c2l5dHBwdnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk0MTYsImV4cCI6MjA5NDIzNTQxNn0.w6tVaItGQi-tuWuoqRqcRl6Z7gIpBIFIcji6szRTXI4"
 );
 
+// ─── Noticias estáticas rotativas ────────────────────────────────────────────
+const STATIC_NEWS = [
+  { type:"curiosidad", content:"El primer reloj de pulsera del mundo fue creado por Patek Philippe en 1868 para la Condesa Koscowicz de Hungría. Hasta entonces, los relojes eran exclusivamente de bolsillo." },
+  { type:"tecnico", content:"Un tourbillon es un mecanismo inventado por Abraham-Louis Breguet en 1801 para compensar los efectos de la gravedad en la precisión del reloj. Hoy es símbolo de alta relojería." },
+  { type:"noticia", content:"El mercado de relojes de lujo de segunda mano superó los 22.000 millones de dólares en 2023, con plataformas como Chrono24 y WatchBox liderando el crecimiento." },
+  { type:"curiosidad", content:"El Rolex Submariner fue el primer reloj certificado resistente al agua hasta 100 metros en 1953. James Bond lo llevó en 'Dr. No' en 1962, disparando su popularidad." },
+  { type:"tecnico", content:"Un movimiento automático se carga gracias al rotor, una masa excéntrica que gira con el movimiento de la muñeca. Un día normal de actividad es suficiente para mantenerlo cargado." },
+  { type:"noticia", content:"Audemars Piguet vendió su boutique de segunda mano AP House en Ginebra en 2022, certificando relojes vintage con garantía oficial. Un modelo que más marcas están adoptando." },
+  { type:"curiosidad", content:"El titanio, usado en muchos relojes deportivos modernos, es un 30% más resistente que el acero y un 50% más ligero. IWC fue pionera en su uso en 1980 con el Ocean 2000." },
+  { type:"tecnico", content:"La reserva de marcha indica cuántas horas funcionará un reloj sin recargarse. Un buen automático tiene entre 40 y 80 horas. El Patek Philippe Calibre 89 alcanzó 29 días." },
+  { type:"noticia", content:"Rolex produce aproximadamente un millón de relojes al año pero la demanda supera ampliamente la oferta, especialmente en modelos deportivos como el Submariner y el Daytona." },
+  { type:"curiosidad", content:"El Omega Speedmaster fue seleccionado por la NASA en 1965 tras pasar pruebas extremas de temperatura, vibración y vacío. Es el único reloj certificado para vuelos espaciales tripulados." },
+  { type:"tecnico", content:"El zafiro sintético, utilizado en la mayoría de cristales de relojes de lujo, tiene una dureza de 9 en la escala de Mohs — solo el diamante lo supera. Es casi imposible rayarlo." },
+  { type:"curiosidad", content:"Hans Wilsdorf fundó Rolex en Londres en 1905, pero trasladó la empresa a Ginebra en 1919 para evitar los altos impuestos británicos sobre importaciones de movimientos suizos." },
+  { type:"tecnico", content:"La certificación COSC (Contrôle Officiel Suisse des Chronomètres) garantiza una precisión de -4/+6 segundos por día. Omega va más allá con su certificación METAS: ±0,5 segundos." },
+  { type:"noticia", content:"Tudor, la marca hermana de Rolex, ha ganado enorme popularidad entre coleccionistas por ofrecer movimientos in-house de calidad comparable a Rolex a precios significativamente menores." },
+  { type:"curiosidad", content:"El récord de subasta para un reloj de pulsera lo tiene el Patek Philippe Grandmaster Chime Ref. 6300A, vendido en 2019 por 31 millones de francos suizos en la subasta Only Watch." },
+  { type:"tecnico", content:"Una complicación en relojería es cualquier función más allá de mostrar horas y minutos. Las más valoradas son el tourbillon, el calendrier perpétuel y la répétition à minutes." },
+  { type:"noticia", content:"El mercado de NFTs de relojes creció exponencialmente en 2021-2022, con marcas como Jacob & Co lanzando ediciones digitales. Sin embargo, el interés se ha moderado significativamente." },
+  { type:"curiosidad", content:"El acero Oystersteel de Rolex es una aleación especial de la familia 904L, excepcionalmente resistente a la corrosión. La mayoría de la industria usa acero 316L, más común y económico." },
+  { type:"tecnico", content:"El bisel giratorio unidireccional de los relojes de buceo no puede girar hacia adelante accidentalmente, garantizando que el buceador nunca sobreestime el tiempo de inmersión restante." },
+  { type:"noticia", content:"Jaeger-LeCoultre ha producido más de 1.400 calibres diferentes en su historia, más que cualquier otra manufactura suiza. Su Atmos, que funciona con cambios de temperatura, es icónico." },
+  { type:"curiosidad", content:"El término 'Swiss Made' requiere por ley que al menos el 60% del valor de producción y el movimiento sean suizos. Es una de las denominaciones de origen más estrictas del mundo." },
+  { type:"tecnico", content:"La lucha contra las réplicas ha llevado a las marcas a incorporar hologramas, microimpresiones y marcas de agua invisibles. Rolex usa un cristal con microestructura láser invisible al ojo." },
+  { type:"noticia", content:"Watches & Wonders Ginebra se ha consolidado como la principal feria de alta relojería, sustituyendo a Baselworld tras el éxodo masivo de marcas de lujo en 2020 durante la pandemia." },
+  { type:"curiosidad", content:"El movimiento manual más fino del mundo es el Piaget Calibre 900P, con apenas 2mm de grosor. Está montado en la caja del reloj, no en una platina separada, para reducir el espesor total." },
+  { type:"tecnico", content:"El choque más común en un reloj es el daño al pivote del áncora o al escape. Por eso los relojes de alta gama incorporan sistemas antichoque como el Incabloc o el Kif Flector." },
+  { type:"noticia", content:"La demanda de relojes vintage ha disparado los precios de modelos como el Rolex Paul Newman Daytona, que pasó de valer unos pocos cientos de dólares en los 80 a superar el millón hoy." },
+  { type:"curiosidad", content:"Breguet inventó el muelle espiral de forma particular llamado 'espiral Breguet' con la curva final elevada, mejorando enormemente la isocronia — la consistencia del movimiento del péndulo." },
+  { type:"tecnico", content:"Un GMT funciona con una aguja adicional que da una vuelta completa cada 24 horas, permitiendo leer simultáneamente la hora local y la de una segunda zona horaria con un bezel bicolor." },
+  { type:"noticia", content:"A. Lange & Söhne, la joya de la relojería alemana, fue nationalizada en la RDA en 1948 y refundada en 1990 tras la reunificación. Sus relojes con acabado glashütte son codiciados mundialmente." },
+  { type:"curiosidad", content:"El Patek Philippe Calibre 89, presentado en 1989 para el 150 aniversario de la marca, tiene 33 complicaciones, 1.728 piezas y tardó 9 años en desarrollarse. Sigue siendo el reloj más complicado jamás creado." },
+];
+
+function getDailyNews() {
+  const day = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+  const idx = day % 10;
+  const pool = [...STATIC_NEWS];
+  const result = [];
+  const types = ["curiosidad", "noticia", "tecnico"];
+  for(const type of types) {
+    const filtered = pool.filter(n=>n.type===type);
+    result.push(filtered[idx % filtered.length]);
+  }
+  return result;
+}
+
 const BRAND_COLORS = { rolex:"#006039", omega:"#c8a84b", patek:"#1a3a6b", ap:"#1a1a1a", iwc:"#8b0000", jlc:"#2c4a2e", tudor:"#6b0000" };
-const AVATAR_COLORS = ["#1a1a1a","#006039","#1a3a6b","#8b0000","#2c4a2e","#c8a84b","#4a4a8a","#7c3aed","#2563eb","#4a7c59"];
-const AVATAR_EMOJIS = ["🕰️","⌚","🔧","🏆","💎","🌟","🎯","🦅","🌊","🏔️"];
+const AVATAR_COLORS = ["#1a1a1a","#006039","#1a3a6b","#8b0000","#2c4a2e","#c8a84b","#4a4a8a","#7c3aed","#2563eb","#4a7c59","#b45309","#0369a1"];
+const AVATAR_EMOJIS = ["🕰️","⌚","🔧","🏆","💎","🌟","🎯","🦅","🌊","🏔️","🎖️","🔑","⚓","🎨","🦁"];
 
 function brandColor(slug) { const p=(slug||"").split("_")[0]; return BRAND_COLORS[p]||"#1a1a1a"; }
 function brandFromSlug(slug) { const p=(slug||"").split("_")[0]; return ({rolex:"Rolex",omega:"Omega",patek:"Patek Philippe",ap:"Audemars Piguet",iwc:"IWC",jlc:"Jaeger-LeCoultre",tudor:"Tudor"})[p]||p; }
 
-async function generateDailyNews() {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      model:"claude-sonnet-4-20250514", max_tokens:800,
-      system:"Eres un experto en relojería de lujo. Responde SOLO con JSON válido, sin markdown.",
-      messages:[{role:"user", content:`Genera 3 publicaciones cortas para una red social de relojes. JSON:
-[{"type":"curiosidad","content":"dato curioso histórico fascinante, máximo 2 frases"},
-{"type":"noticia","content":"novedad o tendencia actual en relojes de lujo, máximo 2 frases"},
-{"type":"tecnico","content":"explicación técnica breve y accesible sobre algún mecanismo, máximo 2 frases"}]`}]
-    })
-  });
-  const data = await res.json();
-  const text = data.content?.map(b=>b.text||"").join("")||"[]";
-  try { return JSON.parse(text.replace(/```json|```/g,"").trim()); } catch { return []; }
-}
-
-// Parsear menciones @slug en texto
 function parseContent(text, onNavigate) {
   if(!text) return null;
   const parts = text.split(/(@[a-z][a-z0-9_]*)/g);
@@ -47,31 +76,31 @@ const S = {
   app: { fontFamily:"'DM Sans',sans-serif", background:"#fafaf8", minHeight:"100vh", color:"#1a1a1a" },
   nav: { background:"#fff", borderBottom:"1px solid #e8e8e8", padding:"0 24px", display:"flex", alignItems:"center", justifyContent:"space-between", height:52, position:"sticky", top:0, zIndex:100 },
   logo: { fontFamily:"'DM Mono',monospace", fontSize:18, fontWeight:700, letterSpacing:-0.5, color:"#1a1a1a", cursor:"pointer" },
-  main: { maxWidth:860, margin:"0 auto", padding:"28px 20px" },
-  card: { background:"#fff", border:"1px solid #e8e8e8", borderRadius:6, padding:20, marginBottom:16 },
+  main: { maxWidth:900, margin:"0 auto", padding:"28px 20px" },
+  card: { background:"#fff", border:"1px solid #e8e8e8", borderRadius:8, padding:20, marginBottom:16 },
   h1: { fontSize:22, fontWeight:700, marginBottom:4, fontFamily:"'DM Mono',monospace", letterSpacing:-0.5 },
   h2: { fontSize:16, fontWeight:700, marginBottom:16, fontFamily:"'DM Mono',monospace" },
   label: { fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:6, display:"block" },
   muted: { color:"#888", fontSize:13 },
   mono: { fontFamily:"'DM Mono',monospace" },
-  input: { width:"100%", border:"1px solid #e8e8e8", borderRadius:4, padding:"9px 12px", fontSize:14, fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box", background:"#fff" },
-  btn: (v="primary") => ({ padding:"9px 18px", borderRadius:4, fontSize:13, fontWeight:600, cursor:"pointer", border:v==="outline"?"1px solid #ddd":"none", fontFamily:"'DM Sans',sans-serif", background:v==="primary"?"#1a1a1a":v==="outline"?"transparent":"#f0f0f0", color:v==="primary"?"#fff":"#1a1a1a" }),
+  input: { width:"100%", border:"1px solid #e8e8e8", borderRadius:6, padding:"10px 12px", fontSize:14, fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box", background:"#fff" },
+  btn: (v="primary") => ({ padding:"9px 18px", borderRadius:6, fontSize:13, fontWeight:600, cursor:"pointer", border:v==="outline"?"1px solid #ddd":"none", fontFamily:"'DM Sans',sans-serif", background:v==="primary"?"#1a1a1a":v==="outline"?"transparent":"#f0f0f0", color:v==="primary"?"#fff":"#1a1a1a" }),
   row: { display:"flex", alignItems:"center", gap:12 },
   col: { display:"flex", flexDirection:"column", gap:4 },
-  error: { background:"#fff3f3", border:"1px solid #fcc", borderRadius:4, padding:"10px 14px", fontSize:13, color:"#c00", marginBottom:16 },
-  success: { background:"#f0f9f4", border:"1px solid #b3dfc4", borderRadius:4, padding:"10px 14px", fontSize:13, color:"#2a7a4a", marginBottom:16 },
-  navLink: (a) => ({ padding:"6px 12px", borderRadius:4, fontSize:13, cursor:"pointer", fontWeight:a?600:400, background:a?"#1a1a1a":"transparent", color:a?"#fff":"#666", border:"none", fontFamily:"'DM Sans',sans-serif" }),
+  error: { background:"#fff3f3", border:"1px solid #fcc", borderRadius:6, padding:"10px 14px", fontSize:13, color:"#c00", marginBottom:16 },
+  success: { background:"#f0f9f4", border:"1px solid #b3dfc4", borderRadius:6, padding:"10px 14px", fontSize:13, color:"#2a7a4a", marginBottom:16 },
+  navLink: (a) => ({ padding:"6px 12px", borderRadius:6, fontSize:13, cursor:"pointer", fontWeight:a?600:400, background:a?"#1a1a1a":"transparent", color:a?"#fff":"#666", border:"none", fontFamily:"'DM Sans',sans-serif" }),
 };
 
 function Badge({ text, bg="#f0f0f0", color="#1a1a1a" }) {
-  return <span style={{ fontSize:10, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", padding:"2px 8px", background:bg, color, borderRadius:2, fontFamily:"'DM Mono',monospace", marginLeft:6 }}>{text}</span>;
+  return <span style={{ fontSize:10, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", padding:"2px 8px", background:bg, color, borderRadius:3, fontFamily:"'DM Mono',monospace", marginLeft:6 }}>{text}</span>;
 }
 
 function Avatar({ name="?", size=36, color="#1a1a1a", emoji=null }) {
   const i = name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
   return (
     <div style={{ width:size, height:size, borderRadius:"50%", background:color, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:emoji?size*0.5:size*0.35, fontWeight:700, flexShrink:0, fontFamily:"'DM Mono',monospace" }}>
-      {emoji || i}
+      {emoji||i}
     </div>
   );
 }
@@ -88,42 +117,14 @@ function timeAgo(ts) {
 function WatchCard({ watch, onClick }) {
   const bg=brandColor(watch.slug);
   return (
-    <div style={{ ...S.card, cursor:"pointer", marginBottom:0, padding:0, overflow:"hidden" }} onClick={onClick}>
-      <div style={{ height:90, background:bg, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:3 }}>
-        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:"rgba(255,255,255,0.6)", letterSpacing:2, textTransform:"uppercase" }}>{brandFromSlug(watch.slug)}</div>
-        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:14, color:"#fff", fontWeight:700, textAlign:"center", padding:"0 8px" }}>{watch.model}</div>
+    <div style={{ cursor:"pointer", borderRadius:8, overflow:"hidden", border:"1px solid #e8e8e8", background:"#fff" }} onClick={onClick}>
+      <div style={{ height:100, background:bg, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:4 }}>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:"rgba(255,255,255,0.5)", letterSpacing:2, textTransform:"uppercase" }}>{brandFromSlug(watch.slug)}</div>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:"#fff", fontWeight:700, textAlign:"center", padding:"0 8px" }}>{watch.model}</div>
       </div>
-      <div style={{ padding:"12px 14px" }}>
-        <div style={{ fontWeight:700, fontSize:13, marginBottom:2 }}>{watch.model}</div>
-        <div style={{ ...S.mono, fontSize:11, color:"#888", marginBottom:4 }}>Ref. {watch.reference}</div>
-        <div style={{ fontSize:10, color:"#bbb", fontFamily:"'DM Mono',monospace" }}>@{watch.slug}</div>
-      </div>
-    </div>
-  );
-}
-
-// ─── AVATAR PICKER ────────────────────────────────────────────────────────────
-function AvatarPicker({ currentColor, currentEmoji, onSelect }) {
-  return (
-    <div style={{ ...S.card, border:"1px solid #1a1a1a" }}>
-      <h3 style={{ ...S.h2, marginBottom:16 }}>Elige tu avatar</h3>
-      <span style={S.label}>Color</span>
-      <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap" }}>
-        {AVATAR_COLORS.map(c=>(
-          <div key={c} style={{ width:32, height:32, borderRadius:"50%", background:c, cursor:"pointer", border:currentColor===c?"3px solid #2563eb":"3px solid transparent", boxSizing:"border-box" }}
-            onClick={()=>onSelect(c, currentEmoji)} />
-        ))}
-      </div>
-      <span style={S.label}>Icono</span>
-      <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-        <div style={{ width:40, height:40, borderRadius:"50%", background:currentColor, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, cursor:"pointer", border:!currentEmoji?"3px solid #2563eb":"3px solid transparent", boxSizing:"border-box" }}
-          onClick={()=>onSelect(currentColor, null)}>
-          <span style={{ color:"#fff", fontWeight:700, fontSize:14 }}>AB</span>
-        </div>
-        {AVATAR_EMOJIS.map(e=>(
-          <div key={e} style={{ width:40, height:40, borderRadius:"50%", background:currentColor, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, cursor:"pointer", border:currentEmoji===e?"3px solid #2563eb":"3px solid transparent", boxSizing:"border-box" }}
-            onClick={()=>onSelect(currentColor, e)}>{e}</div>
-        ))}
+      <div style={{ padding:"10px 12px" }}>
+        <div style={{ fontWeight:700, fontSize:12, marginBottom:1 }}>{watch.model}</div>
+        <div style={{ ...S.mono, fontSize:10, color:"#aaa" }}>@{watch.slug}</div>
       </div>
     </div>
   );
@@ -155,15 +156,15 @@ function AuthPage() {
   return (
     <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#fafaf8" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      <div style={{ width:400, padding:40 }}>
-        <div style={{ textAlign:"center", marginBottom:36 }}>
-          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:26, fontWeight:700, marginBottom:6 }}>WICH WOCH</div>
+      <div style={{ width:420, padding:40 }}>
+        <div style={{ textAlign:"center", marginBottom:40 }}>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:28, fontWeight:700, marginBottom:8, letterSpacing:-1 }}>WICH WOCH</div>
           <div style={{ color:"#888", fontSize:14 }}>La comunidad de relojes</div>
         </div>
-        <div style={{ ...S.card, padding:28 }}>
-          <div style={{ display:"flex", marginBottom:24, background:"#f5f5f3", borderRadius:4, padding:3, gap:3 }}>
+        <div style={{ ...S.card, padding:32 }}>
+          <div style={{ display:"flex", marginBottom:24, background:"#f5f5f3", borderRadius:6, padding:3, gap:3 }}>
             {["login","register"].map(m=>(
-              <button key={m} style={{ flex:1, padding:"7px 0", borderRadius:3, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600, cursor:"pointer", background:mode===m?"#fff":"transparent", color:"#1a1a1a", boxShadow:mode===m?"0 1px 3px rgba(0,0,0,0.1)":"none" }} onClick={()=>setMode(m)}>
+              <button key={m} style={{ flex:1, padding:"8px 0", borderRadius:4, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600, cursor:"pointer", background:mode===m?"#fff":"transparent", color:"#1a1a1a", boxShadow:mode===m?"0 1px 4px rgba(0,0,0,0.1)":"none" }} onClick={()=>setMode(m)}>
                 {m==="login"?"Entrar":"Registrarse"}
               </button>
             ))}
@@ -184,7 +185,7 @@ function AuthPage() {
             </>)}
             <div><span style={S.label}>Email</span><input style={S.input} type="email" placeholder="tu@email.com" value={form.email} onChange={e=>set("email",e.target.value)} /></div>
             <div><span style={S.label}>Contraseña</span><input style={S.input} type="password" placeholder="Mínimo 6 caracteres" value={form.password} onChange={e=>set("password",e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} /></div>
-            <button style={{ ...S.btn("primary"), width:"100%", marginTop:4, padding:12, fontSize:14 }} onClick={handleSubmit} disabled={loading}>
+            <button style={{ ...S.btn("primary"), width:"100%", marginTop:4, padding:13, fontSize:15 }} onClick={handleSubmit} disabled={loading}>
               {loading?"Cargando…":mode==="login"?"Entrar":"Crear cuenta"}
             </button>
           </div>
@@ -203,19 +204,13 @@ function PostComposer({ user, onPosted }) {
   const [newsLink, setNewsLink] = useState("");
   const [posting, setPosting] = useState(false);
 
-  const types = [
-    { id:"text", label:"💬 Texto" },
-    { id:"photo", label:"📷 Foto" },
-    { id:"video", label:"🎬 Vídeo" },
-    { id:"news", label:"📰 Noticia" },
-  ];
+  const types=[{id:"text",label:"💬"},{id:"photo",label:"📷"},{id:"video",label:"🎬"},{id:"news",label:"📰"}];
 
   async function submit() {
-    if(!content.trim()) return;
-    setPosting(true);
-    const payload = { author_id:user.id, content:content.trim(), post_type:type };
-    if(type==="photo"||type==="video") payload.media_url = mediaUrl.trim();
-    if(type==="news") { payload.news_title = newsTitle.trim(); payload.news_link = newsLink.trim(); }
+    if(!content.trim()) return; setPosting(true);
+    const payload={author_id:user.id,content:content.trim(),post_type:type};
+    if(type==="photo"||type==="video") payload.media_url=mediaUrl.trim();
+    if(type==="news"){payload.news_title=newsTitle.trim();payload.news_link=newsLink.trim();}
     await supabase.from("posts").insert(payload);
     setContent(""); setMediaUrl(""); setNewsTitle(""); setNewsLink("");
     setPosting(false); onPosted();
@@ -223,26 +218,20 @@ function PostComposer({ user, onPosted }) {
 
   return (
     <div style={S.card}>
-      <div style={{ display:"flex", gap:6, marginBottom:14 }}>
+      <div style={{ display:"flex", gap:6, marginBottom:12 }}>
         {types.map(t=>(
-          <button key={t.id} style={{ ...S.navLink(type===t.id), fontSize:12, padding:"4px 10px" }} onClick={()=>setType(t.id)}>{t.label}</button>
+          <button key={t.id} onClick={()=>setType(t.id)} style={{ padding:"6px 12px", borderRadius:6, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:type===t.id?"#1a1a1a":"#f0f0f0", color:type===t.id?"#fff":"#666", fontWeight:type===t.id?600:400 }}>{t.label} {t.id==="text"?"Texto":t.id==="photo"?"Foto":t.id==="video"?"Vídeo":"Noticia"}</button>
         ))}
       </div>
-      {type==="news"&&(
-        <input style={{ ...S.input, marginBottom:8 }} placeholder="Título de la noticia" value={newsTitle} onChange={e=>setNewsTitle(e.target.value)} />
-      )}
+      {type==="news"&&<input style={{ ...S.input, marginBottom:8 }} placeholder="Título de la noticia" value={newsTitle} onChange={e=>setNewsTitle(e.target.value)} />}
       <textarea
-        placeholder={type==="text"?"¿Qué hay en tu muñeca hoy? Usa @rolex_submariner para mencionar un reloj…":type==="photo"?"Describe la foto…":type==="video"?"Describe el vídeo…":"Resumen de la noticia…"}
+        placeholder={type==="text"?"¿Qué hay en tu muñeca? Menciona @rolex_submariner para enlazar un reloj…":type==="photo"?"Describe la foto…":type==="video"?"Describe el vídeo…":"Resumen de la noticia…"}
         value={content} onChange={e=>setContent(e.target.value)}
         style={{ width:"100%", border:"none", outline:"none", resize:"none", fontSize:15, fontFamily:"'DM Sans',sans-serif", background:"transparent", color:"#1a1a1a", boxSizing:"border-box" }} rows={3}
       />
-      {(type==="photo"||type==="video")&&(
-        <input style={{ ...S.input, marginTop:8 }} placeholder={type==="photo"?"URL de la imagen (https://...)":"URL del vídeo (YouTube, Vimeo...)"} value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} />
-      )}
-      {type==="news"&&(
-        <input style={{ ...S.input, marginTop:8 }} placeholder="Link de la noticia (opcional)" value={newsLink} onChange={e=>setNewsLink(e.target.value)} />
-      )}
-      <div style={{ display:"flex", justifyContent:"flex-end", paddingTop:12, borderTop:"1px solid #f0f0f0", marginTop:12 }}>
+      {(type==="photo"||type==="video")&&<input style={{ ...S.input, marginTop:8 }} placeholder={type==="photo"?"URL de la imagen…":"URL del vídeo (YouTube...)"} value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} />}
+      {type==="news"&&<input style={{ ...S.input, marginTop:8 }} placeholder="Link (opcional)" value={newsLink} onChange={e=>setNewsLink(e.target.value)} />}
+      <div style={{ display:"flex", justifyContent:"flex-end", paddingTop:12, borderTop:"1px solid #f0f0f0", marginTop:10 }}>
         <button style={S.btn("primary")} onClick={submit} disabled={posting||!content.trim()}>{posting?"Publicando…":"Publicar"}</button>
       </div>
     </div>
@@ -253,7 +242,7 @@ function PostComposer({ user, onPosted }) {
 function PostCard({ post, currentUser, onNavigate }) {
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(post.likes_count||0);
-  const author = post.author;
+  const author=post.author;
 
   async function toggleLike() {
     if(liked){await supabase.from("likes").delete().match({user_id:currentUser.id,post_id:post.id});setLikes(l=>l-1);}
@@ -261,67 +250,66 @@ function PostCard({ post, currentUser, onNavigate }) {
     setLiked(!liked);
   }
 
-  function isYouTube(url) { return url&&(url.includes("youtube.com")||url.includes("youtu.be")); }
-  function getYouTubeId(url) {
-    const m = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    return m?m[1]:null;
-  }
+  function getYouTubeId(url) { const m=url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/); return m?m[1]:null; }
 
   return (
     <div style={S.card}>
       <div style={{ ...S.row, marginBottom:12 }}>
         <div style={{ cursor:"pointer" }} onClick={()=>onNavigate("profile",author?.id)}>
-          <Avatar name={author?.name||"?"} size={38} color={author?.avatar_color||"#1a1a1a"} emoji={author?.avatar_emoji||null} />
+          <Avatar name={author?.name||"?"} size={40} color={author?.avatar_color||"#1a1a1a"} emoji={author?.avatar_emoji||null} />
         </div>
-        <div style={S.col}>
+        <div style={{ flex:1 }}>
           <div style={{ fontWeight:600, fontSize:14, cursor:"pointer" }} onClick={()=>onNavigate("profile",author?.id)}>
             {author?.name}
             {author?.account_type==="repairer"&&<Badge text="Taller" bg="#e8f4ec" color="#4a7c59" />}
             {author?.account_type==="brand"&&<Badge text="Marca" bg="#f0f6ff" color="#2563eb" />}
           </div>
-          <div style={S.row}>
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
             <span style={S.muted}>@{author?.handle} · {timeAgo(post.created_at)}</span>
-            {author?.location&&<span style={S.muted}>· 📍{author.location}</span>}
+            {author?.location&&<span style={{ ...S.muted, fontSize:12 }}>· 📍{author.location}</span>}
           </div>
         </div>
       </div>
 
-      {/* Contenido según tipo */}
       {post.post_type==="news"&&post.news_title&&(
-        <div style={{ background:"#f8f8f6", borderRadius:4, padding:"10px 14px", marginBottom:10 }}>
+        <div style={{ background:"#f8f8f6", borderRadius:6, padding:"10px 14px", marginBottom:10 }}>
           <div style={{ fontWeight:700, fontSize:14, marginBottom:2 }}>{post.news_title}</div>
-          {post.news_link&&<a href={post.news_link} target="_blank" rel="noreferrer" style={{ fontSize:12, color:"#2563eb" }}>Leer noticia →</a>}
+          {post.news_link&&<a href={post.news_link} target="_blank" rel="noreferrer" style={{ fontSize:12, color:"#2563eb" }}>Leer →</a>}
         </div>
       )}
 
-      <p style={{ fontSize:15, lineHeight:1.6, margin:"0 0 12px" }}>{parseContent(post.content, onNavigate)}</p>
+      <p style={{ fontSize:15, lineHeight:1.65, margin:"0 0 12px" }}>{parseContent(post.content,onNavigate)}</p>
 
       {post.post_type==="photo"&&post.media_url&&(
-        <div style={{ marginBottom:12, borderRadius:4, overflow:"hidden" }}>
+        <div style={{ marginBottom:12, borderRadius:8, overflow:"hidden", background:"#f0f0f0" }}>
           <img src={post.media_url} alt="" style={{ width:"100%", maxHeight:400, objectFit:"cover", display:"block" }} onError={e=>e.target.style.display="none"} />
         </div>
       )}
 
       {post.post_type==="video"&&post.media_url&&(
-        <div style={{ marginBottom:12, borderRadius:4, overflow:"hidden" }}>
-          {isYouTube(post.media_url) ? (
-            <iframe width="100%" height="315" src={`https://www.youtube.com/embed/${getYouTubeId(post.media_url)}`} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ display:"block" }} />
+        <div style={{ marginBottom:12 }}>
+          {getYouTubeId(post.media_url) ? (
+            <iframe width="100%" height="280" src={`https://www.youtube.com/embed/${getYouTubeId(post.media_url)}`} frameBorder="0" allowFullScreen style={{ borderRadius:8, display:"block" }} />
           ) : (
-            <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display:"block", padding:"12px 14px", background:"#f8f8f6", borderRadius:4, color:"#2563eb", fontSize:13 }}>🎬 Ver vídeo →</a>
+            <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display:"block", padding:"12px 14px", background:"#f8f8f6", borderRadius:6, color:"#2563eb", fontSize:13 }}>🎬 Ver vídeo →</a>
           )}
         </div>
       )}
 
       {post.watch&&(
-        <div style={{ background:"#f8f8f6", borderRadius:4, padding:"7px 12px", marginBottom:10, fontSize:12, cursor:"pointer" }} onClick={()=>onNavigate("watch",post.watch.slug)}>
+        <div style={{ background:"#f5f5f3", borderRadius:6, padding:"7px 12px", marginBottom:10, fontSize:12, cursor:"pointer", display:"inline-flex", alignItems:"center", gap:6 }} onClick={()=>onNavigate("watch",post.watch.slug)}>
           <span style={{ fontWeight:600 }}>🕐 {post.watch.model}</span>
-          <span style={{ ...S.mono, color:"#888" }}> @{post.watch.slug}</span>
+          <span style={{ ...S.mono, color:"#aaa" }}>@{post.watch.slug}</span>
         </div>
       )}
 
-      <div style={S.row}>
-        <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:liked?"#d44":"#888", fontFamily:"'DM Sans',sans-serif", padding:0 }} onClick={toggleLike}>{liked?"♥":"♡"} {likes}</button>
-        <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#888", fontFamily:"'DM Sans',sans-serif", padding:0 }}>💬 {post.comments_count||0}</button>
+      <div style={{ ...S.row, borderTop:"1px solid #f5f5f3", paddingTop:10, marginTop:4 }}>
+        <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:liked?"#e11d48":"#888", fontFamily:"'DM Sans',sans-serif", padding:"0 8px 0 0", display:"flex", alignItems:"center", gap:4 }} onClick={toggleLike}>
+          {liked?"♥":"♡"} {likes}
+        </button>
+        <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#888", fontFamily:"'DM Sans',sans-serif", padding:0, display:"flex", alignItems:"center", gap:4 }}>
+          💬 {post.comments_count||0}
+        </button>
       </div>
     </div>
   );
@@ -330,17 +318,19 @@ function PostCard({ post, currentUser, onNavigate }) {
 // ─── AI NEWS CARD ─────────────────────────────────────────────────────────────
 function AINewsCard({ item }) {
   const icons={curiosidad:"🕰️",noticia:"📰",tecnico:"⚙️"};
-  const labels={curiosidad:"Curiosidad",noticia:"Novedad",tecnico:"Técnico"};
+  const labels={curiosidad:"Curiosidad del día",noticia:"Noticia",tecnico:"¿Sabías que?"};
+  const colors={curiosidad:"#1a3a6b",noticia:"#006039",tecnico:"#8b0000"};
+  const bg=colors[item.type]||"#1a1a1a";
   return (
-    <div style={{ ...S.card, borderLeft:"3px solid #1a1a1a" }}>
+    <div style={{ ...S.card, borderLeft:`4px solid ${bg}`, background:"#fefefe" }}>
       <div style={{ ...S.row, marginBottom:10 }}>
-        <div style={{ width:38, height:38, borderRadius:"50%", background:"#1a1a1a", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{icons[item.news_type]||"🕰️"}</div>
-        <div style={S.col}>
-          <div style={{ fontWeight:600, fontSize:14 }}>Wich Woch<Badge text={labels[item.news_type]||"Info"} bg="#f5f5f3" color="#1a1a1a" /></div>
-          <span style={S.muted}>Hoy</span>
+        <div style={{ width:38, height:38, borderRadius:"50%", background:bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, flexShrink:0 }}>{icons[item.type]||"🕰️"}</div>
+        <div>
+          <div style={{ fontWeight:700, fontSize:13, color:bg }}>{labels[item.type]||"Wich Woch"}</div>
+          <div style={S.muted}>Wich Woch · Hoy</div>
         </div>
       </div>
-      <p style={{ fontSize:15, lineHeight:1.6, margin:0 }}>{item.content}</p>
+      <p style={{ fontSize:14, lineHeight:1.7, margin:0, color:"#333" }}>{item.content}</p>
     </div>
   );
 }
@@ -349,16 +339,16 @@ function AINewsCard({ item }) {
 function BrandNewsCard({ item, onNavigate }) {
   const bg=BRAND_COLORS[item.brand_slug]||"#1a1a1a";
   return (
-    <div style={{ ...S.card, borderLeft:`3px solid ${bg}` }}>
+    <div style={{ ...S.card, borderLeft:`4px solid ${bg}` }}>
       <div style={{ ...S.row, marginBottom:10 }}>
         <div style={{ width:38, height:38, borderRadius:"50%", background:bg, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontFamily:"'DM Mono',monospace", fontSize:11, fontWeight:700, flexShrink:0 }}>
           {(item.brand_slug||"").slice(0,2).toUpperCase()}
         </div>
-        <div style={S.col}>
+        <div>
           <div style={{ fontWeight:600, fontSize:14, cursor:"pointer" }} onClick={()=>onNavigate("brand",item.brand_slug)}>
             {brandFromSlug(item.brand_slug)}
             <Badge text="Marca" bg="#f0f6ff" color="#2563eb" />
-            {item.owners_only&&<Badge text="Solo propietarios" bg="#fff8e8" color="#b8860b" />}
+            {item.owners_only&&<Badge text="Propietarios" bg="#fff8e8" color="#b8860b" />}
           </div>
           <span style={S.muted}>{timeAgo(item.created_at)}</span>
         </div>
@@ -373,49 +363,36 @@ function BrandNewsCard({ item, onNavigate }) {
 function FeedPage({ user, onNavigate }) {
   const [posts, setPosts] = useState([]);
   const [brandNews, setBrandNews] = useState([]);
-  const [aiNews, setAiNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("all");
+  const aiNews = getDailyNews();
 
   useEffect(()=>{ loadAll(); },[tab]);
 
   async function loadAll() {
     setLoading(true);
-    let postsData=[];
-    if(tab==="following") {
-      const {data:follows}=await supabase.from("follows").select("following_id").eq("follower_id",user.id);
-      const ids=(follows||[]).map(f=>f.following_id);
-      if(ids.length>0) {
-        const {data}=await supabase.from("posts").select("*, author:profiles(id,name,handle,account_type,avatar_color,avatar_emoji,location), watch:watches(id,slug,model,reference)").in("author_id",ids).order("created_at",{ascending:false}).limit(20);
-        postsData=data||[];
-      }
-    } else {
-      const {data}=await supabase.from("posts").select("*, author:profiles(id,name,handle,account_type,avatar_color,avatar_emoji,location), watch:watches(id,slug,model,reference)").order("created_at",{ascending:false}).limit(20);
-      postsData=data||[];
-    }
-    setPosts(postsData);
-    const {data:bn}=await supabase.from("brand_news").select("*").eq("owners_only",false).order("created_at",{ascending:false}).limit(5);
-    setBrandNews(bn||[]);
-    const today=new Date().toISOString().split("T")[0];
-    const {data:an}=await supabase.from("daily_news").select("*").eq("generated_date",today);
-    if(an&&an.length>0) setAiNews(an);
-    else {
-      const items=await generateDailyNews();
-      if(items?.length>0) {
-        const {data}=await supabase.from("daily_news").insert(items.map(i=>({content:i.content,news_type:i.type,generated_date:today}))).select();
-        setAiNews(data||[]);
-      }
-    }
+    const [postsRes, bnRes] = await Promise.all([
+      tab==="following"
+        ? supabase.from("follows").select("following_id").eq("follower_id",user.id).then(async({data:follows})=>{
+            const ids=(follows||[]).map(f=>f.following_id);
+            if(!ids.length) return {data:[]};
+            return supabase.from("posts").select("*, author:profiles(id,name,handle,account_type,avatar_color,avatar_emoji,location), watch:watches(id,slug,model)").in("author_id",ids).order("created_at",{ascending:false}).limit(20);
+          })
+        : supabase.from("posts").select("*, author:profiles(id,name,handle,account_type,avatar_color,avatar_emoji,location), watch:watches(id,slug,model)").order("created_at",{ascending:false}).limit(20),
+      supabase.from("brand_news").select("*").eq("owners_only",false).order("created_at",{ascending:false}).limit(4),
+    ]);
+    setPosts(postsRes.data||[]);
+    setBrandNews(bnRes.data||[]);
     setLoading(false);
   }
 
   function buildFeed() {
     const feed=[];
-    aiNews.slice(0,2).forEach(n=>feed.push({type:"ai",data:n}));
+    aiNews.forEach(n=>feed.push({type:"ai",data:n}));
     let bi=0;
-    posts.forEach((p,i)=>{
+    (posts||[]).forEach((p,i)=>{
       feed.push({type:"post",data:p});
-      if((i+1)%4===0&&bi<brandNews.length) feed.push({type:"brand",data:brandNews[bi++]});
+      if((i+1)%5===0&&bi<brandNews.length) feed.push({type:"brand",data:brandNews[bi++]});
     });
     while(bi<brandNews.length) feed.push({type:"brand",data:brandNews[bi++]});
     return feed;
@@ -428,9 +405,9 @@ function FeedPage({ user, onNavigate }) {
         <button style={S.navLink(tab==="all")} onClick={()=>setTab("all")}>Todo</button>
         <button style={S.navLink(tab==="following")} onClick={()=>setTab("following")}>Siguiendo</button>
       </div>
-      {loading ? <Spinner /> : buildFeed().map((item,i)=>{
+      {loading?<Spinner />:buildFeed().map((item,i)=>{
         if(item.type==="post") return <PostCard key={`p-${item.data.id}`} post={item.data} currentUser={user} onNavigate={onNavigate} />;
-        if(item.type==="ai") return <AINewsCard key={`ai-${item.data.id}`} item={item.data} />;
+        if(item.type==="ai") return <AINewsCard key={`ai-${i}`} item={item.data} />;
         if(item.type==="brand") return <BrandNewsCard key={`bn-${item.data.id}`} item={item.data} onNavigate={onNavigate} />;
         return null;
       })}
@@ -449,20 +426,20 @@ function UserList({ title, users, onNavigate, onBack }) {
       {users.map(u=>(
         <div key={u.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("profile",u.id)}>
           <div style={S.row}>
-            <Avatar name={u.name||"?"} size={44} color={u.avatar_color||"#1a1a1a"} emoji={u.avatar_emoji||null} />
+            <Avatar name={u.name||"?"} size={46} color={u.avatar_color||"#1a1a1a"} emoji={u.avatar_emoji||null} />
             <div style={{ flex:1 }}>
               <div style={{ fontWeight:600 }}>{u.name}{u.verified&&<Badge text="Verificado" bg="#f0f6ff" color="#2563eb" />}</div>
               <div style={S.muted}>@{u.handle}{u.location&&` · 📍${u.location}`}</div>
+              {u.bio&&<p style={{ fontSize:13, color:"#666", margin:"4px 0 0" }}>{u.bio}</p>}
             </div>
           </div>
-          {u.bio&&<p style={{ fontSize:13, color:"#555", margin:"8px 0 0" }}>{u.bio}</p>}
         </div>
       ))}
     </div>
   );
 }
 
-// ─── PROFILE ──────────────────────────────────────────────────────────────────
+// ─── PROFILE (estilo Instagram) ───────────────────────────────────────────────
 function ProfilePage({ userId, currentUser, onNavigate }) {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -478,7 +455,6 @@ function ProfilePage({ userId, currentUser, onNavigate }) {
   const [showAddWish, setShowAddWish] = useState(false);
   const [watchSearch, setWatchSearch] = useState("");
   const [watchSuggestions, setWatchSuggestions] = useState([]);
-  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [subPage, setSubPage] = useState(null);
   const isOwn = userId===currentUser?.id;
 
@@ -486,9 +462,12 @@ function ProfilePage({ userId, currentUser, onNavigate }) {
 
   async function load() {
     setLoading(true);
-    const [{data:p},{data:po},{data:w},{data:wl},{data:f},{data:fList},{data:flList}]=await Promise.all([
+    const [
+      {data:p},{data:po},{data:w},{data:wl},
+      {data:f},{data:fList},{data:flList}
+    ]=await Promise.all([
       supabase.from("profiles").select("*").eq("id",userId).single(),
-      supabase.from("posts").select("*, author:profiles(id,name,handle,account_type,avatar_color,avatar_emoji,location), watch:watches(id,slug,model,reference)").eq("author_id",userId).order("created_at",{ascending:false}),
+      supabase.from("posts").select("*, author:profiles(id,name,handle,account_type,avatar_color,avatar_emoji,location), watch:watches(id,slug,model)").eq("author_id",userId).order("created_at",{ascending:false}).limit(20),
       supabase.from("watch_registrations").select("*, watch:watches(id,slug,model,reference)").eq("user_id",userId).eq("is_public",true),
       supabase.from("watch_wishlist").select("*, watch:watches(id,slug,model,reference)").eq("user_id",userId),
       supabase.from("follows").select("id").eq("follower_id",currentUser.id).eq("following_id",userId).maybeSingle(),
@@ -511,112 +490,113 @@ function ProfilePage({ userId, currentUser, onNavigate }) {
 
   async function searchWatches(q) {
     if(!q||q.length<2){setWatchSuggestions([]);return;}
-    const {data}=await supabase.from("watches").select("id,slug,model,reference").or(`slug.ilike.%${q}%,model.ilike.%${q}%`).limit(6);
+    const {data}=await supabase.from("watches").select("id,slug,model").or(`slug.ilike.%${q}%,model.ilike.%${q}%`).limit(6);
     setWatchSuggestions(data||[]);
   }
 
   async function addWatch(watch, toWishlist=false) {
-    const table = toWishlist?"watch_wishlist":"watch_registrations";
+    const table=toWishlist?"watch_wishlist":"watch_registrations";
     const {data:ex}=await supabase.from(table).select("id").eq("user_id",currentUser.id).eq("watch_id",watch.id).maybeSingle();
     if(!ex) await supabase.from(table).insert({user_id:currentUser.id,watch_id:watch.id,is_public:true});
-    setWatchSearch(""); setWatchSuggestions([]);
-    setShowAddWatch(false); setShowAddWish(false);
-    await load();
+    setWatchSearch(""); setWatchSuggestions([]); setShowAddWatch(false); setShowAddWish(false); await load();
   }
 
-  async function saveAvatar(color, emoji) {
-    await supabase.from("profiles").update({avatar_color:color,avatar_emoji:emoji}).eq("id",currentUser.id);
-    setProfile(p=>({...p,avatar_color:color,avatar_emoji:emoji}));
-    setShowAvatarPicker(false);
-  }
-
-  async function removeFromWishlist(watchId) {
+  async function removeWish(watchId) {
     await supabase.from("watch_wishlist").delete().match({user_id:currentUser.id,watch_id:watchId});
     await load();
   }
 
   if(loading) return <Spinner />;
   if(!profile) return <div style={S.muted}>Perfil no encontrado.</div>;
-  if(subPage==="followers") return <UserList title={`Seguidores de @${profile.handle}`} users={followers} onNavigate={onNavigate} onBack={()=>setSubPage(null)} />;
-  if(subPage==="following") return <UserList title={`@${profile.handle} sigue a`} users={followingList} onNavigate={onNavigate} onBack={()=>setSubPage(null)} />;
+  if(subPage==="followers") return <UserList title="Seguidores" users={followers} onNavigate={onNavigate} onBack={()=>setSubPage(null)} />;
+  if(subPage==="following") return <UserList title="Siguiendo" users={followingList} onNavigate={onNavigate} onBack={()=>setSubPage(null)} />;
 
-  function WatchSearchBox({ onAdd }) {
+  const avatarColor = profile.avatar_color||"#1a1a1a";
+  const avatarEmoji = profile.avatar_emoji||null;
+
+  function WatchSearchBox({ toWishlist }) {
     return (
       <div style={{ ...S.card, border:"1px solid #1a1a1a", marginBottom:16 }}>
         <span style={S.label}>Busca el reloj</span>
-        <input style={S.input} placeholder="Submariner, @rolex_daytona..." value={watchSearch} onChange={e=>{setWatchSearch(e.target.value);searchWatches(e.target.value);}} autoFocus />
+        <input style={S.input} placeholder="Submariner, @rolex_daytona..." value={watchSearch}
+          onChange={e=>{setWatchSearch(e.target.value);searchWatches(e.target.value);}} autoFocus />
         {watchSuggestions.length>0&&(
-          <div style={{ background:"#fff", border:"1px solid #e8e8e8", borderRadius:4, marginTop:4 }}>
+          <div style={{ border:"1px solid #e8e8e8", borderRadius:6, marginTop:4 }}>
             {watchSuggestions.map(w=>(
-              <div key={w.id} style={{ padding:"10px 14px", cursor:"pointer", borderBottom:"1px solid #f5f5f5", display:"flex", justifyContent:"space-between", alignItems:"center" }} onMouseDown={()=>onAdd(w)}>
-                <div><span style={{ fontWeight:600 }}>{w.model}</span><span style={{ ...S.mono, color:"#888", fontSize:12, marginLeft:8 }}>@{w.slug}</span></div>
+              <div key={w.id} style={{ padding:"10px 14px", cursor:"pointer", borderBottom:"1px solid #f5f5f5", display:"flex", justifyContent:"space-between" }} onMouseDown={()=>addWatch(w,toWishlist)}>
+                <div><span style={{ fontWeight:600 }}>{w.model}</span><span style={{ ...S.mono, color:"#aaa", fontSize:11, marginLeft:8 }}>@{w.slug}</span></div>
                 <span style={{ fontSize:12, color:"#2a7a4a" }}>+ Añadir</span>
               </div>
             ))}
           </div>
         )}
-        <div style={{ marginTop:10 }}><button style={S.btn("outline")} onClick={()=>{setShowAddWatch(false);setShowAddWish(false);setWatchSearch("");setWatchSuggestions([]);}}>Cancelar</button></div>
+        <button style={{ ...S.btn("outline"), marginTop:10, fontSize:12 }} onClick={()=>{setShowAddWatch(false);setShowAddWish(false);setWatchSearch("");setWatchSuggestions([]);}}>Cancelar</button>
       </div>
     );
   }
 
   return (
     <div>
-      {/* Header perfil */}
-      <div style={S.card}>
-        <div style={{ ...S.row, marginBottom:16 }}>
-          <div style={{ position:"relative" }}>
-            <Avatar name={profile.name} size={64} color={profile.avatar_color||"#1a1a1a"} emoji={profile.avatar_emoji||null} />
-            {isOwn&&(
-              <div style={{ position:"absolute", bottom:0, right:0, width:20, height:20, background:"#fff", borderRadius:"50%", border:"1px solid #e8e8e8", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:11 }}
-                onClick={()=>setShowAvatarPicker(!showAvatarPicker)}>✏️</div>
-            )}
+      {/* ── Header estilo Instagram ── */}
+      <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
+        {/* Banner de color */}
+        <div style={{ height:100, background:`linear-gradient(135deg, ${avatarColor}dd, ${avatarColor}66)`, position:"relative" }} />
+
+        {/* Avatar + info */}
+        <div style={{ padding:"0 24px 24px" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginTop:-40, marginBottom:16 }}>
+            <div style={{ width:80, height:80, borderRadius:"50%", border:"4px solid #fff", overflow:"hidden", background:avatarColor, display:"flex", alignItems:"center", justifyContent:"center", fontSize:avatarEmoji?36:26, fontWeight:700, color:"#fff", fontFamily:"'DM Mono',monospace", flexShrink:0 }}>
+              {avatarEmoji||(profile.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
+            </div>
+            <div style={S.row}>
+              {!isOwn&&<button style={S.btn(isFollowing?"outline":"primary")} onClick={toggleFollow} disabled={followLoading}>{followLoading?"…":isFollowing?"✓ Siguiendo":"Seguir"}</button>}
+              {isOwn&&<button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("settings")}>⚙️ Ajustes</button>}
+            </div>
           </div>
-          <div style={{ flex:1 }}>
-            <div style={{ ...S.row, gap:6, marginBottom:4, flexWrap:"wrap" }}>
+
+          <div style={{ marginBottom:12 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
               <span style={{ fontSize:20, fontWeight:700 }}>{profile.name}</span>
-              {profile.verified&&<Badge text="Verificado" bg="#f0f6ff" color="#2563eb" />}
+              {profile.verified&&<Badge text="✓" bg="#2563eb" color="#fff" />}
               {profile.account_type==="repairer"&&<Badge text="Taller" bg="#e8f4ec" color="#4a7c59" />}
               {profile.account_type==="brand"&&<Badge text="Marca" bg="#f0f6ff" color="#2563eb" />}
             </div>
-            <div style={{ ...S.mono, fontSize:13, color:"#888", marginBottom:4 }}>@{profile.handle}</div>
-            {profile.location&&<div style={{ fontSize:13, color:"#888" }}>📍 {profile.location}</div>}
+            <div style={{ ...S.mono, fontSize:13, color:"#888", marginBottom:6 }}>@{profile.handle}</div>
+            {profile.location&&<div style={{ fontSize:13, color:"#666", marginBottom:6 }}>📍 {profile.location}</div>}
+            {profile.bio&&<p style={{ fontSize:14, color:"#444", lineHeight:1.6, margin:0 }}>{profile.bio}</p>}
+            {profile.website&&<a href={profile.website} target="_blank" rel="noreferrer" style={{ fontSize:13, color:"#2563eb", display:"block", marginTop:4 }}>{profile.website.replace(/https?:\/\//,"")}</a>}
+          </div>
+
+          {/* Contadores */}
+          <div style={{ display:"flex", gap:32, paddingTop:12, borderTop:"1px solid #f0f0f0" }}>
+            <div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>setSubPage("followers")}>
+              <div style={{ fontWeight:700, fontSize:18 }}>{profile.followers_count||0}</div>
+              <div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>seguidores</div>
+            </div>
+            <div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>setSubPage("following")}>
+              <div style={{ fontWeight:700, fontSize:18 }}>{profile.following_count||0}</div>
+              <div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>siguiendo</div>
+            </div>
+            <div style={{ textAlign:"center" }}>
+              <div style={{ fontWeight:700, fontSize:18 }}>{watches.length}</div>
+              <div style={{ ...S.muted, fontSize:12 }}>relojes</div>
+            </div>
+            <div style={{ textAlign:"center" }}>
+              <div style={{ fontWeight:700, fontSize:18 }}>{posts.length}</div>
+              <div style={{ ...S.muted, fontSize:12 }}>posts</div>
+            </div>
           </div>
         </div>
-
-        {profile.bio&&<p style={{ fontSize:14, color:"#444", lineHeight:1.6, marginBottom:16, borderLeft:"2px solid #e8e8e8", paddingLeft:12 }}>{profile.bio}</p>}
-
-        {showAvatarPicker&&<AvatarPicker currentColor={profile.avatar_color||"#1a1a1a"} currentEmoji={profile.avatar_emoji||null} onSelect={saveAvatar} />}
-
-        {/* Contadores clicables */}
-        <div style={{ display:"flex", gap:28, marginBottom:16 }}>
-          <div style={{ cursor:"pointer" }} onClick={()=>setSubPage("followers")}>
-            <div style={{ fontWeight:700, fontSize:18 }}>{profile.followers_count||0}</div>
-            <div style={{ ...S.muted, textDecoration:"underline" }}>seguidores</div>
-          </div>
-          <div style={{ cursor:"pointer" }} onClick={()=>setSubPage("following")}>
-            <div style={{ fontWeight:700, fontSize:18 }}>{profile.following_count||0}</div>
-            <div style={{ ...S.muted, textDecoration:"underline" }}>siguiendo</div>
-          </div>
-          <div>
-            <div style={{ fontWeight:700, fontSize:18 }}>{watches.length}</div>
-            <div style={S.muted}>relojes</div>
-          </div>
-        </div>
-
-        {!isOwn&&<button style={S.btn(isFollowing?"outline":"primary")} onClick={toggleFollow} disabled={followLoading}>{followLoading?"…":isFollowing?"✓ Siguiendo":"Seguir"}</button>}
-        {isOwn&&<button style={S.btn("outline")} onClick={()=>onNavigate("edit-profile")}>Editar perfil</button>}
       </div>
 
-      {/* Pestañas */}
+      {/* ── Pestañas ── */}
       <div style={{ display:"flex", gap:4, marginBottom:20, flexWrap:"wrap" }}>
-        <button style={S.navLink(tab==="posts")} onClick={()=>setTab("posts")}>Posts ({posts.length})</button>
-        <button style={S.navLink(tab==="coleccion")} onClick={()=>setTab("coleccion")}>Tengo ({watches.length})</button>
-        <button style={S.navLink(tab==="wishlist")} onClick={()=>setTab("wishlist")}>Querría ({wishlist.length})</button>
-        <button style={S.navLink(tab==="siguiendo")} onClick={()=>setTab("siguiendo")}>Siguiendo ({followingList.length})</button>
-        <button style={S.navLink(tab==="seguidores")} onClick={()=>setTab("seguidores")}>Seguidores ({followers.length})</button>
+        {[["posts",`Posts`],["coleccion",`Colección`],["wishlist",`Wish List`],["siguiendo","Siguiendo"],["seguidores","Seguidores"]].map(([id,label])=>(
+          <button key={id} style={S.navLink(tab===id)} onClick={()=>setTab(id)}>{label}</button>
+        ))}
       </div>
 
+      {/* ── Contenido ── */}
       {tab==="posts"&&(
         <div>
           {posts.length===0&&<p style={S.muted}>Sin publicaciones aún.</p>}
@@ -626,13 +606,9 @@ function ProfilePage({ userId, currentUser, onNavigate }) {
 
       {tab==="coleccion"&&(
         <div>
-          {isOwn&&(
-            <div style={{ marginBottom:16 }}>
-              {!showAddWatch?<button style={S.btn("outline")} onClick={()=>setShowAddWatch(true)}>+ Añadir reloj</button>:<WatchSearchBox onAdd={w=>addWatch(w,false)} />}
-            </div>
-          )}
+          {isOwn&&<div style={{ marginBottom:16 }}>{!showAddWatch?<button style={S.btn("outline")} onClick={()=>setShowAddWatch(true)}>+ Añadir reloj</button>:<WatchSearchBox toWishlist={false} />}</div>}
           {watches.length===0&&<p style={S.muted}>Colección vacía.</p>}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
             {watches.map(w=>w.watch&&<WatchCard key={w.id} watch={w.watch} onClick={()=>onNavigate("watch",w.watch.slug)} />)}
           </div>
         </div>
@@ -640,20 +616,13 @@ function ProfilePage({ userId, currentUser, onNavigate }) {
 
       {tab==="wishlist"&&(
         <div>
-          {isOwn&&(
-            <div style={{ marginBottom:16 }}>
-              {!showAddWish?<button style={S.btn("outline")} onClick={()=>setShowAddWish(true)}>+ Añadir a mi lista</button>:<WatchSearchBox onAdd={w=>addWatch(w,true)} />}
-            </div>
-          )}
-          {wishlist.length===0&&<p style={S.muted}>Lista vacía — añade relojes que te gustaría tener.</p>}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
+          {isOwn&&<div style={{ marginBottom:16 }}>{!showAddWish?<button style={S.btn("outline")} onClick={()=>setShowAddWish(true)}>+ Añadir a Wish List</button>:<WatchSearchBox toWishlist={true} />}</div>}
+          {wishlist.length===0&&<p style={S.muted}>Wish List vacía — añade relojes que te gustaría tener.</p>}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
             {wishlist.map(w=>w.watch&&(
               <div key={w.id} style={{ position:"relative" }}>
                 <WatchCard watch={w.watch} onClick={()=>onNavigate("watch",w.watch.slug)} />
-                {isOwn&&(
-                  <button style={{ position:"absolute", top:8, right:8, background:"rgba(0,0,0,0.5)", border:"none", color:"#fff", borderRadius:"50%", width:24, height:24, cursor:"pointer", fontSize:12, display:"flex", alignItems:"center", justifyContent:"center" }}
-                    onClick={e=>{e.stopPropagation();removeFromWishlist(w.watch_id||w.watch.id);}}>×</button>
-                )}
+                {isOwn&&<button style={{ position:"absolute", top:6, right:6, background:"rgba(0,0,0,0.5)", border:"none", color:"#fff", borderRadius:"50%", width:22, height:22, cursor:"pointer", fontSize:12 }} onClick={e=>{e.stopPropagation();removeWish(w.watch.id);}}>×</button>}
               </div>
             ))}
           </div>
@@ -666,13 +635,9 @@ function ProfilePage({ userId, currentUser, onNavigate }) {
           {followingList.map(u=>(
             <div key={u.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("profile",u.id)}>
               <div style={S.row}>
-                <Avatar name={u.name||"?"} size={44} color={u.avatar_color||"#1a1a1a"} emoji={u.avatar_emoji||null} />
-                <div style={{ flex:1 }}>
-                  <div style={{ fontWeight:600 }}>{u.name}{u.verified&&<Badge text="Verificado" bg="#f0f6ff" color="#2563eb" />}</div>
-                  <div style={S.muted}>@{u.handle}{u.location&&` · 📍${u.location}`}</div>
-                </div>
+                <Avatar name={u.name||"?"} size={46} color={u.avatar_color||"#1a1a1a"} emoji={u.avatar_emoji||null} />
+                <div><div style={{ fontWeight:600 }}>{u.name}</div><div style={S.muted}>@{u.handle}{u.location&&` · 📍${u.location}`}</div></div>
               </div>
-              {u.bio&&<p style={{ fontSize:13, color:"#555", margin:"8px 0 0" }}>{u.bio}</p>}
             </div>
           ))}
         </div>
@@ -684,17 +649,93 @@ function ProfilePage({ userId, currentUser, onNavigate }) {
           {followers.map(u=>(
             <div key={u.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("profile",u.id)}>
               <div style={S.row}>
-                <Avatar name={u.name||"?"} size={44} color={u.avatar_color||"#1a1a1a"} emoji={u.avatar_emoji||null} />
-                <div style={{ flex:1 }}>
-                  <div style={{ fontWeight:600 }}>{u.name}{u.verified&&<Badge text="Verificado" bg="#f0f6ff" color="#2563eb" />}</div>
-                  <div style={S.muted}>@{u.handle}{u.location&&` · 📍${u.location}`}</div>
-                </div>
+                <Avatar name={u.name||"?"} size={46} color={u.avatar_color||"#1a1a1a"} emoji={u.avatar_emoji||null} />
+                <div><div style={{ fontWeight:600 }}>{u.name}</div><div style={S.muted}>@{u.handle}{u.location&&` · 📍${u.location}`}</div></div>
               </div>
-              {u.bio&&<p style={{ fontSize:13, color:"#555", margin:"8px 0 0" }}>{u.bio}</p>}
             </div>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── SETTINGS ─────────────────────────────────────────────────────────────────
+function SettingsPage({ user, onSaved }) {
+  const [form, setForm] = useState({ name:"", bio:"", location:"", website:"", avatar_color:"#1a1a1a", avatar_emoji:"" });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
+
+  useEffect(()=>{
+    supabase.from("profiles").select("*").eq("id",user.id).single().then(({data})=>{
+      if(data) setForm({ name:data.name||"", bio:data.bio||"", location:data.location||"", website:data.website||"", avatar_color:data.avatar_color||"#1a1a1a", avatar_emoji:data.avatar_emoji||"" });
+      setLoading(false);
+    });
+  },[user]);
+
+  async function save() {
+    setSaving(true); setMsg(null);
+    const {error}=await supabase.from("profiles").update({ name:form.name, bio:form.bio, location:form.location, website:form.website, avatar_color:form.avatar_color, avatar_emoji:form.avatar_emoji||null }).eq("id",user.id);
+    if(error) setMsg({type:"error",text:error.message});
+    else { setMsg({type:"success",text:"¡Ajustes guardados!"}); setTimeout(onSaved, 1500); }
+    setSaving(false);
+  }
+
+  if(loading) return <Spinner />;
+
+  const preview = form.avatar_emoji || (form.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+
+  return (
+    <div>
+      <h2 style={{ ...S.h1, marginBottom:6 }}>Ajustes</h2>
+      <p style={{ ...S.muted, marginBottom:24 }}>Personaliza tu perfil</p>
+
+      {msg&&<div style={msg.type==="success"?S.success:S.error}>{msg.text}</div>}
+
+      {/* Preview avatar */}
+      <div style={{ ...S.card, textAlign:"center", padding:32, marginBottom:20 }}>
+        <div style={{ width:80, height:80, borderRadius:"50%", background:form.avatar_color, display:"flex", alignItems:"center", justifyContent:"center", fontSize:form.avatar_emoji?36:26, fontWeight:700, color:"#fff", margin:"0 auto 12px", fontFamily:"'DM Mono',monospace" }}>
+          {preview}
+        </div>
+        <div style={{ fontWeight:600, fontSize:16 }}>{form.name||"Tu nombre"}</div>
+        {form.location&&<div style={{ ...S.muted, marginTop:4 }}>📍 {form.location}</div>}
+      </div>
+
+      {/* Color avatar */}
+      <div style={S.card}>
+        <h3 style={{ ...S.h2, marginBottom:16 }}>Color del avatar</h3>
+        <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+          {AVATAR_COLORS.map(c=>(
+            <div key={c} onClick={()=>setF("avatar_color",c)} style={{ width:36, height:36, borderRadius:"50%", background:c, cursor:"pointer", border:form.avatar_color===c?"3px solid #2563eb":"3px solid transparent", boxSizing:"border-box", transition:"transform 0.1s", transform:form.avatar_color===c?"scale(1.15)":"scale(1)" }} />
+          ))}
+        </div>
+      </div>
+
+      {/* Emoji avatar */}
+      <div style={S.card}>
+        <h3 style={{ ...S.h2, marginBottom:16 }}>Emoji del avatar <span style={{ fontWeight:400, color:"#888", fontSize:13 }}>(opcional)</span></h3>
+        <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:12 }}>
+          <div onClick={()=>setF("avatar_emoji","")} style={{ width:44, height:44, borderRadius:"50%", background:form.avatar_color, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", border:!form.avatar_emoji?"3px solid #2563eb":"3px solid transparent", boxSizing:"border-box", fontSize:13, fontWeight:700, color:"#fff", fontFamily:"'DM Mono',monospace" }}>AB</div>
+          {AVATAR_EMOJIS.map(e=>(
+            <div key={e} onClick={()=>setF("avatar_emoji",e)} style={{ width:44, height:44, borderRadius:"50%", background:form.avatar_color, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, cursor:"pointer", border:form.avatar_emoji===e?"3px solid #2563eb":"3px solid transparent", boxSizing:"border-box" }}>{e}</div>
+          ))}
+        </div>
+      </div>
+
+      {/* Info personal */}
+      <div style={S.card}>
+        <h3 style={{ ...S.h2, marginBottom:16 }}>Información personal</h3>
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          <div><span style={S.label}>Nombre</span><input style={S.input} placeholder="Tu nombre" value={form.name} onChange={e=>setF("name",e.target.value)} /></div>
+          <div><span style={S.label}>Bio</span><textarea rows={3} style={{ ...S.input, resize:"none" }} placeholder="Cuéntanos sobre ti y tus relojes…" value={form.bio} onChange={e=>setF("bio",e.target.value)} /></div>
+          <div><span style={S.label}>Ciudad</span><input style={S.input} placeholder="Madrid, Barcelona, Valencia…" value={form.location} onChange={e=>setF("location",e.target.value)} /></div>
+          <div><span style={S.label}>Web</span><input style={S.input} placeholder="https://…" value={form.website} onChange={e=>setF("website",e.target.value)} /></div>
+        </div>
+      </div>
+
+      <button style={{ ...S.btn("primary"), width:"100%", padding:14, fontSize:15 }} onClick={save} disabled={saving}>{saving?"Guardando…":"Guardar cambios"}</button>
     </div>
   );
 }
@@ -711,14 +752,14 @@ function RelojesPage({ onNavigate }) {
     <div>
       <h2 style={{ ...S.h1, marginBottom:6 }}>Relojes</h2>
       <p style={{ ...S.muted, marginBottom:20 }}>Los modelos más icónicos de la relojería</p>
-      <input style={{ ...S.input, marginBottom:24 }} placeholder="Busca por marca o modelo..." value={search} onChange={e=>setSearch(e.target.value)} />
-      {loading ? <Spinner /> : Object.entries(byBrand).map(([brand,ws])=>(
+      <input style={{ ...S.input, marginBottom:24 }} placeholder="Busca por marca o modelo…" value={search} onChange={e=>setSearch(e.target.value)} />
+      {loading?<Spinner />:Object.entries(byBrand).map(([brand,ws])=>(
         <div key={brand} style={{ marginBottom:32 }}>
           <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
             <h3 style={{ fontSize:13, fontWeight:700, fontFamily:"'DM Mono',monospace", letterSpacing:1, textTransform:"uppercase", color:"#666", margin:0 }}>{brand}</h3>
             <span style={{ fontSize:11, color:"#bbb", fontFamily:"'DM Mono',monospace", cursor:"pointer" }} onClick={()=>onNavigate("brand",ws[0]?.brand_slug)}>@{ws[0]?.brand_slug} →</span>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12 }}>
             {ws.map(w=><WatchCard key={w.id} watch={w} onClick={()=>onNavigate("watch",w.slug)} />)}
           </div>
         </div>
@@ -766,13 +807,13 @@ function BrandPage({ brandSlug, currentUser, onNavigate }) {
 
   return (
     <div>
-      <div style={{ height:130, background:bg, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:6, marginBottom:0 }}>
-        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:28, color:"#fff", fontWeight:700 }}>{brand.name}</div>
+      <div style={{ height:140, background:`linear-gradient(135deg, ${bg}, ${bg}aa)`, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:8, marginBottom:0 }}>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:30, color:"#fff", fontWeight:700, letterSpacing:-1 }}>{brand.name}</div>
         <div style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"rgba(255,255,255,0.5)" }}>@{brand.slug}</div>
       </div>
       <div style={{ ...S.card, borderTopLeftRadius:0, borderTopRightRadius:0, borderTop:"none", marginBottom:20 }}>
-        <p style={{ fontSize:14, color:"#555", lineHeight:1.6, margin:"0 0 12px" }}>{brand.description}</p>
-        <div style={{ display:"flex", gap:20 }}>
+        <p style={{ fontSize:14, color:"#555", lineHeight:1.65, margin:"0 0 14px" }}>{brand.description}</p>
+        <div style={{ display:"flex", gap:20, flexWrap:"wrap" }}>
           <span style={S.muted}>📍 {brand.country}</span>
           <span style={S.muted}>🏛 Est. {brand.founded}</span>
           {brand.website&&<a href={brand.website} target="_blank" rel="noreferrer" style={{ ...S.muted, color:"#2563eb" }}>🌐 Web oficial</a>}
@@ -783,7 +824,7 @@ function BrandPage({ brandSlug, currentUser, onNavigate }) {
         <button style={S.navLink(tab==="novedades")} onClick={()=>setTab("novedades")}>Novedades ({news.length})</button>
       </div>
       {tab==="relojes"&&(
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12 }}>
           {watches.map(w=><WatchCard key={w.id} watch={w} onClick={()=>onNavigate("watch",w.slug)} />)}
         </div>
       )}
@@ -809,7 +850,7 @@ function BrandPage({ brandSlug, currentUser, onNavigate }) {
             <div key={n.id} style={S.card}>
               <div style={{ ...S.row, justifyContent:"space-between", marginBottom:8 }}>
                 <div style={{ fontWeight:700 }}>{n.title}</div>
-                <div style={{ display:"flex", gap:6 }}>{n.owners_only&&<Badge text="Solo propietarios" bg="#fff8e8" color="#b8860b" />}<span style={S.muted}>{timeAgo(n.created_at)}</span></div>
+                <div style={{ display:"flex", gap:6 }}>{n.owners_only&&<Badge text="Propietarios" bg="#fff8e8" color="#b8860b" />}<span style={S.muted}>{timeAgo(n.created_at)}</span></div>
               </div>
               <p style={{ fontSize:14, color:"#444", lineHeight:1.6, margin:0 }}>{n.content}</p>
             </div>
@@ -851,9 +892,9 @@ function WatchPage({ slug, currentUser, onNavigate }) {
 
   return (
     <div>
-      <div style={{ height:130, background:bg, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:6, marginBottom:0 }}>
-        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"rgba(255,255,255,0.55)", letterSpacing:3, textTransform:"uppercase", cursor:"pointer" }} onClick={()=>onNavigate("brand",watch.brand_slug)}>@{watch.brand_slug} →</div>
-        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:22, color:"#fff", fontWeight:700 }}>{watch.model}</div>
+      <div style={{ height:140, background:`linear-gradient(135deg, ${bg}, ${bg}88)`, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:6, marginBottom:0 }}>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"rgba(255,255,255,0.6)", letterSpacing:3, textTransform:"uppercase", cursor:"pointer" }} onClick={()=>onNavigate("brand",watch.brand_slug)}>@{watch.brand_slug} →</div>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, color:"#fff", fontWeight:700 }}>{watch.model}</div>
         <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"rgba(255,255,255,0.45)" }}>@{watch.slug}</div>
       </div>
       <div style={{ ...S.card, borderTopLeftRadius:0, borderTopRightRadius:0, borderTop:"none", marginBottom:20 }}>
@@ -869,7 +910,7 @@ function WatchPage({ slug, currentUser, onNavigate }) {
           {Object.keys(specs).length>0?(
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
               {Object.entries(specs).map(([k,v])=>(
-                <div key={k} style={{ background:"#f8f8f6", borderRadius:4, padding:"10px 14px" }}>
+                <div key={k} style={{ background:"#f8f8f6", borderRadius:6, padding:"10px 14px" }}>
                   <div style={S.label}>{k.replace(/_/g," ")}</div>
                   <div style={{ fontSize:14, fontWeight:600 }}>{v}</div>
                 </div>
@@ -883,7 +924,7 @@ function WatchPage({ slug, currentUser, onNavigate }) {
           <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:16 }}>
             <button style={S.btn("primary")} onClick={()=>onNavigate("foros")}>+ Crear foro</button>
           </div>
-          {threads.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin foros aún.</div>}
+          {threads.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin foros aún. ¡Crea el primero!</div>}
           {threads.map(t=>(
             <div key={t.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("thread",t.id)}>
               <div style={{ display:"flex", gap:14 }}>
@@ -907,7 +948,7 @@ function WatchPage({ slug, currentUser, onNavigate }) {
             <div key={n.id} style={S.card}>
               <div style={{ ...S.row, justifyContent:"space-between", marginBottom:8 }}>
                 <div style={{ fontWeight:700 }}>{n.title}</div>
-                <div style={{ display:"flex", gap:6 }}>{n.owners_only&&<Badge text="Solo propietarios" bg="#fff8e8" color="#b8860b" />}<span style={S.muted}>{timeAgo(n.created_at)}</span></div>
+                <span style={S.muted}>{timeAgo(n.created_at)}</span>
               </div>
               <p style={{ fontSize:14, color:"#444", lineHeight:1.6, margin:0 }}>{n.content}</p>
             </div>
@@ -940,8 +981,7 @@ function ForosPage({ currentUser, onNavigate }) {
 
   async function searchW(q, forNew=false) {
     if(!q||q.length<2){forNew?setWatchSuggestions([]):setSuggestions([]);return;}
-    const clean=q.replace(/^@/,"");
-    const {data}=await supabase.from("watches").select("id,slug,model").or(`slug.ilike.%${clean}%,model.ilike.%${clean}%`).limit(6);
+    const {data}=await supabase.from("watches").select("id,slug,model").or(`slug.ilike.%${q.replace(/^@/,"")}%,model.ilike.%${q.replace(/^@/,"")}%`).limit(6);
     forNew?setWatchSuggestions(data||[]):setSuggestions(data||[]);
   }
 
@@ -964,13 +1004,13 @@ function ForosPage({ currentUser, onNavigate }) {
         <button style={S.btn("primary")} onClick={()=>setShowNew(!showNew)}>+ Nuevo foro</button>
       </div>
       <div style={{ position:"relative", marginBottom:24 }}>
-        <input style={{ ...S.input, paddingLeft:36 }} placeholder="Busca @rolex_submariner..." value={search} onChange={e=>{setSearch(e.target.value);searchW(e.target.value);}} />
+        <input style={{ ...S.input, paddingLeft:36 }} placeholder="Busca @rolex_submariner…" value={search} onChange={e=>{setSearch(e.target.value);searchW(e.target.value);}} />
         <span style={{ position:"absolute", left:12, top:10, color:"#888" }}>🔍</span>
         {suggestions.length>0&&(
-          <div style={{ position:"absolute", top:"100%", left:0, right:0, background:"#fff", border:"1px solid #e8e8e8", borderRadius:4, boxShadow:"0 4px 12px rgba(0,0,0,0.08)", zIndex:50 }}>
+          <div style={{ position:"absolute", top:"100%", left:0, right:0, background:"#fff", border:"1px solid #e8e8e8", borderRadius:6, boxShadow:"0 4px 12px rgba(0,0,0,0.08)", zIndex:50 }}>
             {suggestions.map(w=>(
               <div key={w.id} style={{ padding:"10px 14px", cursor:"pointer", borderBottom:"1px solid #f5f5f5" }} onMouseDown={()=>{setSearch("");setSuggestions([]);onNavigate("watch",w.slug);}}>
-                <span style={{ fontWeight:600 }}>{w.model}</span><span style={{ ...S.mono, color:"#888", fontSize:12, marginLeft:8 }}>@{w.slug}</span>
+                <span style={{ fontWeight:600 }}>{w.model}</span><span style={{ ...S.mono, color:"#aaa", fontSize:11, marginLeft:8 }}>@{w.slug}</span>
               </div>
             ))}
           </div>
@@ -982,13 +1022,13 @@ function ForosPage({ currentUser, onNavigate }) {
           {postError&&<div style={S.error}>{postError}</div>}
           <div style={{ marginBottom:12, position:"relative" }}>
             <span style={S.label}>Reloj</span>
-            <input style={S.input} placeholder="@rolex_submariner o nombre..." value={newForm.watchQuery} onChange={e=>{setNewForm(f=>({...f,watchQuery:e.target.value,watchId:null,watchSlug:""}));searchW(e.target.value,true);}} />
+            <input style={S.input} placeholder="@rolex_submariner o nombre del modelo…" value={newForm.watchQuery} onChange={e=>{setNewForm(f=>({...f,watchQuery:e.target.value,watchId:null,watchSlug:""}));searchW(e.target.value,true);}} />
             {newForm.watchId&&<div style={{ marginTop:5, fontSize:12, color:"#2a7a4a", fontFamily:"'DM Mono',monospace" }}>✓ @{newForm.watchSlug}</div>}
             {watchSuggestions.length>0&&!newForm.watchId&&(
-              <div style={{ position:"absolute", top:"100%", left:0, right:0, background:"#fff", border:"1px solid #e8e8e8", borderRadius:4, boxShadow:"0 4px 12px rgba(0,0,0,0.08)", zIndex:50, marginTop:2 }}>
+              <div style={{ position:"absolute", top:"100%", left:0, right:0, background:"#fff", border:"1px solid #e8e8e8", borderRadius:6, boxShadow:"0 4px 12px rgba(0,0,0,0.08)", zIndex:50, marginTop:2 }}>
                 {watchSuggestions.map(w=>(
                   <div key={w.id} style={{ padding:"10px 14px", cursor:"pointer", borderBottom:"1px solid #f5f5f5" }} onMouseDown={()=>{setNewForm(f=>({...f,watchQuery:`@${w.slug}`,watchId:w.id,watchSlug:w.slug}));setWatchSuggestions([]);}}>
-                    <span style={{ fontWeight:600 }}>{w.model}</span><span style={{ ...S.mono, color:"#888", fontSize:12, marginLeft:8 }}>@{w.slug}</span>
+                    <span style={{ fontWeight:600 }}>{w.model}</span><span style={{ ...S.mono, color:"#aaa", fontSize:11, marginLeft:8 }}>@{w.slug}</span>
                   </div>
                 ))}
               </div>
@@ -997,7 +1037,7 @@ function ForosPage({ currentUser, onNavigate }) {
           <div style={{ marginBottom:12 }}>
             <span style={S.label}>Título</span>
             <input style={S.input} placeholder="ej: ¿Vale la pena al precio actual?" value={newForm.title} onChange={e=>setNewForm(f=>({...f,title:e.target.value}))} />
-            {newForm.watchSlug&&newForm.title&&<div style={{ marginTop:5, fontSize:11, color:"#aaa", fontFamily:"'DM Mono',monospace" }}>@{newForm.watchSlug}/{newForm.title.toLowerCase().replace(/\s+/g,"_").replace(/[^a-z0-9_]/g,"").slice(0,30)}</div>}
+            {newForm.watchSlug&&newForm.title&&<div style={{ marginTop:5, fontSize:11, color:"#bbb", fontFamily:"'DM Mono',monospace" }}>@{newForm.watchSlug}/{newForm.title.toLowerCase().replace(/\s+/g,"_").replace(/[^a-z0-9_]/g,"").slice(0,30)}</div>}
           </div>
           <div style={{ marginBottom:16 }}><span style={S.label}>Contenido</span><textarea rows={4} style={{ ...S.input, resize:"none" }} value={newForm.content} onChange={e=>setNewForm(f=>({...f,content:e.target.value}))} /></div>
           <div style={{ display:"flex", justifyContent:"flex-end", gap:8 }}>
@@ -1015,14 +1055,14 @@ function ForosPage({ currentUser, onNavigate }) {
               <div style={{ fontSize:10, color:"#aaa" }}>pts</div>
             </div>
             <div style={{ flex:1 }}>
-              <div style={{ ...S.mono, fontSize:11, color:"#888", marginBottom:3 }}>@{t.watch?.slug}</div>
+              <div style={{ ...S.mono, fontSize:11, color:"#aaa", marginBottom:3 }}>@{t.watch?.slug}</div>
               <div style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>{t.title}</div>
               <div style={{ display:"flex", gap:16 }}><span style={S.muted}>@{t.author?.handle}</span><span style={S.muted}>💬 {t.replies_count||0}</span><span style={S.muted}>{timeAgo(t.created_at)}</span></div>
             </div>
           </div>
         </div>
       ))}
-      {!loading&&recentThreads.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Aún no hay foros.</div>}
+      {!loading&&recentThreads.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin foros aún.</div>}
     </div>
   );
 }
@@ -1039,7 +1079,7 @@ function ThreadPage({ threadId, currentUser, onNavigate }) {
 
   async function load() {
     setLoading(true);
-    const {data:t}=await supabase.from("forum_threads").select("*, author:profiles(id,name,handle,account_type,avatar_color,avatar_emoji), watch:watches(id,slug,model)").eq("id",threadId).single();
+    const {data:t}=await supabase.from("forum_threads").select("*, author:profiles(id,name,handle,avatar_color,avatar_emoji), watch:watches(id,slug,model)").eq("id",threadId).single();
     setThread(t);
     const {data:r}=await supabase.from("forum_replies").select("*, author:profiles(id,name,handle,account_type,avatar_color,avatar_emoji)").eq("thread_id",threadId).order("votes",{ascending:false});
     setReplies(r||[]); setLoading(false);
@@ -1067,10 +1107,10 @@ function ThreadPage({ threadId, currentUser, onNavigate }) {
     <div>
       <button style={{ ...S.btn("outline"), marginBottom:16, fontSize:12 }} onClick={()=>onNavigate("watch",thread.watch?.slug)}>← @{thread.watch?.slug}</button>
       <div style={S.card}>
-        <div style={{ ...S.mono, fontSize:11, color:"#aaa", marginBottom:8 }}>@{thread.watch?.slug} / {thread.title.toLowerCase().replace(/\s+/g,"_").slice(0,30)}</div>
+        <div style={{ ...S.mono, fontSize:11, color:"#bbb", marginBottom:8 }}>@{thread.watch?.slug} / {thread.title.toLowerCase().replace(/\s+/g,"_").slice(0,30)}</div>
         <h2 style={{ ...S.h1, marginBottom:10 }}>{thread.title}</h2>
         <div style={{ ...S.row, marginBottom:14 }}>
-          <Avatar name={thread.author?.name||"?"} size={28} color={thread.author?.avatar_color||"#1a1a1a"} emoji={thread.author?.avatar_emoji||null} />
+          <Avatar name={thread.author?.name||"?"} size={30} color={thread.author?.avatar_color||"#1a1a1a"} emoji={thread.author?.avatar_emoji||null} />
           <span style={S.muted}>@{thread.author?.handle} · {timeAgo(thread.created_at)}</span>
         </div>
         <p style={{ fontSize:15, lineHeight:1.65, margin:"0 0 16px" }}>{thread.content}</p>
@@ -1083,7 +1123,7 @@ function ThreadPage({ threadId, currentUser, onNavigate }) {
       </div>
       <div style={S.card}>
         <span style={S.label}>Tu respuesta</span>
-        <textarea rows={3} style={{ ...S.input, resize:"none", marginBottom:10 }} placeholder="Escribe tu respuesta..." value={content} onChange={e=>setContent(e.target.value)} />
+        <textarea rows={3} style={{ ...S.input, resize:"none", marginBottom:10 }} placeholder="Escribe tu respuesta…" value={content} onChange={e=>setContent(e.target.value)} />
         <div style={{ display:"flex", justifyContent:"flex-end" }}>
           <button style={S.btn("primary")} onClick={submitReply} disabled={posting||!content.trim()}>{posting?"Publicando…":"Responder"}</button>
         </div>
@@ -1111,38 +1151,6 @@ function ThreadPage({ threadId, currentUser, onNavigate }) {
   );
 }
 
-// ─── EDIT PROFILE ─────────────────────────────────────────────────────────────
-function EditProfilePage({ user, onSaved }) {
-  const [form, setForm] = useState({name:"",bio:"",location:"",website:""});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState(null);
-  const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
-  useEffect(()=>{ supabase.from("profiles").select("*").eq("id",user.id).single().then(({data})=>{ if(data) setForm({name:data.name||"",bio:data.bio||"",location:data.location||"",website:data.website||""}); setLoading(false); }); },[user]);
-  async function save() {
-    setSaving(true); setMsg(null);
-    const {error}=await supabase.from("profiles").update(form).eq("id",user.id);
-    if(error) setMsg({type:"error",text:error.message});
-    else{setMsg({type:"success",text:"Perfil actualizado."});setTimeout(onSaved,1200);}
-    setSaving(false);
-  }
-  if(loading) return <Spinner />;
-  return (
-    <div>
-      <h2 style={{ ...S.h1, marginBottom:24 }}>Editar perfil</h2>
-      {msg&&<div style={msg.type==="success"?S.success:S.error}>{msg.text}</div>}
-      <div style={S.card}>
-        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-          {[["name","Nombre","Tu nombre"],["bio","Bio","Cuéntanos sobre ti y tus relojes"],["location","Ciudad","Madrid, Barcelona..."],["website","Web","https://"]].map(([k,label,ph])=>(
-            <div key={k}><span style={S.label}>{label}</span>{k==="bio"?<textarea rows={3} style={{ ...S.input, resize:"none" }} placeholder={ph} value={form[k]} onChange={e=>setF(k,e.target.value)} />:<input style={S.input} placeholder={ph} value={form[k]} onChange={e=>setF(k,e.target.value)} />}</div>
-          ))}
-          <button style={{ ...S.btn("primary"), marginTop:4 }} onClick={save} disabled={saving}>{saving?"Guardando…":"Guardar cambios"}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── EXPLORE ──────────────────────────────────────────────────────────────────
 function ExplorePage({ onNavigate }) {
   const [profiles, setProfiles] = useState([]);
@@ -1165,17 +1173,16 @@ function ExplorePage({ onNavigate }) {
       {loading?<Spinner />:profiles.map(p=>(
         <div key={p.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("profile",p.id)}>
           <div style={S.row}>
-            <Avatar name={p.name} size={44} color={p.avatar_color||"#1a1a1a"} emoji={p.avatar_emoji||null} />
+            <Avatar name={p.name} size={48} color={p.avatar_color||"#1a1a1a"} emoji={p.avatar_emoji||null} />
             <div style={{ flex:1 }}>
-              <div style={{ fontWeight:600 }}>{p.name}{p.verified&&<Badge text="Verificado" bg="#f0f6ff" color="#2563eb" />}{p.account_type==="repairer"&&<Badge text="Taller" bg="#e8f4ec" color="#4a7c59" />}{p.account_type==="brand"&&<Badge text="Marca" bg="#f5f0ff" color="#7c3aed" />}</div>
+              <div style={{ fontWeight:600 }}>{p.name}{p.verified&&<Badge text="✓" bg="#2563eb" color="#fff" />}{p.account_type==="repairer"&&<Badge text="Taller" bg="#e8f4ec" color="#4a7c59" />}{p.account_type==="brand"&&<Badge text="Marca" bg="#f5f0ff" color="#7c3aed" />}</div>
               <div style={S.muted}>@{p.handle}{p.location&&` · 📍${p.location}`}</div>
+              {p.bio&&<p style={{ fontSize:13, color:"#555", margin:"4px 0 0", lineHeight:1.4 }}>{p.bio.slice(0,80)}{p.bio.length>80?"…":""}</p>}
             </div>
-            <div style={{ textAlign:"right" }}><div style={{ fontWeight:700 }}>{p.followers_count||0}</div><div style={S.muted}>seguidores</div></div>
+            <div style={{ textAlign:"right" }}><div style={{ fontWeight:700 }}>{p.followers_count||0}</div><div style={S.muted}>seg.</div></div>
           </div>
-          {p.bio&&<p style={{ fontSize:13, color:"#555", margin:"10px 0 0", lineHeight:1.5 }}>{p.bio}</p>}
         </div>
       ))}
-      {!loading&&profiles.length===0&&<p style={S.muted}>Aún no hay usuarios en esta categoría.</p>}
     </div>
   );
 }
@@ -1215,8 +1222,9 @@ export default function WichWoch() {
         <div style={{ display:"flex", gap:4 }}>{NAV.map(n=><button key={n.id} style={S.navLink(page.name===n.id)} onClick={()=>navigate(n.id)}>{n.label}</button>)}</div>
         <div style={S.row}>
           <div style={{ cursor:"pointer" }} onClick={()=>navigate("profile",session.user.id)}>
-            <Avatar name={profile?.name||session.user.email} size={32} color={profile?.avatar_color||"#1a1a1a"} emoji={profile?.avatar_emoji||null} />
+            <Avatar name={profile?.name||session.user.email} size={34} color={profile?.avatar_color||"#1a1a1a"} emoji={profile?.avatar_emoji||null} />
           </div>
+          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, padding:"0 4px" }} onClick={()=>navigate("settings")} title="Ajustes">⚙️</button>
           <button style={{ ...S.btn("outline"), padding:"5px 12px", fontSize:12 }} onClick={signOut}>Salir</button>
         </div>
       </nav>
@@ -1229,7 +1237,7 @@ export default function WichWoch() {
         {page.name==="brand"&&<BrandPage brandSlug={page.id} currentUser={session.user} onNavigate={navigate} />}
         {page.name==="thread"&&<ThreadPage threadId={page.id} currentUser={session.user} onNavigate={navigate} />}
         {page.name==="profile"&&<ProfilePage userId={page.id} currentUser={session.user} onNavigate={navigate} />}
-        {page.name==="edit-profile"&&<EditProfilePage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
+        {page.name==="settings"&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
       </main>
     </div>
   );
