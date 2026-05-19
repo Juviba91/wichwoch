@@ -43,15 +43,16 @@ function getDailyNews() {
   });
 }
 
-const BRAND_COLORS = { rolex:"#006039", omega:"#c8a84b", patek:"#1a3a6b", ap:"#1a1a1a", iwc:"#8b0000", jlc:"#2c4a2e", tudor:"#6b0000" };
+const BRAND_COLORS = { rolex:"#006039", omega:"#c8a84b", patek:"#1a3a6b", ap:"#1a1a1a", iwc:"#8b0000", jlc:"#2c4a2e", tudor:"#6b0000", cartier:"#8b0000", breitling:"#1a3a6b", tag:"#c00000", vc:"#2c2c5e", hublot:"#2a2a2a", panerai:"#1a3020", gs:"#1a1a3a", zenith:"#1a2744" };
 const BRAND_LOGOS = {
-  rolex:"⌚", omega:"Ω", patek:"P", ap:"AP", iwc:"IWC", jlc:"JLC", tudor:"T"
+  rolex:"⌚", omega:"Ω", patek:"P", ap:"AP", iwc:"IWC", jlc:"JLC", tudor:"T",
+  cartier:"C", breitling:"B", tag:"T", vc:"VC", hublot:"H", panerai:"P", gs:"GS", zenith:"Z"
 };
 const AVATAR_COLORS = ["#1a1a1a","#006039","#1a3a6b","#8b0000","#2c4a2e","#c8a84b","#4a4a8a","#7c3aed","#2563eb","#4a7c59","#b45309","#0369a1"];
 const AVATAR_EMOJIS = ["🕰️","⌚","🔧","🏆","💎","🌟","🎯","🦅","🌊","🏔️","🎖️","🔑","⚓","🎨","🦁"];
 
 function brandColor(slug) { const p=(slug||"").split("_")[0]; return BRAND_COLORS[p]||"#1a1a1a"; }
-function brandFromSlug(slug) { const p=(slug||"").split("_")[0]; return ({rolex:"Rolex",omega:"Omega",patek:"Patek Philippe",ap:"Audemars Piguet",iwc:"IWC",jlc:"Jaeger-LeCoultre",tudor:"Tudor"})[p]||p; }
+function brandFromSlug(slug) { const p=(slug||"").split("_")[0]; return ({rolex:"Rolex",omega:"Omega",patek:"Patek Philippe",ap:"Audemars Piguet",iwc:"IWC",jlc:"Jaeger-LeCoultre",tudor:"Tudor",cartier:"Cartier",breitling:"Breitling",tag:"TAG Heuer",vc:"Vacheron Constantin",hublot:"Hublot",panerai:"Panerai",gs:"Grand Seiko",zenith:"Zenith"})[p]||p; }
 
 function parseContent(text, onNavigate) {
   if(!text) return null;
@@ -128,7 +129,7 @@ function WatchCard({ watch, onClick, size="normal" }) {
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
-function AuthPage() {
+function AuthPage({ onExplore }) {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ email:"", password:"", name:"", handle:"", account_type:"collector" });
   const [loading, setLoading] = useState(false);
@@ -197,7 +198,7 @@ function AuthPage() {
         </div>
         {/* Explorar sin cuenta */}
         <div style={{ textAlign:"center", marginTop:20 }}>
-          <button style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.5)", fontSize:13, fontFamily:"'DM Sans',sans-serif" }} onClick={()=>{}}>
+          <button style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.6)", fontSize:13, fontFamily:"'DM Sans',sans-serif", textDecoration:"underline" }} onClick={onExplore}>
             Explorar sin cuenta →
           </button>
         </div>
@@ -889,7 +890,7 @@ function RelojesPage({ onNavigate }) {
   const [watches, setWatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  useEffect(()=>{ supabase.from("watches").select("*").order("brand_slug").then(({data})=>{ setWatches(data||[]); setLoading(false); }); },[]);
+  useEffect(()=>{ supabase.from("watches").select("id,slug,model,reference,brand_slug,image_url,market_price,watch_type").order("brand_slug").then(({data})=>{ setWatches(data||[]); setLoading(false); }); },[]);
   const filtered=watches.filter(w=>w.model.toLowerCase().includes(search.toLowerCase())||(w.slug||"").includes(search.toLowerCase())||brandFromSlug(w.slug||"").toLowerCase().includes(search.toLowerCase()));
   const byBrand=filtered.reduce((acc,w)=>{ const b=brandFromSlug(w.slug||""); if(!acc[b]) acc[b]=[]; acc[b].push(w); return acc; },{});
   return (
@@ -981,7 +982,7 @@ function BrandPage({ brandSlug, currentUser, onNavigate }) {
 }
 
 // ─── WATCH PAGE ───────────────────────────────────────────────────────────────
-function WatchPage({ slug, currentUser, onNavigate }) {
+function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
   const [watch, setWatch] = useState(null);
   const [threads, setThreads] = useState([]);
   const [news, setNews] = useState([]);
@@ -1012,6 +1013,7 @@ function WatchPage({ slug, currentUser, onNavigate }) {
   }
 
   async function toggleCollection() {
+    if(!currentUser) { onLoginRequired?.(); return; }
     if(!watch) return; setSaving(true);
     if(inCollection) {
       await supabase.from("watch_registrations").delete().match({user_id:currentUser.id,watch_id:watch.id});
@@ -1024,6 +1026,7 @@ function WatchPage({ slug, currentUser, onNavigate }) {
   }
 
   async function toggleWishlist() {
+    if(!currentUser) { onLoginRequired?.(); return; }
     if(!watch) return; setSaving(true);
     if(inWishlist) {
       await supabase.from("watch_wishlist").delete().match({user_id:currentUser.id,watch_id:watch.id});
@@ -1050,16 +1053,22 @@ function WatchPage({ slug, currentUser, onNavigate }) {
           <div style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"rgba(255,255,255,0.5)" }}>@{watch.slug}</div>
         </div>
         {watch.image_url&&!imgError ? (
-          <img src={watch.image_url} alt={watch.model} style={{ height:"85%", objectFit:"contain", filter:"drop-shadow(0 8px 24px rgba(0,0,0,0.4))" }} onError={()=>setImgError(true)} />
+          <img src={watch.image_url} alt={watch.model} style={{ height:"85%", objectFit:"contain", filter:"drop-shadow(0 8px 24px rgba(0,0,0,0.4))" }} onError={()=>setImgError(true)} crossOrigin="anonymous" />
         ) : (
-          <div style={{ fontSize:60, opacity:0.3 }}>⌚</div>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontSize:56, marginBottom:8, opacity:0.6 }}>⌚</div>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:"rgba(255,255,255,0.4)", letterSpacing:1 }}>Ref. {watch.reference}</div>
+          </div>
         )}
       </div>
 
       {/* Info + botones */}
       <div style={{ ...S.card, borderTopLeftRadius:0, borderTopRightRadius:0, borderTop:"none", marginBottom:20 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <span style={{ ...S.mono, fontSize:13, color:"#888" }}>Ref. {watch.reference}{watch.year?` · ${watch.year}`:""}</span>
+          <div>
+            <span style={{ ...S.mono, fontSize:13, color:"#888" }}>Ref. {watch.reference}{watch.year?` · ${watch.year}`:""}</span>
+            {watch.market_price&&<div style={{ fontSize:13, color:"#b8963e", fontWeight:600, marginTop:4 }}>💰 {watch.market_price}</div>}
+          </div>
           <div style={{ display:"flex", gap:8 }}>
             <button style={{ ...S.btn(inCollection?"primary":"outline"), fontSize:12, padding:"6px 14px" }} onClick={toggleCollection} disabled={saving}>
               {inCollection?"✓ En mi colección":"+ Colección"}
@@ -1127,7 +1136,7 @@ function UserBadges({ userId, inline=false }) {
   );
 }
 
-function ForosPage({ currentUser, onNavigate }) {
+function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
   const [topicSearch, setTopicSearch] = useState("");
   const [watchQuery, setWatchQuery] = useState("");
   const [watchSuggestions2, setWatchSuggestions2] = useState([]);
@@ -1200,7 +1209,7 @@ function ForosPage({ currentUser, onNavigate }) {
     <div>
       <div style={{ ...S.row, justifyContent:"space-between", marginBottom:20 }}>
         <div><h2 style={{ ...S.h1, marginBottom:4 }}>Foros</h2><p style={S.muted}>Debates sobre relojes concretos</p></div>
-        <button style={S.btn("primary")} onClick={()=>setShowNew(!showNew)}>+ Nuevo foro</button>
+        <button style={S.btn("primary")} onClick={()=>currentUser?setShowNew(!showNew):onLoginRequired?.()}>+ Nuevo foro</button>
       </div>
 
       {/* Buscador de topics */}
@@ -1269,7 +1278,7 @@ function ForosPage({ currentUser, onNavigate }) {
 }
 
 // ─── THREAD PAGE (bug fix) ────────────────────────────────────────────────────
-function ThreadPage({ threadId, currentUser, onNavigate }) {
+function ThreadPage({ threadId, currentUser, onNavigate, onLoginRequired }) {
   const [thread, setThread] = useState(null);
   const [replies, setReplies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1353,11 +1362,18 @@ function ThreadPage({ threadId, currentUser, onNavigate }) {
           <span style={{ ...S.muted, marginLeft:8 }}>· {thread.replies_count||0} respuestas</span>
         </div>
       </div>
-      <div style={S.card}>
-        <span style={S.label}>Tu respuesta</span>
-        <textarea rows={3} style={{ ...S.input, resize:"none", marginBottom:10 }} value={content} onChange={e=>setContent(e.target.value)} />
-        <div style={{ display:"flex", justifyContent:"flex-end" }}><button style={S.btn("primary")} onClick={submitReply} disabled={posting||!content.trim()}>{posting?"Publicando…":"Responder"}</button></div>
-      </div>
+      {currentUser ? (
+        <div style={S.card}>
+          <span style={S.label}>Tu respuesta</span>
+          <textarea rows={3} style={{ ...S.input, resize:"none", marginBottom:10 }} value={content} onChange={e=>setContent(e.target.value)} />
+          <div style={{ display:"flex", justifyContent:"flex-end" }}><button style={S.btn("primary")} onClick={submitReply} disabled={posting||!content.trim()}>{posting?"Publicando…":"Responder"}</button></div>
+        </div>
+      ) : (
+        <div style={{ ...S.card, textAlign:"center", padding:24, background:"#f8f6f0", border:"1px solid #e8d9b8" }}>
+          <p style={{ margin:"0 0 12px", color:"#666" }}>Regístrate para participar en este debate</p>
+          <button style={S.btn("primary")} onClick={()=>onLoginRequired?.()}>Entrar / Registrarse</button>
+        </div>
+      )}
       {replies.map(r=>(<div key={r.id} style={{ ...S.card, display:"flex", gap:14 }}><div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3, minWidth:36 }}><button style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, color:"#888", padding:0 }} onClick={()=>vote("reply",r.id,1)}>▲</button><span style={{ fontWeight:700, fontSize:13, fontFamily:"'DM Mono',monospace", color:r.votes>0?"#2a7a4a":r.votes<0?"#d44":"#888" }}>{r.votes}</span><button style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, color:"#888", padding:0 }} onClick={()=>vote("reply",r.id,-1)}>▼</button></div><div style={{ flex:1 }}><div style={{ ...S.row, justifyContent:"space-between", marginBottom:8 }}><div style={S.row}><Avatar name={r.author?.name||"?"} size={28} color={r.author?.avatar_color||"#1a2744"} emoji={r.author?.avatar_emoji||null} /><span style={{ fontWeight:600, fontSize:13 }}>@{r.author?.handle}</span>{r.author?.account_type==="repairer"&&<Badge text="Taller" bg="#e8f4ec" color="#4a7c59" />}<UserBadges userId={r.author_id} inline /><span style={S.muted}>{timeAgo(r.created_at)}</span></div>{r.author_id===currentUser?.id&&<button style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color:"#ccc" }} onClick={()=>deleteReply(r.id)}>🗑️</button>}</div><p style={{ fontSize:14, lineHeight:1.6, margin:0 }}>{r.content}</p></div></div>))}
       {replies.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888" }}>Sé el primero en responder.</div>}
     </div>
@@ -1406,6 +1422,7 @@ export default function WichWoch() {
   const [authChecked, setAuthChecked] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [guestMode, setGuestMode] = useState(false);
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{ setSession(session); if(session){ loadProfile(session.user.id); loadUnread(session.user.id); } setAuthChecked(true); });
@@ -1426,40 +1443,48 @@ export default function WichWoch() {
     </div>
   );
 
-  // Si no hay sesión, mostrar explorar con opción de login
-  if(!session) return <AuthPage />;
+  if(!session && !guestMode) return <AuthPage onExplore={()=>setGuestMode(true)} />;
 
-  const NAV=[{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}];
+  const NAV = session
+    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}]
+    : [{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}];
+
+  const currentUser = session ? session.user : null;
 
   return (
     <div style={S.app}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
       <nav style={S.nav}>
-        <div style={{ cursor:"pointer" }} onClick={()=>navigate("feed")}><Logo height={38} /></div>
+        <div style={{ cursor:"pointer" }} onClick={()=>navigate(session?"feed":"explore")}><Logo height={38} /></div>
         <div style={{ display:"flex", gap:4 }}>{NAV.map(n=><button key={n.id} style={S.navLink(page.name===n.id)} onClick={()=>navigate(n.id)}>{n.label}</button>)}</div>
         <div style={{ ...S.row, position:"relative" }}>
-          <div style={{ position:"relative", cursor:"pointer" }} onClick={()=>{ setShowNotifs(!showNotifs); if(!showNotifs) setUnreadCount(0); }}>
-            <span style={{ fontSize:18 }}>🔔</span>
-            {unreadCount>0&&<span style={{ position:"absolute", top:-4, right:-4, background:"#e11d48", color:"#fff", borderRadius:"50%", width:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700 }}>{unreadCount}</span>}
-          </div>
-          {showNotifs&&session&&<NotificationsPanel userId={session.user.id} onClose={()=>setShowNotifs(false)} onNavigate={navigate} />}
-          <div style={{ cursor:"pointer" }} onClick={()=>navigate("profile",session.user.id)}>
-            <Avatar name={profile?.name||session.user.email} size={34} color={profile?.avatar_color||"#1a2744"} emoji={profile?.avatar_emoji||null} />
-          </div>
-          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, padding:"0 2px" }} onClick={()=>navigate("settings")}>⚙️</button>
-          <button style={{ background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", color:"#fff", padding:"5px 12px", borderRadius:6, fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={signOut}>Salir</button>
+          {session ? (<>
+            <div style={{ position:"relative", cursor:"pointer" }} onClick={()=>{ setShowNotifs(!showNotifs); if(!showNotifs) setUnreadCount(0); }}>
+              <span style={{ fontSize:18 }}>🔔</span>
+              {unreadCount>0&&<span style={{ position:"absolute", top:-4, right:-4, background:"#e11d48", color:"#fff", borderRadius:"50%", width:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700 }}>{unreadCount}</span>}
+            </div>
+            {showNotifs&&<NotificationsPanel userId={session.user.id} onClose={()=>setShowNotifs(false)} onNavigate={navigate} />}
+            <div style={{ cursor:"pointer" }} onClick={()=>navigate("profile",session.user.id)}>
+              <Avatar name={profile?.name||session.user.email} size={34} color={profile?.avatar_color||"#1a2744"} emoji={profile?.avatar_emoji||null} />
+            </div>
+            <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, padding:"0 2px" }} onClick={()=>navigate("settings")}>⚙️</button>
+            <button style={{ background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", color:"#fff", padding:"5px 12px", borderRadius:6, fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={signOut}>Salir</button>
+          </>) : (
+            <button style={{ background:"#b8963e", border:"none", cursor:"pointer", color:"#fff", padding:"7px 16px", borderRadius:6, fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={()=>setGuestMode(false)}>Entrar / Registrarse</button>
+          )}
         </div>
       </nav>
       <main style={S.main}>
-        {page.name==="feed"&&<FeedPage user={session.user} onNavigate={navigate} />}
-        {page.name==="explore"&&<ExplorePage onNavigate={navigate} currentUser={session.user} />}
+        {page.name==="feed"&&session&&<FeedPage user={session.user} onNavigate={navigate} />}
+        {page.name==="feed"&&!session&&<ExplorePage onNavigate={navigate} currentUser={null} />}
+        {page.name==="explore"&&<ExplorePage onNavigate={navigate} currentUser={currentUser} />}
         {page.name==="relojes"&&<RelojesPage onNavigate={navigate} />}
-        {page.name==="foros"&&<ForosPage currentUser={session.user} onNavigate={navigate} />}
-        {page.name==="watch"&&<WatchPage slug={page.id} currentUser={session.user} onNavigate={navigate} />}
-        {page.name==="brand"&&<BrandPage brandSlug={page.id} currentUser={session.user} onNavigate={navigate} />}
-        {page.name==="thread"&&<ThreadPage threadId={page.id} currentUser={session.user} onNavigate={navigate} />}
-        {page.name==="profile"&&<ProfilePage userId={page.id} currentUser={session.user} onNavigate={navigate} />}
-        {page.name==="settings"&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
+        {page.name==="foros"&&<ForosPage currentUser={currentUser} onNavigate={navigate} onLoginRequired={()=>setGuestMode(false)} />}
+        {page.name==="watch"&&<WatchPage slug={page.id} currentUser={currentUser} onNavigate={navigate} onLoginRequired={()=>setGuestMode(false)} />}
+        {page.name==="brand"&&<BrandPage brandSlug={page.id} currentUser={currentUser} onNavigate={navigate} />}
+        {page.name==="thread"&&<ThreadPage threadId={page.id} currentUser={currentUser} onNavigate={navigate} onLoginRequired={()=>setGuestMode(false)} />}
+        {page.name==="profile"&&<ProfilePage userId={page.id} currentUser={currentUser||{id:""}} onNavigate={navigate} />}
+        {page.name==="settings"&&session&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
       </main>
     </div>
   );
