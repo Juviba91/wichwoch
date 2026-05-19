@@ -237,13 +237,18 @@ function ExplorePage({ onNavigate, currentUser }) {
 
   async function doSearch(q) {
     setSearching(true);
-    const clean=q.replace(/^@/,"");
-    const [u,w,t]=await Promise.all([
-      supabase.from("profiles").select("id,name,handle,bio,account_type,avatar_color,avatar_emoji,location,followers_count").or(`name.ilike.%${clean}%,handle.ilike.%${clean}%`).limit(5),
-      supabase.from("watches").select("*").or(`model.ilike.%${clean}%,slug.ilike.%${clean}%`).limit(6),
-      supabase.from("forum_threads").select("id,title,content,watch:watches(slug,model)").ilike("title",`%${clean}%`).limit(4),
-    ]);
-    setSearchResults({ users:u.data||[], watches:w.data||[], threads:t.data||[] });
+    try {
+      const clean=q.replace(/^@/,"");
+      const [u,w,t]=await Promise.all([
+        supabase.from("profiles").select("id,name,handle,bio,account_type,avatar_color,avatar_emoji,location,followers_count").or(`name.ilike.%${clean}%,handle.ilike.%${clean}%`).limit(5),
+        supabase.from("watches").select("id,slug,model,reference,brand_slug,image_url").or(`model.ilike.%${clean}%,slug.ilike.%${clean}%`).limit(6),
+        supabase.from("forum_threads").select("id,title,content,watch:watches(slug,model)").ilike("title",`%${clean}%`).limit(4),
+      ]);
+      setSearchResults({ users:u.data||[], watches:w.data||[], threads:t.data||[] });
+    } catch(e) {
+      console.error("Search error:", e);
+      setSearchResults({ users:[], watches:[], threads:[] });
+    }
     setSearching(false);
   }
 
@@ -929,14 +934,17 @@ function BrandPage({ brandSlug, currentUser, onNavigate }) {
 
   async function load() {
     setLoading(true);
-    const [{data:b},{data:w},{data:n},{data:profile}]=await Promise.all([
-      supabase.from("brand_pages").select("*").eq("slug",brandSlug).single(),
-      supabase.from("watches").select("*").eq("brand_slug",brandSlug).order("model"),
-      supabase.from("brand_news").select("*").eq("brand_slug",brandSlug).order("created_at",{ascending:false}),
-      supabase.from("profiles").select("account_type,handle").eq("id",currentUser.id).single(),
-    ]);
-    setBrand(b); setWatches(w||[]); setNews(n||[]);
-    setIsOwner(profile?.account_type==="brand"&&profile?.handle===brandSlug);
+    try {
+      const queries = [
+        supabase.from("brand_pages").select("*").eq("slug",brandSlug).single(),
+        supabase.from("watches").select("*").eq("brand_slug",brandSlug).order("model"),
+        supabase.from("brand_news").select("*").eq("brand_slug",brandSlug).order("created_at",{ascending:false}),
+      ];
+      if(currentUser?.id) queries.push(supabase.from("profiles").select("account_type,handle").eq("id",currentUser.id).single());
+      const results = await Promise.all(queries);
+      setBrand(results[0].data); setWatches(results[1].data||[]); setNews(results[2].data||[]);
+      if(currentUser?.id) setIsOwner(results[3].data?.account_type==="brand"&&results[3].data?.handle===brandSlug);
+    } catch(e) { console.error("BrandPage error:", e); }
     setLoading(false);
   }
 
@@ -1000,14 +1008,17 @@ function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
     const {data:w}=await supabase.from("watches").select("*").eq("slug",slug).single();
     setWatch(w);
     if(w) {
-      const [{data:t},{data:n},{data:col},{data:wish}]=await Promise.all([
+      const queries = [
         supabase.from("forum_threads").select("*, author:profiles(id,name,handle)").eq("watch_id",w.id).order("votes",{ascending:false}).limit(10),
         supabase.from("brand_news").select("*").eq("brand_slug",w.brand_slug||"").order("created_at",{ascending:false}).limit(10),
-        supabase.from("watch_registrations").select("id").eq("user_id",currentUser.id).eq("watch_id",w.id).maybeSingle(),
-        supabase.from("watch_wishlist").select("id").eq("user_id",currentUser.id).eq("watch_id",w.id).maybeSingle(),
-      ]);
-      setThreads(t||[]); setNews(n||[]);
-      setInCollection(!!col); setInWishlist(!!wish);
+      ];
+      if(currentUser?.id) {
+        queries.push(supabase.from("watch_registrations").select("id").eq("user_id",currentUser.id).eq("watch_id",w.id).maybeSingle());
+        queries.push(supabase.from("watch_wishlist").select("id").eq("user_id",currentUser.id).eq("watch_id",w.id).maybeSingle());
+      }
+      const results = await Promise.all(queries);
+      setThreads(results[0].data||[]); setNews(results[1].data||[]);
+      if(currentUser?.id) { setInCollection(!!results[2].data); setInWishlist(!!results[3].data); }
     }
     setLoading(false);
   }
@@ -1443,7 +1454,7 @@ export default function WichWoch() {
     </div>
   );
 
-  if(!session && !guestMode) return <AuthPage onExplore={()=>setGuestMode(true)} />;
+  if(!session && !guestMode) return <AuthPage onExplore={()=>{ setGuestMode(true); setPage({name:"explore"}); }} />;
 
   const NAV = session
     ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}]
