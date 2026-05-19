@@ -43,15 +43,16 @@ function getDailyNews() {
   });
 }
 
-const BRAND_COLORS = { rolex:"#006039", omega:"#c8a84b", patek:"#1a3a6b", ap:"#1a1a1a", iwc:"#8b0000", jlc:"#2c4a2e", tudor:"#6b0000" };
+const BRAND_COLORS = { rolex:"#006039", omega:"#c8a84b", patek:"#1a3a6b", ap:"#1a1a1a", iwc:"#8b0000", jlc:"#2c4a2e", tudor:"#6b0000", cartier:"#8b0000", breitling:"#1a3a6b", tag:"#c00000", vc:"#2c2c5e", hublot:"#2a2a2a", panerai:"#1a3020", gs:"#1a1a3a", zenith:"#1a2744" };
 const BRAND_LOGOS = {
-  rolex:"⌚", omega:"Ω", patek:"P", ap:"AP", iwc:"IWC", jlc:"JLC", tudor:"T"
+  rolex:"⌚", omega:"Ω", patek:"P", ap:"AP", iwc:"IWC", jlc:"JLC", tudor:"T",
+  cartier:"C", breitling:"B", tag:"T", vc:"VC", hublot:"H", panerai:"P", gs:"GS", zenith:"Z"
 };
 const AVATAR_COLORS = ["#1a1a1a","#006039","#1a3a6b","#8b0000","#2c4a2e","#c8a84b","#4a4a8a","#7c3aed","#2563eb","#4a7c59","#b45309","#0369a1"];
 const AVATAR_EMOJIS = ["🕰️","⌚","🔧","🏆","💎","🌟","🎯","🦅","🌊","🏔️","🎖️","🔑","⚓","🎨","🦁"];
 
 function brandColor(slug) { const p=(slug||"").split("_")[0]; return BRAND_COLORS[p]||"#1a1a1a"; }
-function brandFromSlug(slug) { const p=(slug||"").split("_")[0]; return ({rolex:"Rolex",omega:"Omega",patek:"Patek Philippe",ap:"Audemars Piguet",iwc:"IWC",jlc:"Jaeger-LeCoultre",tudor:"Tudor"})[p]||p; }
+function brandFromSlug(slug) { const p=(slug||"").split("_")[0]; return ({rolex:"Rolex",omega:"Omega",patek:"Patek Philippe",ap:"Audemars Piguet",iwc:"IWC",jlc:"Jaeger-LeCoultre",tudor:"Tudor",cartier:"Cartier",breitling:"Breitling",tag:"TAG Heuer",vc:"Vacheron Constantin",hublot:"Hublot",panerai:"Panerai",gs:"Grand Seiko",zenith:"Zenith"})[p]||p; }
 
 function parseContent(text, onNavigate) {
   if(!text) return null;
@@ -128,7 +129,7 @@ function WatchCard({ watch, onClick, size="normal" }) {
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
-function AuthPage() {
+function AuthPage({ onExplore }) {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ email:"", password:"", name:"", handle:"", account_type:"collector" });
   const [loading, setLoading] = useState(false);
@@ -197,7 +198,7 @@ function AuthPage() {
         </div>
         {/* Explorar sin cuenta */}
         <div style={{ textAlign:"center", marginTop:20 }}>
-          <button style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.5)", fontSize:13, fontFamily:"'DM Sans',sans-serif" }} onClick={()=>{}}>
+          <button style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.6)", fontSize:13, fontFamily:"'DM Sans',sans-serif", textDecoration:"underline" }} onClick={onExplore}>
             Explorar sin cuenta →
           </button>
         </div>
@@ -1059,7 +1060,10 @@ function WatchPage({ slug, currentUser, onNavigate }) {
       {/* Info + botones */}
       <div style={{ ...S.card, borderTopLeftRadius:0, borderTopRightRadius:0, borderTop:"none", marginBottom:20 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <span style={{ ...S.mono, fontSize:13, color:"#888" }}>Ref. {watch.reference}{watch.year?` · ${watch.year}`:""}</span>
+          <div>
+            <span style={{ ...S.mono, fontSize:13, color:"#888" }}>Ref. {watch.reference}{watch.year?` · ${watch.year}`:""}</span>
+            {watch.market_price&&<div style={{ fontSize:13, color:"#b8963e", fontWeight:600, marginTop:4 }}>💰 {watch.market_price}</div>}
+          </div>
           <div style={{ display:"flex", gap:8 }}>
             <button style={{ ...S.btn(inCollection?"primary":"outline"), fontSize:12, padding:"6px 14px" }} onClick={toggleCollection} disabled={saving}>
               {inCollection?"✓ En mi colección":"+ Colección"}
@@ -1427,39 +1431,52 @@ export default function WichWoch() {
   );
 
   // Si no hay sesión, mostrar explorar con opción de login
-  if(!session) return <AuthPage />;
+  const [guestMode, setGuestMode] = useState(false);
 
-  const NAV=[{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}];
+  if(!session && !guestMode) return <AuthPage onExplore={()=>setGuestMode(true)} />;
+
+  const NAV = session
+    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}]
+    : [{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"}];
+
+  const currentUser = session ? session.user : null;
 
   return (
     <div style={S.app}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
       <nav style={S.nav}>
-        <div style={{ cursor:"pointer" }} onClick={()=>navigate("feed")}><Logo height={38} /></div>
+        <div style={{ cursor:"pointer" }} onClick={()=>navigate(session?"feed":"explore")}><Logo height={38} /></div>
         <div style={{ display:"flex", gap:4 }}>{NAV.map(n=><button key={n.id} style={S.navLink(page.name===n.id)} onClick={()=>navigate(n.id)}>{n.label}</button>)}</div>
         <div style={{ ...S.row, position:"relative" }}>
-          <div style={{ position:"relative", cursor:"pointer" }} onClick={()=>{ setShowNotifs(!showNotifs); if(!showNotifs) setUnreadCount(0); }}>
-            <span style={{ fontSize:18 }}>🔔</span>
-            {unreadCount>0&&<span style={{ position:"absolute", top:-4, right:-4, background:"#e11d48", color:"#fff", borderRadius:"50%", width:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700 }}>{unreadCount}</span>}
-          </div>
-          {showNotifs&&session&&<NotificationsPanel userId={session.user.id} onClose={()=>setShowNotifs(false)} onNavigate={navigate} />}
-          <div style={{ cursor:"pointer" }} onClick={()=>navigate("profile",session.user.id)}>
-            <Avatar name={profile?.name||session.user.email} size={34} color={profile?.avatar_color||"#1a2744"} emoji={profile?.avatar_emoji||null} />
-          </div>
-          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, padding:"0 2px" }} onClick={()=>navigate("settings")}>⚙️</button>
-          <button style={{ background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", color:"#fff", padding:"5px 12px", borderRadius:6, fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={signOut}>Salir</button>
+          {session ? (<>
+            <div style={{ position:"relative", cursor:"pointer" }} onClick={()=>{ setShowNotifs(!showNotifs); if(!showNotifs) setUnreadCount(0); }}>
+              <span style={{ fontSize:18 }}>🔔</span>
+              {unreadCount>0&&<span style={{ position:"absolute", top:-4, right:-4, background:"#e11d48", color:"#fff", borderRadius:"50%", width:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700 }}>{unreadCount}</span>}
+            </div>
+            {showNotifs&&<NotificationsPanel userId={session.user.id} onClose={()=>setShowNotifs(false)} onNavigate={navigate} />}
+            <div style={{ cursor:"pointer" }} onClick={()=>navigate("profile",session.user.id)}>
+              <Avatar name={profile?.name||session.user.email} size={34} color={profile?.avatar_color||"#1a2744"} emoji={profile?.avatar_emoji||null} />
+            </div>
+            <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, padding:"0 2px" }} onClick={()=>navigate("settings")}>⚙️</button>
+            <button style={{ background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", color:"#fff", padding:"5px 12px", borderRadius:6, fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={signOut}>Salir</button>
+          </>) : (
+            <button style={{ background:"#b8963e", border:"none", cursor:"pointer", color:"#fff", padding:"7px 16px", borderRadius:6, fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={()=>setGuestMode(false)}>Entrar / Registrarse</button>
+          )}
         </div>
       </nav>
       <main style={S.main}>
-        {page.name==="feed"&&<FeedPage user={session.user} onNavigate={navigate} />}
-        {page.name==="explore"&&<ExplorePage onNavigate={navigate} currentUser={session.user} />}
+        {page.name==="feed"&&session&&<FeedPage user={session.user} onNavigate={navigate} />}
+        {page.name==="feed"&&!session&&<ExplorePage onNavigate={navigate} currentUser={null} />}
+        {page.name==="explore"&&<ExplorePage onNavigate={navigate} currentUser={currentUser} />}
         {page.name==="relojes"&&<RelojesPage onNavigate={navigate} />}
-        {page.name==="foros"&&<ForosPage currentUser={session.user} onNavigate={navigate} />}
-        {page.name==="watch"&&<WatchPage slug={page.id} currentUser={session.user} onNavigate={navigate} />}
-        {page.name==="brand"&&<BrandPage brandSlug={page.id} currentUser={session.user} onNavigate={navigate} />}
-        {page.name==="thread"&&<ThreadPage threadId={page.id} currentUser={session.user} onNavigate={navigate} />}
-        {page.name==="profile"&&<ProfilePage userId={page.id} currentUser={session.user} onNavigate={navigate} />}
-        {page.name==="settings"&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
+        {page.name==="foros"&&currentUser&&<ForosPage currentUser={currentUser} onNavigate={navigate} />}
+        {page.name==="foros"&&!currentUser&&<div style={{ ...S.card, textAlign:"center", padding:40 }}><p>Regístrate para participar en los foros.</p><button style={S.btn("primary")} onClick={()=>setGuestMode(false)}>Entrar / Registrarse</button></div>}
+        {page.name==="watch"&&<WatchPage slug={page.id} currentUser={currentUser} onNavigate={navigate} />}
+        {page.name==="brand"&&<BrandPage brandSlug={page.id} currentUser={currentUser} onNavigate={navigate} />}
+        {page.name==="thread"&&currentUser&&<ThreadPage threadId={page.id} currentUser={currentUser} onNavigate={navigate} />}
+        {page.name==="thread"&&!currentUser&&<div style={{ ...S.card, textAlign:"center", padding:40 }}><p>Regístrate para leer y participar en los foros.</p><button style={S.btn("primary")} onClick={()=>setGuestMode(false)}>Entrar / Registrarse</button></div>}
+        {page.name==="profile"&&<ProfilePage userId={page.id} currentUser={currentUser||{id:""}} onNavigate={navigate} />}
+        {page.name==="settings"&&session&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
       </main>
     </div>
   );
