@@ -1410,6 +1410,7 @@ export default function WichWoch() {
   const [authChecked, setAuthChecked] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [guestMode, setGuestMode] = useState(false);
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{ setSession(session); if(session){ loadProfile(session.user.id); loadUnread(session.user.id); } setAuthChecked(true); });
@@ -1429,9 +1430,6 @@ export default function WichWoch() {
       <Logo height={60} />
     </div>
   );
-
-  // Si no hay sesión, mostrar explorar con opción de login
-  const [guestMode, setGuestMode] = useState(false);
 
   if(!session && !guestMode) return <AuthPage onExplore={()=>setGuestMode(true)} />;
 
