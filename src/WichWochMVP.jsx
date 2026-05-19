@@ -1000,14 +1000,17 @@ function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
     const {data:w}=await supabase.from("watches").select("*").eq("slug",slug).single();
     setWatch(w);
     if(w) {
-      const [{data:t},{data:n},{data:col},{data:wish}]=await Promise.all([
+      const queries = [
         supabase.from("forum_threads").select("*, author:profiles(id,name,handle)").eq("watch_id",w.id).order("votes",{ascending:false}).limit(10),
         supabase.from("brand_news").select("*").eq("brand_slug",w.brand_slug||"").order("created_at",{ascending:false}).limit(10),
-        supabase.from("watch_registrations").select("id").eq("user_id",currentUser.id).eq("watch_id",w.id).maybeSingle(),
-        supabase.from("watch_wishlist").select("id").eq("user_id",currentUser.id).eq("watch_id",w.id).maybeSingle(),
-      ]);
-      setThreads(t||[]); setNews(n||[]);
-      setInCollection(!!col); setInWishlist(!!wish);
+      ];
+      if(currentUser?.id) {
+        queries.push(supabase.from("watch_registrations").select("id").eq("user_id",currentUser.id).eq("watch_id",w.id).maybeSingle());
+        queries.push(supabase.from("watch_wishlist").select("id").eq("user_id",currentUser.id).eq("watch_id",w.id).maybeSingle());
+      }
+      const results = await Promise.all(queries);
+      setThreads(results[0].data||[]); setNews(results[1].data||[]);
+      if(currentUser?.id) { setInCollection(!!results[2].data); setInWishlist(!!results[3].data); }
     }
     setLoading(false);
   }
