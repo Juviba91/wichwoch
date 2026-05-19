@@ -1443,7 +1443,7 @@ export default function WichWoch() {
     </div>
   );
 
-  if(!session && !guestMode) return <AuthPage onExplore={()=>setGuestMode(true)} />;
+  if(!session && !guestMode) return <AuthPage onExplore={()=>{ setGuestMode(true); setPage({name:"explore"}); }} />;
 
   const NAV = session
     ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}]
