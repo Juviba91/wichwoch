@@ -237,13 +237,18 @@ function ExplorePage({ onNavigate, currentUser }) {
 
   async function doSearch(q) {
     setSearching(true);
-    const clean=q.replace(/^@/,"");
-    const [u,w,t]=await Promise.all([
-      supabase.from("profiles").select("id,name,handle,bio,account_type,avatar_color,avatar_emoji,location,followers_count").or(`name.ilike.%${clean}%,handle.ilike.%${clean}%`).limit(5),
-      supabase.from("watches").select("*").or(`model.ilike.%${clean}%,slug.ilike.%${clean}%`).limit(6),
-      supabase.from("forum_threads").select("id,title,content,watch:watches(slug,model)").ilike("title",`%${clean}%`).limit(4),
-    ]);
-    setSearchResults({ users:u.data||[], watches:w.data||[], threads:t.data||[] });
+    try {
+      const clean=q.replace(/^@/,"");
+      const [u,w,t]=await Promise.all([
+        supabase.from("profiles").select("id,name,handle,bio,account_type,avatar_color,avatar_emoji,location,followers_count").or(`name.ilike.%${clean}%,handle.ilike.%${clean}%`).limit(5),
+        supabase.from("watches").select("id,slug,model,reference,brand_slug,image_url").or(`model.ilike.%${clean}%,slug.ilike.%${clean}%`).limit(6),
+        supabase.from("forum_threads").select("id,title,content,watch:watches(slug,model)").ilike("title",`%${clean}%`).limit(4),
+      ]);
+      setSearchResults({ users:u.data||[], watches:w.data||[], threads:t.data||[] });
+    } catch(e) {
+      console.error("Search error:", e);
+      setSearchResults({ users:[], watches:[], threads:[] });
+    }
     setSearching(false);
   }
 
