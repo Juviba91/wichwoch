@@ -934,14 +934,17 @@ function BrandPage({ brandSlug, currentUser, onNavigate }) {
 
   async function load() {
     setLoading(true);
-    const [{data:b},{data:w},{data:n},{data:profile}]=await Promise.all([
-      supabase.from("brand_pages").select("*").eq("slug",brandSlug).single(),
-      supabase.from("watches").select("*").eq("brand_slug",brandSlug).order("model"),
-      supabase.from("brand_news").select("*").eq("brand_slug",brandSlug).order("created_at",{ascending:false}),
-      supabase.from("profiles").select("account_type,handle").eq("id",currentUser.id).single(),
-    ]);
-    setBrand(b); setWatches(w||[]); setNews(n||[]);
-    setIsOwner(profile?.account_type==="brand"&&profile?.handle===brandSlug);
+    try {
+      const queries = [
+        supabase.from("brand_pages").select("*").eq("slug",brandSlug).single(),
+        supabase.from("watches").select("*").eq("brand_slug",brandSlug).order("model"),
+        supabase.from("brand_news").select("*").eq("brand_slug",brandSlug).order("created_at",{ascending:false}),
+      ];
+      if(currentUser?.id) queries.push(supabase.from("profiles").select("account_type,handle").eq("id",currentUser.id).single());
+      const results = await Promise.all(queries);
+      setBrand(results[0].data); setWatches(results[1].data||[]); setNews(results[2].data||[]);
+      if(currentUser?.id) setIsOwner(results[3].data?.account_type==="brand"&&results[3].data?.handle===brandSlug);
+    } catch(e) { console.error("BrandPage error:", e); }
     setLoading(false);
   }
 
