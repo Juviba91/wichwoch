@@ -438,17 +438,27 @@ function PostComposer({ user, onPosted }) {
 }
 
 // ─── POST CARD ────────────────────────────────────────────────────────────────
-function PostCard({ post, currentUser, onNavigate }) {
+function PostCard({ post, currentUser, onNavigate, onDeleted }) {
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(post.likes_count||0);
   const [showComments, setShowComments] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const author=post.author;
+  const isOwn = post.author_id===currentUser?.id;
 
   async function toggleLike() {
     if(liked){await supabase.from("likes").delete().match({user_id:currentUser.id,post_id:post.id});setLikes(l=>l-1);}
     else{await supabase.from("likes").insert({user_id:currentUser.id,post_id:post.id});setLikes(l=>l+1);}
     setLiked(!liked);
   }
+
+  async function deletePost() {
+    if(!window.confirm("¿Borrar este post?")) return;
+    await supabase.from("posts").delete().eq("id",post.id);
+    setDeleted(true); if(onDeleted) onDeleted();
+  }
+
+  if(deleted) return null;
 
   function getYouTubeId(url) { const m=url?.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/); return m?m[1]:null; }
 
@@ -463,6 +473,7 @@ function PostCard({ post, currentUser, onNavigate }) {
             {author?.name}
             {author?.account_type==="repairer"&&<Badge text="Taller" bg="#e8f4ec" color="#4a7c59" />}
             {author?.account_type==="brand"&&<Badge text="Marca" bg="#f0f6ff" color="#2563eb" />}
+            <UserBadges userId={post.author_id} inline />
           </div>
           <div style={{ display:"flex", gap:8 }}>
             <span style={S.muted}>@{author?.handle} · {timeAgo(post.created_at)}</span>
@@ -497,13 +508,16 @@ function PostCard({ post, currentUser, onNavigate }) {
           <span style={{ ...S.mono, color:"#b8963e", fontSize:11 }}>@{post.watch.slug}</span>
         </div>
       )}
-      <div style={{ ...S.row, borderTop:"1px solid #f5f3ef", paddingTop:10, marginTop:4 }}>
-        <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:liked?"#e11d48":"#888", fontFamily:"'DM Sans',sans-serif", padding:"0 8px 0 0", display:"flex", alignItems:"center", gap:4 }} onClick={toggleLike}>
-          {liked?"♥":"♡"} {likes}
-        </button>
-        <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:showComments?"#1a2744":"#888", fontFamily:"'DM Sans',sans-serif", padding:0, display:"flex", alignItems:"center", gap:4 }} onClick={()=>setShowComments(!showComments)}>
-          💬 {post.comments_count||0}
-        </button>
+      <div style={{ ...S.row, borderTop:"1px solid #f5f3ef", paddingTop:10, marginTop:4, justifyContent:"space-between" }}>
+        <div style={S.row}>
+          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:liked?"#e11d48":"#888", fontFamily:"'DM Sans',sans-serif", padding:"0 8px 0 0", display:"flex", alignItems:"center", gap:4 }} onClick={toggleLike}>
+            {liked?"♥":"♡"} {likes}
+          </button>
+          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:showComments?"#1a2744":"#888", fontFamily:"'DM Sans',sans-serif", padding:0, display:"flex", alignItems:"center", gap:4 }} onClick={()=>setShowComments(!showComments)}>
+            💬 {post.comments_count||0}
+          </button>
+        </div>
+        {isOwn&&<button style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:"#ccc", fontFamily:"'DM Sans',sans-serif", padding:0 }} onClick={deletePost}>🗑️ Borrar</button>}
       </div>
       {showComments&&<CommentsSection postId={post.id} currentUser={currentUser} />}
     </div>
@@ -1092,32 +1106,81 @@ function WatchPage({ slug, currentUser, onNavigate }) {
 }
 
 // ─── FOROS PAGE ───────────────────────────────────────────────────────────────
+
+// ─── USER BADGES ──────────────────────────────────────────────────────────────
+function UserBadges({ userId, inline=false }) {
+  const [badges, setBadges] = useState([]);
+  useEffect(()=>{
+    if(!userId) return;
+    supabase.from("user_badges").select("*").eq("user_id",userId).then(({data})=>setBadges(data||[]));
+  },[userId]);
+  if(!badges.length) return null;
+  const brandNames = {rolex:"Rolex Owner",omega:"Omega Owner",patek:"Patek Owner",ap:"AP Owner",iwc:"IWC Owner",jlc:"JLC Owner",tudor:"Tudor Owner"};
+  return (
+    <span style={{ display:"inline-flex", gap:4, flexWrap:"wrap" }}>
+      {badges.map(b=>(
+        <span key={b.id} style={{ fontSize:9, fontWeight:700, letterSpacing:1, textTransform:"uppercase", padding:"1px 6px", background:"#fff8e8", color:"#b8963e", borderRadius:3, fontFamily:"'DM Mono',monospace", border:"1px solid #f0d080" }}>
+          {brandNames[b.brand_slug]||b.brand_slug}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function ForosPage({ currentUser, onNavigate }) {
-  const [search, setSearch] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [recentThreads, setRecentThreads] = useState([]);
+  const [topicSearch, setTopicSearch] = useState("");
+  const [watchQuery, setWatchQuery] = useState("");
+  const [watchSuggestions2, setWatchSuggestions2] = useState([]);
+  const [allThreads, setAllThreads] = useState([]);
+  const [filteredThreads, setFilteredThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
+  const [filter, setFilter] = useState("recientes"); // recientes | populares | marca
+  const [filterBrand, setFilterBrand] = useState("");
   const [newForm, setNewForm] = useState({watchQuery:"",watchId:null,watchSlug:"",title:"",content:""});
   const [watchSuggestions, setWatchSuggestions] = useState([]);
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState(null);
+  const searchTimer = useRef(null);
 
-  useEffect(()=>{ loadRecent(); },[]);
+  useEffect(()=>{ loadAll(); },[filter,filterBrand]);
 
-  async function loadRecent() {
+  useEffect(()=>{
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(()=>applySearch(), 250);
+    return ()=>clearTimeout(searchTimer.current);
+  },[topicSearch, allThreads]);
+
+  async function loadAll() {
     setLoading(true);
-    // FIX: seleccionar watch_id explícitamente para el join
-    const {data}=await supabase.from("forum_threads")
-      .select("id, title, content, votes, replies_count, created_at, watch_id, author_id, author:profiles(id,name,handle,avatar_color,avatar_emoji), watch:watches(id,slug,model)")
-      .order("created_at",{ascending:false}).limit(20);
-    setRecentThreads(data||[]); setLoading(false);
+    let q = supabase.from("forum_threads")
+      .select("id, title, content, votes, replies_count, created_at, watch_id, author_id, author:profiles(id,name,handle,avatar_color,avatar_emoji), watch:watches(id,slug,model,brand_slug)");
+    if(filter==="populares") q = q.order("votes",{ascending:false});
+    else q = q.order("created_at",{ascending:false});
+    if(filterBrand) q = q.eq("watch.brand_slug", filterBrand);
+    const {data} = await q.limit(40);
+    let threads = data||[];
+    if(filterBrand) threads = threads.filter(t=>t.watch?.brand_slug===filterBrand);
+    setAllThreads(threads); setLoading(false);
   }
 
+  function applySearch() {
+    if(!topicSearch.trim()) { setFilteredThreads(allThreads); return; }
+    const q = topicSearch.toLowerCase();
+    setFilteredThreads(allThreads.filter(t=>
+      t.title.toLowerCase().includes(q) ||
+      t.content.toLowerCase().includes(q) ||
+      t.watch?.model?.toLowerCase().includes(q) ||
+      t.watch?.slug?.toLowerCase().includes(q)
+    ));
+  }
+
+  const displayed = topicSearch.trim() ? filteredThreads : allThreads;
+
   async function searchW(q, forNew=false) {
-    if(!q||q.length<2){forNew?setWatchSuggestions([]):setSuggestions([]);return;}
+    if(!q||q.length<2){forNew?setWatchSuggestions([]):setWatchSuggestions2([]);return;}
     const {data}=await supabase.from("watches").select("id,slug,model").or(`slug.ilike.%${q.replace(/^@/,"")}%,model.ilike.%${q.replace(/^@/,"")}%`).limit(6);
-    forNew?setWatchSuggestions(data||[]):setSuggestions(data||[]);
+    forNew?setWatchSuggestions(data||[]):setWatchSuggestions2(data||[]);
   }
 
   async function submitThread() {
@@ -1128,8 +1191,10 @@ function ForosPage({ currentUser, onNavigate }) {
     setPosting(true);
     const {error}=await supabase.from("forum_threads").insert({watch_id:newForm.watchId,author_id:currentUser.id,title:newForm.title.trim(),content:newForm.content.trim(),is_news:false});
     if(error){setPostError(error.message);setPosting(false);return;}
-    setNewForm({watchQuery:"",watchId:null,watchSlug:"",title:"",content:""}); setShowNew(false); await loadRecent(); setPosting(false);
+    setNewForm({watchQuery:"",watchId:null,watchSlug:"",title:"",content:""}); setShowNew(false); await loadAll(); setPosting(false);
   }
+
+  const BRANDS = ["rolex","omega","patek","ap","iwc","jlc","tudor"];
 
   return (
     <div>
@@ -1137,10 +1202,23 @@ function ForosPage({ currentUser, onNavigate }) {
         <div><h2 style={{ ...S.h1, marginBottom:4 }}>Foros</h2><p style={S.muted}>Debates sobre relojes concretos</p></div>
         <button style={S.btn("primary")} onClick={()=>setShowNew(!showNew)}>+ Nuevo foro</button>
       </div>
-      <div style={{ position:"relative", marginBottom:24 }}>
-        <input style={{ ...S.input, paddingLeft:40 }} placeholder="Busca @rolex_submariner…" value={search} onChange={e=>{setSearch(e.target.value);searchW(e.target.value);}} />
+
+      {/* Buscador de topics */}
+      <div style={{ position:"relative", marginBottom:16 }}>
+        <input style={{ ...S.input, paddingLeft:40, fontSize:15 }} placeholder="Busca por tema, reloj, marca… ej: precio, mantenimiento, Daytona" value={topicSearch} onChange={e=>setTopicSearch(e.target.value)} />
         <span style={{ position:"absolute", left:12, top:11, color:"#888" }}>🔍</span>
-        {suggestions.length>0&&(<div style={{ position:"absolute", top:"100%", left:0, right:0, background:"#fff", border:"1px solid #e8e8e8", borderRadius:8, boxShadow:"0 4px 12px rgba(0,0,0,0.08)", zIndex:50 }}>{suggestions.map(w=>(<div key={w.id} style={{ padding:"10px 14px", cursor:"pointer", borderBottom:"1px solid #f5f5f5" }} onMouseDown={()=>{setSearch("");setSuggestions([]);onNavigate("watch",w.slug);}}><span style={{ fontWeight:600 }}>{w.model}</span><span style={{ ...S.mono, color:"#b8963e", fontSize:11, marginLeft:8 }}>@{w.slug}</span></div>))}</div>)}
+        {topicSearch&&<button style={{ position:"absolute", right:12, top:10, background:"none", border:"none", cursor:"pointer", color:"#aaa", fontSize:16 }} onClick={()=>setTopicSearch("")}>×</button>}
+      </div>
+
+      {/* Filtros */}
+      <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
+        {[["recientes","🕐 Recientes"],["populares","🔥 Populares"]].map(([v,label])=>(
+          <button key={v} onClick={()=>setFilter(v)} style={{ padding:"5px 14px", borderRadius:20, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:12, background:filter===v&&!filterBrand?"#1a2744":"#f0ede6", color:filter===v&&!filterBrand?"#fff":"#666", fontWeight:filter===v&&!filterBrand?600:400 }}>{label}</button>
+        ))}
+        <div style={{ width:"1px", background:"#ddd", margin:"0 4px" }} />
+        {BRANDS.map(b=>(
+          <button key={b} onClick={()=>{ setFilterBrand(filterBrand===b?"":b); setFilter("recientes"); }} style={{ padding:"5px 14px", borderRadius:20, border:"none", cursor:"pointer", fontFamily:"'DM Mono',monospace", fontSize:11, background:filterBrand===b?"#1a2744":"#f0ede6", color:filterBrand===b?"#fff":"#666", letterSpacing:0.5 }}>{b}</button>
+        ))}
       </div>
       {showNew&&(
         <div style={{ ...S.card, border:"1px solid #1a2744", marginBottom:24 }}>
@@ -1160,9 +1238,32 @@ function ForosPage({ currentUser, onNavigate }) {
           </div>
         </div>
       )}
-      <h3 style={{ ...S.h2, marginBottom:12 }}>Foros recientes</h3>
-      {loading?<Spinner />:recentThreads.map(t=>(<div key={t.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("thread",t.id)}><div style={{ display:"flex", gap:14 }}><div style={{ minWidth:36, textAlign:"center" }}><div style={{ fontWeight:700, fontSize:15, fontFamily:"'DM Mono',monospace", color:t.votes>0?"#2a7a4a":t.votes<0?"#d44":"#888" }}>{t.votes}</div><div style={{ fontSize:10, color:"#aaa" }}>pts</div></div><div style={{ flex:1 }}><div style={{ ...S.mono, fontSize:11, color:"#b8963e", marginBottom:3 }}>@{t.watch?.slug}</div><div style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>{t.title}</div><div style={{ display:"flex", gap:16 }}><span style={S.muted}>@{t.author?.handle}</span><span style={S.muted}>💬 {t.replies_count||0}</span><span style={S.muted}>{timeAgo(t.created_at)}</span></div></div></div></div>))}
-      {!loading&&recentThreads.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin foros aún.</div>}
+      {/* Resultados */}
+      <div style={{ ...S.row, justifyContent:"space-between", marginBottom:12 }}>
+        <h3 style={{ ...S.h2, marginBottom:0 }}>{topicSearch ? `Resultados para "${topicSearch}"` : filter==="populares"?"Más populares":"Recientes"}</h3>
+        <span style={S.muted}>{displayed.length} hilos</span>
+      </div>
+      {loading?<Spinner />:displayed.map(t=>(
+        <div key={t.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("thread",t.id)}>
+          <div style={{ display:"flex", gap:14 }}>
+            <div style={{ minWidth:40, textAlign:"center" }}>
+              <div style={{ fontWeight:700, fontSize:16, fontFamily:"'DM Mono',monospace", color:t.votes>0?"#2a7a4a":t.votes<0?"#d44":"#888" }}>{t.votes}</div>
+              <div style={{ fontSize:10, color:"#aaa" }}>pts</div>
+            </div>
+            <div style={{ flex:1 }}>
+              <div style={{ ...S.mono, fontSize:11, color:"#b8963e", marginBottom:3 }}>@{t.watch?.slug}</div>
+              <div style={{ fontWeight:700, fontSize:15, marginBottom:6 }}>{t.title}</div>
+              <p style={{ fontSize:13, color:"#666", margin:"0 0 8px", lineHeight:1.4 }}>{t.content.slice(0,120)}{t.content.length>120?"…":""}</p>
+              <div style={{ display:"flex", gap:16 }}>
+                <span style={S.muted}>@{t.author?.handle}</span>
+                <span style={S.muted}>💬 {t.replies_count||0}</span>
+                <span style={S.muted}>{timeAgo(t.created_at)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+      {!loading&&displayed.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>{topicSearch?"Sin resultados para ese término.":"Sin foros aún. ¡Crea el primero!"}</div>}
     </div>
   );
 }
@@ -1202,6 +1303,18 @@ function ThreadPage({ threadId, currentUser, onNavigate }) {
     setContent(""); await load(); setPosting(false);
   }
 
+  async function deleteThread() {
+    if(!window.confirm("¿Borrar este foro? Se eliminarán todas las respuestas.")) return;
+    await supabase.from("forum_threads").delete().eq("id",threadId);
+    onNavigate("foros");
+  }
+
+  async function deleteReply(replyId) {
+    if(!window.confirm("¿Borrar esta respuesta?")) return;
+    await supabase.from("forum_replies").delete().eq("id",replyId);
+    await load();
+  }
+
   async function vote(type,id,value) {
     const table=type==="thread"?"thread_votes":"reply_votes";
     const field=type==="thread"?"thread_id":"reply_id";
@@ -1225,9 +1338,12 @@ function ThreadPage({ threadId, currentUser, onNavigate }) {
       <div style={S.card}>
         <div style={{ ...S.mono, fontSize:11, color:"#b8963e", marginBottom:8 }}>@{thread.watch?.slug} / {thread.title.toLowerCase().replace(/\s+/g,"_").slice(0,30)}</div>
         <h2 style={{ ...S.h1, marginBottom:10 }}>{thread.title}</h2>
-        <div style={{ ...S.row, marginBottom:14 }}>
-          <Avatar name={thread.author?.name||"?"} size={30} color={thread.author?.avatar_color||"#1a2744"} emoji={thread.author?.avatar_emoji||null} />
-          <span style={S.muted}>@{thread.author?.handle} · {timeAgo(thread.created_at)}</span>
+        <div style={{ ...S.row, justifyContent:"space-between", marginBottom:14 }}>
+          <div style={S.row}>
+            <Avatar name={thread.author?.name||"?"} size={30} color={thread.author?.avatar_color||"#1a2744"} emoji={thread.author?.avatar_emoji||null} />
+            <span style={S.muted}>@{thread.author?.handle} · {timeAgo(thread.created_at)}</span>
+          </div>
+          {thread.author_id===currentUser?.id&&<button style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:"#ccc" }} onClick={deleteThread}>🗑️ Borrar foro</button>}
         </div>
         <p style={{ fontSize:15, lineHeight:1.65, margin:"0 0 16px" }}>{thread.content}</p>
         <div style={S.row}>
@@ -1242,7 +1358,7 @@ function ThreadPage({ threadId, currentUser, onNavigate }) {
         <textarea rows={3} style={{ ...S.input, resize:"none", marginBottom:10 }} value={content} onChange={e=>setContent(e.target.value)} />
         <div style={{ display:"flex", justifyContent:"flex-end" }}><button style={S.btn("primary")} onClick={submitReply} disabled={posting||!content.trim()}>{posting?"Publicando…":"Responder"}</button></div>
       </div>
-      {replies.map(r=>(<div key={r.id} style={{ ...S.card, display:"flex", gap:14 }}><div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3, minWidth:36 }}><button style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, color:"#888", padding:0 }} onClick={()=>vote("reply",r.id,1)}>▲</button><span style={{ fontWeight:700, fontSize:13, fontFamily:"'DM Mono',monospace", color:r.votes>0?"#2a7a4a":r.votes<0?"#d44":"#888" }}>{r.votes}</span><button style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, color:"#888", padding:0 }} onClick={()=>vote("reply",r.id,-1)}>▼</button></div><div style={{ flex:1 }}><div style={{ ...S.row, marginBottom:8 }}><Avatar name={r.author?.name||"?"} size={28} color={r.author?.avatar_color||"#1a2744"} emoji={r.author?.avatar_emoji||null} /><span style={{ fontWeight:600, fontSize:13 }}>@{r.author?.handle}</span>{r.author?.account_type==="repairer"&&<Badge text="Taller" bg="#e8f4ec" color="#4a7c59" />}<span style={S.muted}>{timeAgo(r.created_at)}</span></div><p style={{ fontSize:14, lineHeight:1.6, margin:0 }}>{r.content}</p></div></div>))}
+      {replies.map(r=>(<div key={r.id} style={{ ...S.card, display:"flex", gap:14 }}><div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3, minWidth:36 }}><button style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, color:"#888", padding:0 }} onClick={()=>vote("reply",r.id,1)}>▲</button><span style={{ fontWeight:700, fontSize:13, fontFamily:"'DM Mono',monospace", color:r.votes>0?"#2a7a4a":r.votes<0?"#d44":"#888" }}>{r.votes}</span><button style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, color:"#888", padding:0 }} onClick={()=>vote("reply",r.id,-1)}>▼</button></div><div style={{ flex:1 }}><div style={{ ...S.row, justifyContent:"space-between", marginBottom:8 }}><div style={S.row}><Avatar name={r.author?.name||"?"} size={28} color={r.author?.avatar_color||"#1a2744"} emoji={r.author?.avatar_emoji||null} /><span style={{ fontWeight:600, fontSize:13 }}>@{r.author?.handle}</span>{r.author?.account_type==="repairer"&&<Badge text="Taller" bg="#e8f4ec" color="#4a7c59" />}<UserBadges userId={r.author_id} inline /><span style={S.muted}>{timeAgo(r.created_at)}</span></div>{r.author_id===currentUser?.id&&<button style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color:"#ccc" }} onClick={()=>deleteReply(r.id)}>🗑️</button>}</div><p style={{ fontSize:14, lineHeight:1.6, margin:0 }}>{r.content}</p></div></div>))}
       {replies.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888" }}>Sé el primero en responder.</div>}
     </div>
   );
