@@ -160,21 +160,6 @@ function WatchCard({ watch, onClick, size="normal" }) {
         <div style={{ ...S.mono, fontSize:10, color:"#aaa", marginBottom:4 }}>Ref. {watch.reference}</div>
         <div style={{ fontSize:10, color:"#c8a84b", fontFamily:"'DM Mono',monospace" }}>@{watch.slug}</div>
       </div>
-      {/* Mobile bottom nav */}
-      <div style={{ display:"block", position:"fixed", bottom:0, left:0, right:0, background:"#1a2744", borderTop:"1px solid rgba(255,255,255,0.1)", padding:"8px 0 12px", zIndex:100, "@media(min-width:768px)":{display:"none"} }}>
-        <div style={{ display:"flex", justifyContent:"space-around" }}>
-          {(session?[{id:"feed",icon:"🏠",label:"Feed"},{id:"explore",icon:"🔍",label:"Explorar"},{id:"relojes",icon:"⌚",label:"Relojes"},{id:"foros",icon:"💬",label:"Foros"}]:[{id:"explore",icon:"🔍",label:"Explorar"},{id:"relojes",icon:"⌚",label:"Relojes"},{id:"foros",icon:"💬",label:"Foros"}]).map(n=>(
-            <button key={n.id} onClick={()=>navigate(n.id)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, color:page.name===n.id?"#b8963e":"rgba(255,255,255,0.5)", fontFamily:"'DM Sans',sans-serif" }}>
-              <span style={{ fontSize:22 }}>{n.icon}</span>
-              <span style={{ fontSize:10, fontWeight:page.name===n.id?700:400 }}>{n.label}</span>
-            </button>
-          ))}
-          {session&&<button onClick={()=>navigate("profile",session.user.id)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, color:page.name==="profile"?"#b8963e":"rgba(255,255,255,0.5)" }}>
-            <span style={{ fontSize:22 }}>👤</span>
-            <span style={{ fontSize:10, fontFamily:"'DM Sans',sans-serif", fontWeight:page.name==="profile"?700:400 }}>Perfil</span>
-          </button>}
-        </div>
-      </div>
     </div>
   );
 }
@@ -1707,7 +1692,12 @@ export default function WichWoch() {
   },[]);
 
   async function loadProfile(uid) { const {data}=await supabase.from("profiles").select("*").eq("id",uid).single(); setProfile(data); }
-  async function loadUnread(uid) { const {count}=await supabase.from("notifications").select("*",{count:"exact",head:true}).eq("recipient_id",uid).eq("read",false).catch(()=>({count:0})); setUnreadCount(count||0); }
+  async function loadUnread(uid) {
+    try {
+      const {count}=await supabase.from("notifications").select("*",{count:"exact",head:true}).eq("recipient_id",uid).eq("read",false);
+      setUnreadCount(count||0);
+    } catch(e) { setUnreadCount(0); }
+  }
 
   const navigate=(name,id=null)=>{ setPage({name,id}); setShowNotifs(false); };
   async function signOut() { await supabase.auth.signOut(); setSession(null); setProfile(null); setPage({name:"explore"}); }
@@ -1762,6 +1752,27 @@ export default function WichWoch() {
         {page.name==="profile"&&<ProfilePage userId={page.id} currentUser={currentUser||{id:""}} onNavigate={navigate} />}
         {page.name==="settings"&&session&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
       </main>
+      {/* Mobile bottom nav */}
+      <MobileNav session={session} page={page} navigate={navigate} />
+    </div>
+  );
+}
+
+function MobileNav({ session, page, navigate }) {
+  const tabs = session
+    ? [{id:"feed",icon:"🏠",label:"Feed"},{id:"explore",icon:"🔍",label:"Explorar"},{id:"relojes",icon:"⌚",label:"Relojes"},{id:"foros",icon:"💬",label:"Foros"},{id:"profile",icon:"👤",label:"Perfil"}]
+    : [{id:"explore",icon:"🔍",label:"Explorar"},{id:"relojes",icon:"⌚",label:"Relojes"},{id:"foros",icon:"💬",label:"Foros"}];
+  return (
+    <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"#1a2744", borderTop:"1px solid rgba(255,255,255,0.1)", padding:"6px 0 10px", zIndex:200 }}>
+      <div style={{ display:"flex", justifyContent:"space-around" }}>
+        {tabs.map(n=>(
+          <button key={n.id} onClick={()=>n.id==="profile"&&session?navigate("profile",session.user.id):navigate(n.id)}
+            style={{ background:"none", border:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, color:page.name===n.id?"#b8963e":"rgba(255,255,255,0.5)", fontFamily:"'DM Sans',sans-serif", padding:"4px 8px" }}>
+            <span style={{ fontSize:20 }}>{n.icon}</span>
+            <span style={{ fontSize:10, fontWeight:page.name===n.id?700:400 }}>{n.label}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
