@@ -43,6 +43,24 @@ function getDailyNews() {
   });
 }
 
+
+// ─── Weekly threads estáticos ─────────────────────────────────────────────────
+const WEEKLY_THREADS = [
+  { title:"⌚ ¿Qué llevas en la muñeca esta semana?", content:"Hilo semanal para compartir el reloj que estás llevando estos días. Foto, modelo y por qué lo has elegido esta semana." },
+  { title:"🔧 Pregunta rápida de la semana", content:"¿Tienes una duda relojera que no merece hilo propio? Aquí es el sitio. Cualquier pregunta es bienvenida." },
+  { title:"💰 ¿Cuál es tu mejor compra relojera?", content:"Cuéntanos el reloj que más valor te ha dado por el dinero invertido. Puede ser económico o de lujo — lo que importa es la relación calidad-precio." },
+  { title:"🏆 Debate: ¿El mejor reloj deportivo de la historia?", content:"Submariner, Royal Oak, Nautilus, Speedmaster... Hay muchos candidatos. ¿Cuál elegirías tú y por qué?" },
+  { title:"🌍 ¿Dónde comprais vuestros relojes?", content:"AD oficial, gris, segunda mano, Chrono24, subasta... Compartid vuestra experiencia y recomendaciones." },
+  { title:"🔍 Show us your collection", content:"Hilo para compartir vuestra colección completa. Una foto, el listado, y vuestra pieza favorita de todas." },
+  { title:"📈 ¿Qué reloj comprarías hoy con 5.000€?", content:"Presupuesto cerrado, mercado nuevo o segunda mano. ¿Qué elegiríais? Justificad vuestra respuesta." },
+  { title:"🕰️ Historia y curiosidades relojeras", content:"Compartid datos históricos, curiosidades o anécdotas sobre relojes o marcas que os hayan sorprendido." },
+];
+
+function getCurrentWeeklyThread() {
+  const week = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
+  return WEEKLY_THREADS[week % WEEKLY_THREADS.length];
+}
+
 const BRAND_COLORS = { rolex:"#006039", omega:"#c8a84b", patek:"#1a3a6b", ap:"#1a1a1a", iwc:"#8b0000", jlc:"#2c4a2e", tudor:"#6b0000", cartier:"#8b0000", breitling:"#1a3a6b", tag:"#c00000", vc:"#2c2c5e", hublot:"#2a2a2a", panerai:"#1a3020", gs:"#1a1a3a", zenith:"#1a2744" };
 const BRAND_LOGOS = {
   rolex:"⌚", omega:"Ω", patek:"P", ap:"AP", iwc:"IWC", jlc:"JLC", tudor:"T",
@@ -50,6 +68,22 @@ const BRAND_LOGOS = {
 };
 const AVATAR_COLORS = ["#1a1a1a","#006039","#1a3a6b","#8b0000","#2c4a2e","#c8a84b","#4a4a8a","#7c3aed","#2563eb","#4a7c59","#b45309","#0369a1"];
 const AVATAR_EMOJIS = ["🕰️","⌚","🔧","🏆","💎","🌟","🎯","🦅","🌊","🏔️","🎖️","🔑","⚓","🎨","🦁"];
+
+
+const FLAIRS = [
+  { id:"debate",       label:"Debate",       bg:"#e8f0ff", color:"#2563eb" },
+  { id:"pregunta",     label:"Pregunta",     bg:"#fef3c7", color:"#d97706" },
+  { id:"valoracion",   label:"Valoración",   bg:"#f0fdf4", color:"#16a34a" },
+  { id:"coleccion",    label:"Colección",    bg:"#fdf2f8", color:"#9333ea" },
+  { id:"mantenimiento",label:"Mantenimiento",bg:"#fff7ed", color:"#ea580c" },
+  { id:"compraventa",  label:"Compraventa",  bg:"#f0f9ff", color:"#0284c7" },
+  { id:"novedad",      label:"Novedad",      bg:"#fef2f2", color:"#dc2626" },
+];
+function flairStyle(flair) { return FLAIRS.find(f=>f.id===flair)||FLAIRS[0]; }
+function FlairBadge({ flair }) {
+  const f = flairStyle(flair||"debate");
+  return <span style={{ fontSize:10, fontWeight:700, letterSpacing:1, textTransform:"uppercase", padding:"2px 8px", background:f.bg, color:f.color, borderRadius:20, fontFamily:"'DM Mono',monospace", marginRight:6 }}>{f.label}</span>;
+}
 
 function brandColor(slug) { const p=(slug||"").split("_")[0]; return BRAND_COLORS[p]||"#1a1a1a"; }
 function brandFromSlug(slug) { const p=(slug||"").split("_")[0]; return ({rolex:"Rolex",omega:"Omega",patek:"Patek Philippe",ap:"Audemars Piguet",iwc:"IWC",jlc:"Jaeger-LeCoultre",tudor:"Tudor",cartier:"Cartier",breitling:"Breitling",tag:"TAG Heuer",vc:"Vacheron Constantin",hublot:"Hublot",panerai:"Panerai",gs:"Grand Seiko",zenith:"Zenith"})[p]||p; }
@@ -63,10 +97,12 @@ function parseContent(text, onNavigate) {
   });
 }
 
+const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
 const S = {
   app: { fontFamily:"'DM Sans',sans-serif", background:"#f8f7f4", minHeight:"100vh", color:"#1a1a1a" },
-  nav: { background:"#1a2744", padding:"0 24px", display:"flex", alignItems:"center", justifyContent:"space-between", height:56, position:"sticky", top:0, zIndex:100, boxShadow:"0 2px 12px rgba(0,0,0,0.15)" },
-  main: { maxWidth:960, margin:"0 auto", padding:"28px 20px" },
+  nav: { background:"#1a2744", padding:"0 16px", display:"flex", alignItems:"center", justifyContent:"space-between", height:52, position:"sticky", top:0, zIndex:100, boxShadow:"0 2px 12px rgba(0,0,0,0.15)" },
+  main: { maxWidth:960, margin:"0 auto", padding:"20px 14px 80px" },
   card: { background:"#fff", border:"1px solid #ece9e2", borderRadius:10, padding:20, marginBottom:16, boxShadow:"0 1px 4px rgba(0,0,0,0.04)" },
   h1: { fontSize:22, fontWeight:700, marginBottom:4, fontFamily:"'DM Mono',monospace", letterSpacing:-0.5 },
   h2: { fontSize:16, fontWeight:700, marginBottom:16, fontFamily:"'DM Mono',monospace" },
@@ -281,7 +317,7 @@ function ExplorePage({ onNavigate, currentUser }) {
               {searchResults.watches.length>0&&(
                 <div style={{ marginBottom:24 }}>
                   <h3 style={{ fontSize:13, fontWeight:700, fontFamily:"'DM Mono',monospace", letterSpacing:1, textTransform:"uppercase", color:"#666", marginBottom:14 }}>⌚ Relojes</h3>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(160px, 1fr))", gap:12 }}>
                     {searchResults.watches.map(w=><WatchCard key={w.id} watch={w} onClick={()=>onNavigate("watch",w.slug)} />)}
                   </div>
                 </div>
@@ -325,7 +361,7 @@ function ExplorePage({ onNavigate, currentUser }) {
         {/* Marcas destacadas */}
         <div style={{ marginBottom:32 }}>
           <h3 style={{ ...S.h2, marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>🏷️ Marcas</h3>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(160px, 1fr))", gap:12 }}>
             {brands.map(slug=>{
               const bg=BRAND_COLORS[slug];
               const name=brandFromSlug(slug);
@@ -354,7 +390,7 @@ function ExplorePage({ onNavigate, currentUser }) {
             <h3 style={{ ...S.h2, marginBottom:0, display:"flex", alignItems:"center", gap:8 }}>⌚ Relojes icónicos</h3>
             <button style={{ ...S.btn("outline"), fontSize:12, padding:"6px 14px" }} onClick={()=>onNavigate("relojes")}>Ver todos →</button>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(160px, 1fr))", gap:12 }}>
             {watches.slice(0,8).map(w=><WatchCard key={w.id} watch={w} onClick={()=>onNavigate("watch",w.slug)} />)}
           </div>
         </div>
@@ -362,7 +398,7 @@ function ExplorePage({ onNavigate, currentUser }) {
         {/* Coleccionistas destacados */}
         <div style={{ marginBottom:32 }}>
           <h3 style={{ ...S.h2, marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>👥 Coleccionistas</h3>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(140px, 1fr))", gap:12 }}>
             {profiles.filter(p=>p.account_type==="collector").slice(0,6).map(p=>(
               <div key={p.id} style={{ ...S.card, cursor:"pointer", padding:16 }} onClick={()=>onNavigate("profile",p.id)}>
                 <div style={{ ...S.row, marginBottom:8 }}>
@@ -452,6 +488,12 @@ function PostCard({ post, currentUser, onNavigate, onDeleted }) {
   const author=post.author;
   const isOwn = post.author_id===currentUser?.id;
 
+  useEffect(()=>{
+    if(!currentUser?.id) return;
+    supabase.from("likes").select("id").eq("user_id",currentUser.id).eq("post_id",post.id).maybeSingle()
+      .then(({data})=>{ if(data) setLiked(true); });
+  },[post.id, currentUser?.id]);
+
   async function toggleLike() {
     if(liked){await supabase.from("likes").delete().match({user_id:currentUser.id,post_id:post.id});setLikes(l=>l-1);}
     else{await supabase.from("likes").insert({user_id:currentUser.id,post_id:post.id});setLikes(l=>l+1);}
@@ -537,17 +579,24 @@ function CommentsSection({ postId, currentUser }) {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
 
-  useEffect(()=>{ load(); },[postId]);
+  useEffect(()=>{ if(postId) load(); },[postId]);
 
   async function load() {
-    const {data}=await supabase.from("post_comments").select("*, author:profiles(id,name,handle,avatar_color,avatar_emoji)").eq("post_id",postId).order("created_at",{ascending:true});
-    setComments(data||[]); setLoading(false);
+    setLoading(true);
+    const {data, error}=await supabase.from("post_comments")
+      .select("*, author:profiles(id,name,handle,avatar_color,avatar_emoji)")
+      .eq("post_id",postId)
+      .order("created_at",{ascending:true});
+    if(!error) setComments(data||[]);
+    setLoading(false);
   }
 
   async function submit() {
-    if(!content.trim()) return; setPosting(true);
-    await supabase.from("post_comments").insert({post_id:postId,author_id:currentUser.id,content:content.trim()});
-    setContent(""); await load(); setPosting(false);
+    if(!content.trim()||!currentUser?.id) return;
+    setPosting(true);
+    const {error}=await supabase.from("post_comments").insert({post_id:postId,author_id:currentUser.id,content:content.trim()});
+    if(!error) { setContent(""); await load(); }
+    setPosting(false);
   }
 
   return (
@@ -652,7 +701,7 @@ function FeedPage({ user, onNavigate }) {
     <div>
       <PostComposer user={user} onPosted={loadAll} />
       <div style={{ display:"flex", gap:4, marginBottom:20 }}>
-        <button style={S.navLink(tab==="all")} onClick={()=>setTab("all")} style={{ ...S.navLink(tab==="all"), background:tab==="all"?"#1a2744":"#f0ede6", color:tab==="all"?"#fff":"#666", padding:"6px 16px", borderRadius:8, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:tab==="all"?600:400 }}>Todo</button>
+        <button onClick={()=>setTab("all")} style={{ background:tab==="all"?"#1a2744":"#f0ede6", color:tab==="all"?"#fff":"#666", padding:"6px 16px", borderRadius:8, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:tab==="all"?600:400 }}>Todo</button>
         <button onClick={()=>setTab("following")} style={{ background:tab==="following"?"#1a2744":"#f0ede6", color:tab==="following"?"#fff":"#666", padding:"6px 16px", borderRadius:8, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:tab==="following"?600:400 }}>Siguiendo</button>
       </div>
       {loading?<Spinner />:buildFeed().map((item,i)=>{
@@ -808,11 +857,12 @@ function ProfilePage({ userId, currentUser, onNavigate }) {
             {profile.bio&&<p style={{ fontSize:14, color:"#444", lineHeight:1.6, margin:"0 0 4px" }}>{profile.bio}</p>}
             {profile.website&&<a href={profile.website} target="_blank" rel="noreferrer" style={{ fontSize:13, color:"#b8963e" }}>{profile.website.replace(/https?:\/\//,"")}</a>}
           </div>
-          <div style={{ display:"flex", gap:32, paddingTop:12, borderTop:"1px solid #f0ede6" }}>
+          <div style={{ display:"flex", gap:24, paddingTop:12, borderTop:"1px solid #f0ede6", flexWrap:"wrap" }}>
             <div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>setSubPage("followers")}><div style={{ fontWeight:700, fontSize:18 }}>{profile.followers_count||0}</div><div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>seguidores</div></div>
             <div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>setSubPage("following")}><div style={{ fontWeight:700, fontSize:18 }}>{profile.following_count||0}</div><div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>siguiendo</div></div>
             <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{watches.length}</div><div style={{ ...S.muted, fontSize:12 }}>relojes</div></div>
             <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{posts.length}</div><div style={{ ...S.muted, fontSize:12 }}>posts</div></div>
+            {(profile.karma||0)>0&&<div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18, color:"#b8963e" }}>⚡{profile.karma||0}</div><div style={{ ...S.muted, fontSize:12 }}>karma</div></div>}
           </div>
         </div>
       </div>
@@ -824,8 +874,8 @@ function ProfilePage({ userId, currentUser, onNavigate }) {
       </div>
 
       {tab==="posts"&&(<div>{posts.length===0&&<p style={S.muted}>Sin publicaciones aún.</p>}{posts.map(p=><PostCard key={p.id} post={p} currentUser={currentUser} onNavigate={onNavigate} />)}</div>)}
-      {tab==="coleccion"&&(<div>{isOwn&&<div style={{ marginBottom:16 }}>{!showAddWatch?<button style={S.btn("outline")} onClick={()=>setShowAddWatch(true)}>+ Añadir reloj</button>:<WatchSearchBox toWishlist={false} />}</div>}{watches.length===0&&<p style={S.muted}>Colección vacía.</p>}<div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>{watches.map(w=>w.watch&&<WatchCard key={w.id} watch={w.watch} onClick={()=>onNavigate("watch",w.watch.slug)} />)}</div></div>)}
-      {tab==="wishlist"&&(<div>{isOwn&&<div style={{ marginBottom:16 }}>{!showAddWish?<button style={S.btn("outline")} onClick={()=>setShowAddWish(true)}>+ Añadir a Wish List</button>:<WatchSearchBox toWishlist={true} />}</div>}{wishlist.length===0&&<p style={S.muted}>Wish List vacía.</p>}<div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>{wishlist.map(w=>w.watch&&(<div key={w.id} style={{ position:"relative" }}><WatchCard watch={w.watch} onClick={()=>onNavigate("watch",w.watch.slug)} />{isOwn&&<button style={{ position:"absolute", top:6, right:6, background:"rgba(0,0,0,0.5)", border:"none", color:"#fff", borderRadius:"50%", width:22, height:22, cursor:"pointer", fontSize:12 }} onClick={e=>{e.stopPropagation();removeWish(w.watch.id);}}>×</button>}</div>))}</div></div>)}
+      {tab==="coleccion"&&(<div>{isOwn&&<div style={{ marginBottom:16 }}>{!showAddWatch?<button style={S.btn("outline")} onClick={()=>setShowAddWatch(true)}>+ Añadir reloj</button>:<WatchSearchBox toWishlist={false} />}</div>}{watches.length===0&&<p style={S.muted}>Colección vacía.</p>}<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(140px, 1fr))", gap:12 }}>{watches.map(w=>w.watch&&<WatchCard key={w.id} watch={w.watch} onClick={()=>onNavigate("watch",w.watch.slug)} />)}</div></div>)}
+      {tab==="wishlist"&&(<div>{isOwn&&<div style={{ marginBottom:16 }}>{!showAddWish?<button style={S.btn("outline")} onClick={()=>setShowAddWish(true)}>+ Añadir a Wish List</button>:<WatchSearchBox toWishlist={true} />}</div>}{wishlist.length===0&&<p style={S.muted}>Wish List vacía.</p>}<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(140px, 1fr))", gap:12 }}>{wishlist.map(w=>w.watch&&(<div key={w.id} style={{ position:"relative" }}><WatchCard watch={w.watch} onClick={()=>onNavigate("watch",w.watch.slug)} />{isOwn&&<button style={{ position:"absolute", top:6, right:6, background:"rgba(0,0,0,0.5)", border:"none", color:"#fff", borderRadius:"50%", width:22, height:22, cursor:"pointer", fontSize:12 }} onClick={e=>{e.stopPropagation();removeWish(w.watch.id);}}>×</button>}</div>))}</div></div>)}
       {tab==="siguiendo"&&(<div>{followingList.length===0&&<p style={S.muted}>Aún no sigue a nadie.</p>}{followingList.map(u=>(<div key={u.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("profile",u.id)}><div style={S.row}><Avatar name={u.name||"?"} size={46} color={u.avatar_color||"#1a2744"} emoji={u.avatar_emoji||null} /><div><div style={{ fontWeight:600 }}>{u.name}</div><div style={S.muted}>@{u.handle}{u.location&&` · 📍${u.location}`}</div></div></div></div>))}</div>)}
       {tab==="seguidores"&&(<div>{followers.length===0&&<p style={S.muted}>Sin seguidores aún.</p>}{followers.map(u=>(<div key={u.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("profile",u.id)}><div style={S.row}><Avatar name={u.name||"?"} size={46} color={u.avatar_color||"#1a2744"} emoji={u.avatar_emoji||null} /><div><div style={{ fontWeight:600 }}>{u.name}</div><div style={S.muted}>@{u.handle}{u.location&&` · 📍${u.location}`}</div></div></div></div>))}</div>)}
     </div>
@@ -909,7 +959,7 @@ function RelojesPage({ onNavigate }) {
             <h3 style={{ fontSize:13, fontWeight:700, fontFamily:"'DM Mono',monospace", letterSpacing:1, textTransform:"uppercase", color:"#666", margin:0 }}>{brand}</h3>
             <span style={{ fontSize:11, color:"#b8963e", fontFamily:"'DM Mono',monospace", cursor:"pointer" }} onClick={()=>onNavigate("brand",ws[0]?.brand_slug)}>@{ws[0]?.brand_slug} →</span>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(160px, 1fr))", gap:12 }}>
             {ws.map(w=><WatchCard key={w.id} watch={w} onClick={()=>onNavigate("watch",w.slug)} />)}
           </div>
         </div>
@@ -977,7 +1027,7 @@ function BrandPage({ brandSlug, currentUser, onNavigate }) {
         <button onClick={()=>setTab("relojes")} style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:tab==="relojes"?"#1a2744":"#f0ede6", color:tab==="relojes"?"#fff":"#666", fontWeight:tab==="relojes"?600:400 }}>Relojes ({watches.length})</button>
         <button onClick={()=>setTab("novedades")} style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:tab==="novedades"?"#1a2744":"#f0ede6", color:tab==="novedades"?"#fff":"#666", fontWeight:tab==="novedades"?600:400 }}>Novedades ({news.length})</button>
       </div>
-      {tab==="relojes"&&<div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>{watches.map(w=><WatchCard key={w.id} watch={w} onClick={()=>onNavigate("watch",w.slug)} size="large" />)}</div>}
+      {tab==="relojes"&&<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(160px, 1fr))", gap:12 }}>{watches.map(w=><WatchCard key={w.id} watch={w} onClick={()=>onNavigate("watch",w.slug)} size="large" />)}</div>}
       {tab==="novedades"&&(
         <div>
           {isOwner&&(<div style={{ marginBottom:16 }}>{!showNewsForm?<button style={S.btn("primary")} onClick={()=>setShowNewsForm(true)}>+ Publicar novedad</button>:(<div style={{ ...S.card, border:"1px solid #1a2744" }}><div style={{ marginBottom:12 }}><span style={S.label}>Título</span><input style={S.input} value={newsForm.title} onChange={e=>setNewsForm(f=>({...f,title:e.target.value}))} /></div><div style={{ marginBottom:12 }}><span style={S.label}>Contenido</span><textarea rows={4} style={{ ...S.input, resize:"none" }} value={newsForm.content} onChange={e=>setNewsForm(f=>({...f,content:e.target.value}))} /></div><div style={{ ...S.row, justifyContent:"space-between" }}><label style={{ ...S.row, gap:8, fontSize:13, cursor:"pointer" }}><input type="checkbox" checked={newsForm.owners_only} onChange={e=>setNewsForm(f=>({...f,owners_only:e.target.checked}))} /> Solo propietarios</label><div style={S.row}><button style={S.btn("outline")} onClick={()=>setShowNewsForm(false)}>Cancelar</button><button style={S.btn("primary")} onClick={postNews} disabled={posting}>{posting?"Publicando…":"Publicar"}</button></div></div></div>)}</div>)}
@@ -1091,8 +1141,8 @@ function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
         </div>
       </div>
 
-      <div style={{ display:"flex", gap:4, marginBottom:20 }}>
-        {[["info","Info"],["foros",`Foros (${threads.length})`],["novedades",`Novedades (${news.length})`]].map(([id,label])=>(
+      <div style={{ display:"flex", gap:4, marginBottom:20, flexWrap:"wrap" }}>
+        {[["info","Info"],["resenas","Reseñas"],["foros",`Foros (${threads.length})`],["novedades",`Novedades (${news.length})`]].map(([id,label])=>(
           <button key={id} onClick={()=>setTab(id)} style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:tab===id?"#1a2744":"#f0ede6", color:tab===id?"#fff":"#666", fontWeight:tab===id?600:400 }}>{label}</button>
         ))}
       </div>
@@ -1106,6 +1156,8 @@ function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
           ):<p style={S.muted}>Sin especificaciones.</p>}
         </div>
       )}
+
+      {tab==="resenas"&&<WatchReviews watchId={watch.id} currentUser={currentUser} />}
 
       {tab==="foros"&&(
         <div>
@@ -1126,6 +1178,143 @@ function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
 }
 
 // ─── FOROS PAGE ───────────────────────────────────────────────────────────────
+
+
+// ─── STAR RATING ──────────────────────────────────────────────────────────────
+function StarRating({ value, onChange, size=20, readonly=false }) {
+  const [hover, setHover] = useState(0);
+  return (
+    <div style={{ display:"flex", gap:2 }}>
+      {[1,2,3,4,5].map(i=>(
+        <span key={i}
+          style={{ fontSize:size, cursor:readonly?"default":"pointer", color:i<=(hover||value)?"#f59e0b":"#e2e8f0", lineHeight:1 }}
+          onClick={()=>!readonly&&onChange&&onChange(i)}
+          onMouseEnter={()=>!readonly&&setHover(i)}
+          onMouseLeave={()=>!readonly&&setHover(0)}>★</span>
+      ))}
+    </div>
+  );
+}
+
+// ─── WATCH REVIEWS ────────────────────────────────────────────────────────────
+function WatchReviews({ watchId, currentUser }) {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [myReview, setMyReview] = useState(null);
+  const [form, setForm] = useState({ rating:0, title:"", content:"" });
+  const [saving, setSaving] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(()=>{ load(); },[watchId]);
+
+  async function load() {
+    setLoading(true);
+    const {data}=await supabase.from("watch_reviews")
+      .select("*, author:profiles(id,name,handle,avatar_color,avatar_emoji)")
+      .eq("watch_id",watchId)
+      .order("is_owner",{ascending:false})
+      .order("created_at",{ascending:false});
+    setReviews(data||[]);
+    if(currentUser?.id) {
+      const mine = (data||[]).find(r=>r.author_id===currentUser.id);
+      setMyReview(mine||null);
+      if(mine) setForm({rating:mine.rating,title:mine.title,content:mine.content});
+      // Check if owner
+      const {data:col}=await supabase.from("watch_registrations").select("id").eq("user_id",currentUser.id).eq("watch_id",watchId).maybeSingle();
+      setIsOwner(!!col);
+    }
+    setLoading(false);
+  }
+
+  async function submitReview() {
+    if(!form.rating||!form.title.trim()||!form.content.trim()) return;
+    setSaving(true);
+    const payload = { watch_id:watchId, author_id:currentUser.id, rating:form.rating, title:form.title.trim(), content:form.content.trim(), is_owner:isOwner };
+    if(myReview) await supabase.from("watch_reviews").update(payload).eq("id",myReview.id);
+    else await supabase.from("watch_reviews").insert(payload);
+    setShowForm(false); await load(); setSaving(false);
+  }
+
+  const avgRating = reviews.length ? (reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1) : null;
+
+  return (
+    <div>
+      {/* Summary */}
+      {reviews.length>0&&(
+        <div style={{ ...S.card, display:"flex", alignItems:"center", gap:20, marginBottom:16 }}>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontSize:36, fontWeight:700, fontFamily:"'DM Mono',monospace", color:"#1a2744" }}>{avgRating}</div>
+            <StarRating value={Math.round(avgRating)} readonly size={16} />
+            <div style={{ ...S.muted, fontSize:12, marginTop:4 }}>{reviews.length} reseña{reviews.length!==1?"s":""}</div>
+          </div>
+          <div style={{ flex:1 }}>
+            {[5,4,3,2,1].map(s=>{
+              const count = reviews.filter(r=>r.rating===s).length;
+              const pct = reviews.length ? (count/reviews.length*100) : 0;
+              return (
+                <div key={s} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
+                  <span style={{ fontSize:11, color:"#888", width:8 }}>{s}</span>
+                  <span style={{ fontSize:12 }}>★</span>
+                  <div style={{ flex:1, height:6, background:"#f0ede6", borderRadius:3, overflow:"hidden" }}>
+                    <div style={{ width:`${pct}%`, height:"100%", background:"#f59e0b", borderRadius:3 }} />
+                  </div>
+                  <span style={{ fontSize:11, color:"#888", width:16 }}>{count}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Add review button */}
+      {currentUser&&!showForm&&(
+        <button style={{ ...S.btn(myReview?"outline":"primary"), marginBottom:16, fontSize:13 }} onClick={()=>setShowForm(true)}>
+          {myReview?"✏️ Editar mi reseña":"+ Escribir reseña"}
+        </button>
+      )}
+
+      {/* Review form */}
+      {showForm&&currentUser&&(
+        <div style={{ ...S.card, border:"1px solid #1a2744", marginBottom:16 }}>
+          <h3 style={{ ...S.h2, marginBottom:16 }}>{myReview?"Editar reseña":"Tu reseña"}</h3>
+          {isOwner&&<div style={{ marginBottom:12 }}><Badge text="✓ Propietario verificado" bg="#fff8e8" color="#b8963e" /></div>}
+          <div style={{ marginBottom:14 }}>
+            <span style={S.label}>Puntuación</span>
+            <StarRating value={form.rating} onChange={v=>setForm(f=>({...f,rating:v}))} size={28} />
+          </div>
+          <div style={{ marginBottom:12 }}><span style={S.label}>Título</span><input style={S.input} placeholder="Resume tu opinión en una frase" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} /></div>
+          <div style={{ marginBottom:16 }}><span style={S.label}>Reseña</span><textarea rows={4} style={{ ...S.input, resize:"none" }} placeholder="Cuéntanos tu experiencia con este reloj..." value={form.content} onChange={e=>setForm(f=>({...f,content:e.target.value}))} /></div>
+          <div style={{ display:"flex", justifyContent:"flex-end", gap:8 }}>
+            <button style={S.btn("outline")} onClick={()=>setShowForm(false)}>Cancelar</button>
+            <button style={S.btn("primary")} onClick={submitReview} disabled={saving||!form.rating||!form.title.trim()}>{saving?"Guardando…":"Publicar reseña"}</button>
+          </div>
+        </div>
+      )}
+
+      {/* Reviews list */}
+      {loading?<Spinner />:reviews.length===0?<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin reseñas aún. ¡Sé el primero!</div>:reviews.map(r=>(
+        <div key={r.id} style={S.card}>
+          <div style={{ ...S.row, justifyContent:"space-between", marginBottom:10 }}>
+            <div style={S.row}>
+              <Avatar name={r.author?.name||"?"} size={36} color={r.author?.avatar_color||"#1a2744"} emoji={r.author?.avatar_emoji||null} />
+              <div>
+                <div style={{ fontWeight:600, fontSize:14 }}>
+                  {r.author?.name}
+                  {r.is_owner&&<Badge text="Propietario" bg="#fff8e8" color="#b8963e" />}
+                </div>
+                <div style={S.muted}>@{r.author?.handle} · {timeAgo(r.created_at)}</div>
+              </div>
+            </div>
+            <StarRating value={r.rating} readonly size={14} />
+          </div>
+          <div style={{ fontWeight:700, marginBottom:6 }}>{r.title}</div>
+          <p style={{ fontSize:14, color:"#444", lineHeight:1.65, margin:0 }}>{r.content}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ─── USER BADGES ──────────────────────────────────────────────────────────────
 function UserBadges({ userId, inline=false }) {
@@ -1149,21 +1338,23 @@ function UserBadges({ userId, inline=false }) {
 
 function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
   const [topicSearch, setTopicSearch] = useState("");
-  const [watchQuery, setWatchQuery] = useState("");
-  const [watchSuggestions2, setWatchSuggestions2] = useState([]);
   const [allThreads, setAllThreads] = useState([]);
   const [filteredThreads, setFilteredThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
-  const [filter, setFilter] = useState("recientes"); // recientes | populares | marca
+  const [filter, setFilter] = useState("hot"); // hot | nuevo | top | marca
   const [filterBrand, setFilterBrand] = useState("");
-  const [newForm, setNewForm] = useState({watchQuery:"",watchId:null,watchSlug:"",title:"",content:""});
+  const [filterFlair, setFilterFlair] = useState("");
+  const [newForm, setNewForm] = useState({watchQuery:"",watchId:null,watchSlug:"",title:"",content:"",flair:"debate"});
   const [watchSuggestions, setWatchSuggestions] = useState([]);
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState(null);
+  const [savedThreads, setSavedThreads] = useState([]);
   const searchTimer = useRef(null);
+  const weeklyThread = getCurrentWeeklyThread();
 
-  useEffect(()=>{ loadAll(); },[filter,filterBrand]);
+  useEffect(()=>{ loadAll(); },[filter,filterBrand,filterFlair]);
+  useEffect(()=>{ if(currentUser?.id) loadSaved(); },[currentUser]);
 
   useEffect(()=>{
     clearTimeout(searchTimer.current);
@@ -1171,16 +1362,44 @@ function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
     return ()=>clearTimeout(searchTimer.current);
   },[topicSearch, allThreads]);
 
+  async function loadSaved() {
+    const {data}=await supabase.from("saved_threads").select("thread_id").eq("user_id",currentUser.id);
+    setSavedThreads((data||[]).map(s=>s.thread_id));
+  }
+
+  async function toggleSave(threadId, e) {
+    e.stopPropagation();
+    if(!currentUser) { onLoginRequired?.(); return; }
+    if(savedThreads.includes(threadId)) {
+      await supabase.from("saved_threads").delete().match({user_id:currentUser.id,thread_id:threadId});
+      setSavedThreads(s=>s.filter(id=>id!==threadId));
+    } else {
+      await supabase.from("saved_threads").insert({user_id:currentUser.id,thread_id:threadId});
+      setSavedThreads(s=>[...s,threadId]);
+    }
+  }
+
   async function loadAll() {
     setLoading(true);
     let q = supabase.from("forum_threads")
-      .select("id, title, content, votes, replies_count, created_at, watch_id, author_id, author:profiles(id,name,handle,avatar_color,avatar_emoji), watch:watches(id,slug,model,brand_slug)");
-    if(filter==="populares") q = q.order("votes",{ascending:false});
+      .select("id, title, content, votes, replies_count, created_at, watch_id, author_id, flair, author:profiles(id,name,handle,avatar_color,avatar_emoji,karma), watch:watches(id,slug,model,brand_slug)");
+    if(filter==="top") q = q.order("votes",{ascending:false});
     else q = q.order("created_at",{ascending:false});
-    if(filterBrand) q = q.eq("watch.brand_slug", filterBrand);
-    const {data} = await q.limit(40);
+    if(filterFlair) q = q.eq("flair",filterFlair);
+    const {data} = await q.limit(60);
     let threads = data||[];
     if(filterBrand) threads = threads.filter(t=>t.watch?.brand_slug===filterBrand);
+    // Hot algorithm: votes + recency boost
+    if(filter==="hot") {
+      const now = Date.now();
+      threads = threads.sort((a,b)=>{
+        const ageA = (now - new Date(a.created_at)) / (1000*60*60);
+        const ageB = (now - new Date(b.created_at)) / (1000*60*60);
+        const scoreA = (a.votes+1) / Math.pow(ageA+2, 1.5);
+        const scoreB = (b.votes+1) / Math.pow(ageB+2, 1.5);
+        return scoreB - scoreA;
+      });
+    }
     setAllThreads(threads); setLoading(false);
   }
 
@@ -1196,6 +1415,7 @@ function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
   }
 
   const displayed = topicSearch.trim() ? filteredThreads : allThreads;
+  const BRANDS = ["rolex","omega","patek","ap","iwc","jlc","tudor","cartier","breitling","tag","vc","hublot","panerai","gs","zenith"];
 
   async function searchW(q, forNew=false) {
     if(!q||q.length<2){forNew?setWatchSuggestions([]):setWatchSuggestions2([]);return;}
@@ -1209,12 +1429,10 @@ function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
     if(!newForm.title.trim()){setPostError("Escribe un título.");return;}
     if(!newForm.content.trim()){setPostError("Escribe el contenido.");return;}
     setPosting(true);
-    const {error}=await supabase.from("forum_threads").insert({watch_id:newForm.watchId,author_id:currentUser.id,title:newForm.title.trim(),content:newForm.content.trim(),is_news:false});
+    const {error}=await supabase.from("forum_threads").insert({watch_id:newForm.watchId,author_id:currentUser.id,title:newForm.title.trim(),content:newForm.content.trim(),flair:newForm.flair,is_news:false});
     if(error){setPostError(error.message);setPosting(false);return;}
-    setNewForm({watchQuery:"",watchId:null,watchSlug:"",title:"",content:""}); setShowNew(false); await loadAll(); setPosting(false);
+    setNewForm({watchQuery:"",watchId:null,watchSlug:"",title:"",content:"",flair:"debate"}); setShowNew(false); await loadAll(); setPosting(false);
   }
-
-  const BRANDS = ["rolex","omega","patek","ap","iwc","jlc","tudor"];
 
   return (
     <div>
@@ -1223,21 +1441,41 @@ function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
         <button style={S.btn("primary")} onClick={()=>currentUser?setShowNew(!showNew):onLoginRequired?.()}>+ Nuevo foro</button>
       </div>
 
-      {/* Buscador de topics */}
+      {/* Weekly thread */}
+      <div style={{ ...S.card, background:"linear-gradient(135deg, #1a2744, #2a3a5a)", border:"none", marginBottom:20, cursor:"pointer" }} onClick={()=>currentUser?setShowNew(true):onLoginRequired?.()}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#b8963e", fontFamily:"'DM Mono',monospace", marginBottom:6 }}>📅 Hilo de la semana</div>
+            <div style={{ fontWeight:700, fontSize:15, color:"#fff", marginBottom:4 }}>{weeklyThread.title}</div>
+            <p style={{ fontSize:13, color:"rgba(255,255,255,0.6)", margin:0 }}>{weeklyThread.content.slice(0,80)}…</p>
+          </div>
+          <div style={{ fontSize:24, marginLeft:16 }}>→</div>
+        </div>
+      </div>
+
+      {/* Buscador */}
       <div style={{ position:"relative", marginBottom:16 }}>
-        <input style={{ ...S.input, paddingLeft:40, fontSize:15 }} placeholder="Busca por tema, reloj, marca… ej: precio, mantenimiento, Daytona" value={topicSearch} onChange={e=>setTopicSearch(e.target.value)} />
+        <input style={{ ...S.input, paddingLeft:40, fontSize:15 }} placeholder="Busca por tema, reloj, marca…" value={topicSearch} onChange={e=>setTopicSearch(e.target.value)} />
         <span style={{ position:"absolute", left:12, top:11, color:"#888" }}>🔍</span>
         {topicSearch&&<button style={{ position:"absolute", right:12, top:10, background:"none", border:"none", cursor:"pointer", color:"#aaa", fontSize:16 }} onClick={()=>setTopicSearch("")}>×</button>}
       </div>
 
-      {/* Filtros */}
-      <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
-        {[["recientes","🕐 Recientes"],["populares","🔥 Populares"]].map(([v,label])=>(
-          <button key={v} onClick={()=>setFilter(v)} style={{ padding:"5px 14px", borderRadius:20, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:12, background:filter===v&&!filterBrand?"#1a2744":"#f0ede6", color:filter===v&&!filterBrand?"#fff":"#666", fontWeight:filter===v&&!filterBrand?600:400 }}>{label}</button>
+      {/* Filtros de ordenación */}
+      <div style={{ display:"flex", gap:6, marginBottom:12, flexWrap:"wrap" }}>
+        {[["hot","🔥 Hot"],["nuevo","🕐 Nuevo"],["top","⬆️ Top"]].map(([v,label])=>(
+          <button key={v} onClick={()=>{ setFilter(v); setFilterBrand(""); }} style={{ padding:"5px 14px", borderRadius:20, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:12, background:filter===v&&!filterBrand?"#1a2744":"#f0ede6", color:filter===v&&!filterBrand?"#fff":"#666", fontWeight:filter===v&&!filterBrand?600:400 }}>{label}</button>
         ))}
-        <div style={{ width:"1px", background:"#ddd", margin:"0 4px" }} />
-        {BRANDS.map(b=>(
-          <button key={b} onClick={()=>{ setFilterBrand(filterBrand===b?"":b); setFilter("recientes"); }} style={{ padding:"5px 14px", borderRadius:20, border:"none", cursor:"pointer", fontFamily:"'DM Mono',monospace", fontSize:11, background:filterBrand===b?"#1a2744":"#f0ede6", color:filterBrand===b?"#fff":"#666", letterSpacing:0.5 }}>{b}</button>
+        <div style={{ width:1, background:"#ddd", margin:"0 4px" }} />
+        {BRANDS.slice(0,8).map(b=>(
+          <button key={b} onClick={()=>{ setFilterBrand(filterBrand===b?"":b); }} style={{ padding:"5px 12px", borderRadius:20, border:"none", cursor:"pointer", fontFamily:"'DM Mono',monospace", fontSize:10, background:filterBrand===b?"#1a2744":"#f0ede6", color:filterBrand===b?"#fff":"#888", letterSpacing:0.5, textTransform:"uppercase" }}>{b}</button>
+        ))}
+      </div>
+
+      {/* Filtros de flair */}
+      <div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>
+        <button onClick={()=>setFilterFlair("")} style={{ padding:"4px 12px", borderRadius:20, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:11, background:!filterFlair?"#1a2744":"#f0ede6", color:!filterFlair?"#fff":"#666" }}>Todos</button>
+        {FLAIRS.map(f=>(
+          <button key={f.id} onClick={()=>setFilterFlair(filterFlair===f.id?"":f.id)} style={{ padding:"4px 12px", borderRadius:20, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:11, background:filterFlair===f.id?f.color:f.bg, color:filterFlair===f.id?"#fff":f.color, fontWeight:600 }}>{f.label}</button>
         ))}
       </div>
       {showNew&&(
@@ -1250,6 +1488,13 @@ function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
             {newForm.watchId&&<div style={{ marginTop:5, fontSize:12, color:"#2a7a4a", fontFamily:"'DM Mono',monospace" }}>✓ @{newForm.watchSlug}</div>}
             {watchSuggestions.length>0&&!newForm.watchId&&(<div style={{ position:"absolute", top:"100%", left:0, right:0, background:"#fff", border:"1px solid #e8e8e8", borderRadius:8, boxShadow:"0 4px 12px rgba(0,0,0,0.08)", zIndex:50, marginTop:2 }}>{watchSuggestions.map(w=>(<div key={w.id} style={{ padding:"10px 14px", cursor:"pointer", borderBottom:"1px solid #f5f5f5" }} onMouseDown={()=>{setNewForm(f=>({...f,watchQuery:`@${w.slug}`,watchId:w.id,watchSlug:w.slug}));setWatchSuggestions([]);}}><span style={{ fontWeight:600 }}>{w.model}</span><span style={{ ...S.mono, color:"#b8963e", fontSize:11, marginLeft:8 }}>@{w.slug}</span></div>))}</div>)}
           </div>
+          <div style={{ marginBottom:12 }}><span style={S.label}>Flair</span>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+              {FLAIRS.map(f=>(
+                <button key={f.id} type="button" onClick={()=>setNewForm(fm=>({...fm,flair:f.id}))} style={{ padding:"4px 12px", borderRadius:20, border:"none", cursor:"pointer", fontSize:11, fontFamily:"'DM Sans',sans-serif", background:newForm.flair===f.id?f.color:f.bg, color:newForm.flair===f.id?"#fff":f.color, fontWeight:600 }}>{f.label}</button>
+              ))}
+            </div>
+          </div>
           <div style={{ marginBottom:12 }}><span style={S.label}>Título</span><input style={S.input} value={newForm.title} onChange={e=>setNewForm(f=>({...f,title:e.target.value}))} /></div>
           <div style={{ marginBottom:16 }}><span style={S.label}>Contenido</span><textarea rows={4} style={{ ...S.input, resize:"none" }} value={newForm.content} onChange={e=>setNewForm(f=>({...f,content:e.target.value}))} /></div>
           <div style={{ display:"flex", justifyContent:"flex-end", gap:8 }}>
@@ -1260,7 +1505,7 @@ function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
       )}
       {/* Resultados */}
       <div style={{ ...S.row, justifyContent:"space-between", marginBottom:12 }}>
-        <h3 style={{ ...S.h2, marginBottom:0 }}>{topicSearch ? `Resultados para "${topicSearch}"` : filter==="populares"?"Más populares":"Recientes"}</h3>
+        <h3 style={{ ...S.h2, marginBottom:0 }}>{topicSearch?`"${topicSearch}"`:filter==="hot"?"🔥 Hot":filter==="top"?"⬆️ Top":"🕐 Nuevo"}{filterBrand&&` · ${filterBrand}`}{filterFlair&&` · ${FLAIRS.find(f=>f.id===filterFlair)?.label}`}</h3>
         <span style={S.muted}>{displayed.length} hilos</span>
       </div>
       {loading?<Spinner />:displayed.map(t=>(
@@ -1271,19 +1516,24 @@ function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
               <div style={{ fontSize:10, color:"#aaa" }}>pts</div>
             </div>
             <div style={{ flex:1 }}>
-              <div style={{ ...S.mono, fontSize:11, color:"#b8963e", marginBottom:3 }}>@{t.watch?.slug}</div>
+              <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+                <FlairBadge flair={t.flair} />
+                <span style={{ ...S.mono, fontSize:11, color:"#b8963e" }}>@{t.watch?.slug}</span>
+              </div>
               <div style={{ fontWeight:700, fontSize:15, marginBottom:6 }}>{t.title}</div>
               <p style={{ fontSize:13, color:"#666", margin:"0 0 8px", lineHeight:1.4 }}>{t.content.slice(0,120)}{t.content.length>120?"…":""}</p>
-              <div style={{ display:"flex", gap:16 }}>
+              <div style={{ display:"flex", gap:16, alignItems:"center" }}>
                 <span style={S.muted}>@{t.author?.handle}</span>
+                {t.author?.karma>0&&<span style={{ ...S.mono, fontSize:11, color:"#b8963e" }}>⚡{t.author.karma}</span>}
                 <span style={S.muted}>💬 {t.replies_count||0}</span>
                 <span style={S.muted}>{timeAgo(t.created_at)}</span>
+                <button style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", fontSize:16, color:savedThreads.includes(t.id)?"#b8963e":"#ddd" }} onClick={(e)=>toggleSave(t.id,e)}>{savedThreads.includes(t.id)?"🔖":"🔖"}</button>
               </div>
             </div>
           </div>
         </div>
       ))}
-      {!loading&&displayed.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>{topicSearch?"Sin resultados para ese término.":"Sin foros aún. ¡Crea el primero!"}</div>}
+      {!loading&&displayed.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>{topicSearch?"Sin resultados.":"Sin foros aún. ¡Crea el primero!"}</div>}
     </div>
   );
 }
@@ -1442,7 +1692,12 @@ export default function WichWoch() {
   },[]);
 
   async function loadProfile(uid) { const {data}=await supabase.from("profiles").select("*").eq("id",uid).single(); setProfile(data); }
-  async function loadUnread(uid) { const {count}=await supabase.from("notifications").select("*",{count:"exact",head:true}).eq("recipient_id",uid).eq("read",false).catch(()=>({count:0})); setUnreadCount(count||0); }
+  async function loadUnread(uid) {
+    try {
+      const {count}=await supabase.from("notifications").select("*",{count:"exact",head:true}).eq("recipient_id",uid).eq("read",false);
+      setUnreadCount(count||0);
+    } catch(e) { setUnreadCount(0); }
+  }
 
   const navigate=(name,id=null)=>{ setPage({name,id}); setShowNotifs(false); };
   async function signOut() { await supabase.auth.signOut(); setSession(null); setProfile(null); setPage({name:"explore"}); }
@@ -1497,6 +1752,27 @@ export default function WichWoch() {
         {page.name==="profile"&&<ProfilePage userId={page.id} currentUser={currentUser||{id:""}} onNavigate={navigate} />}
         {page.name==="settings"&&session&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
       </main>
+      {/* Mobile bottom nav */}
+      <MobileNav session={session} page={page} navigate={navigate} />
+    </div>
+  );
+}
+
+function MobileNav({ session, page, navigate }) {
+  const tabs = session
+    ? [{id:"feed",icon:"🏠",label:"Feed"},{id:"explore",icon:"🔍",label:"Explorar"},{id:"relojes",icon:"⌚",label:"Relojes"},{id:"foros",icon:"💬",label:"Foros"},{id:"profile",icon:"👤",label:"Perfil"}]
+    : [{id:"explore",icon:"🔍",label:"Explorar"},{id:"relojes",icon:"⌚",label:"Relojes"},{id:"foros",icon:"💬",label:"Foros"}];
+  return (
+    <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"#1a2744", borderTop:"1px solid rgba(255,255,255,0.1)", padding:"6px 0 10px", zIndex:200 }}>
+      <div style={{ display:"flex", justifyContent:"space-around" }}>
+        {tabs.map(n=>(
+          <button key={n.id} onClick={()=>n.id==="profile"&&session?navigate("profile",session.user.id):navigate(n.id)}
+            style={{ background:"none", border:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, color:page.name===n.id?"#b8963e":"rgba(255,255,255,0.5)", fontFamily:"'DM Sans',sans-serif", padding:"4px 8px" }}>
+            <span style={{ fontSize:20 }}>{n.icon}</span>
+            <span style={{ fontSize:10, fontWeight:page.name===n.id?700:400 }}>{n.label}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
