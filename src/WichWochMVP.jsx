@@ -594,17 +594,24 @@ function CommentsSection({ postId, currentUser }) {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
 
-  useEffect(()=>{ load(); },[postId]);
+  useEffect(()=>{ if(postId) load(); },[postId]);
 
   async function load() {
-    const {data}=await supabase.from("post_comments").select("*, author:profiles(id,name,handle,avatar_color,avatar_emoji)").eq("post_id",postId).order("created_at",{ascending:true});
-    setComments(data||[]); setLoading(false);
+    setLoading(true);
+    const {data, error}=await supabase.from("post_comments")
+      .select("*, author:profiles(id,name,handle,avatar_color,avatar_emoji)")
+      .eq("post_id",postId)
+      .order("created_at",{ascending:true});
+    if(!error) setComments(data||[]);
+    setLoading(false);
   }
 
   async function submit() {
-    if(!content.trim()) return; setPosting(true);
-    await supabase.from("post_comments").insert({post_id:postId,author_id:currentUser.id,content:content.trim()});
-    setContent(""); await load(); setPosting(false);
+    if(!content.trim()||!currentUser?.id) return;
+    setPosting(true);
+    const {error}=await supabase.from("post_comments").insert({post_id:postId,author_id:currentUser.id,content:content.trim()});
+    if(!error) { setContent(""); await load(); }
+    setPosting(false);
   }
 
   return (
@@ -709,7 +716,7 @@ function FeedPage({ user, onNavigate }) {
     <div>
       <PostComposer user={user} onPosted={loadAll} />
       <div style={{ display:"flex", gap:4, marginBottom:20 }}>
-        <button style={S.navLink(tab==="all")} onClick={()=>setTab("all")} style={{ ...S.navLink(tab==="all"), background:tab==="all"?"#1a2744":"#f0ede6", color:tab==="all"?"#fff":"#666", padding:"6px 16px", borderRadius:8, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:tab==="all"?600:400 }}>Todo</button>
+        <button onClick={()=>setTab("all")} style={{ background:tab==="all"?"#1a2744":"#f0ede6", color:tab==="all"?"#fff":"#666", padding:"6px 16px", borderRadius:8, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:tab==="all"?600:400 }}>Todo</button>
         <button onClick={()=>setTab("following")} style={{ background:tab==="following"?"#1a2744":"#f0ede6", color:tab==="following"?"#fff":"#666", padding:"6px 16px", borderRadius:8, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:tab==="following"?600:400 }}>Siguiendo</button>
       </div>
       {loading?<Spinner />:buildFeed().map((item,i)=>{
