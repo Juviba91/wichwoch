@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { S, brandFromSlug } from "../data/constants";
 import { Spinner, WatchCard } from "../components/UI";
 
-function RelojesPage({ onNavigate }) {
+export function RelojesPage({ onNavigate }) {
   const [watches, setWatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
