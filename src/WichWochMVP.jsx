@@ -100,9 +100,9 @@ function parseContent(text, onNavigate) {
 const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
 const S = {
-  app: { fontFamily:"'DM Sans',sans-serif", background:"#f8f7f4", minHeight:"100vh", color:"#1a1a1a" },
-  nav: { background:"#1a2744", padding:"0 16px", display:"flex", alignItems:"center", justifyContent:"space-between", height:52, position:"sticky", top:0, zIndex:100, boxShadow:"0 2px 12px rgba(0,0,0,0.15)" },
-  main: { maxWidth:960, margin:"0 auto", padding:"20px 14px 80px" },
+  app: { fontFamily:"'DM Sans',sans-serif", background:"#f8f7f4", minHeight:"100vh", color:"#1a1a1a", overflowX:"hidden" },
+  nav: { background:"#1a2744", padding:"0 12px", display:"flex", alignItems:"center", justifyContent:"space-between", height:52, position:"sticky", top:0, zIndex:100, boxShadow:"0 2px 12px rgba(0,0,0,0.15)" },
+  main: { maxWidth:960, margin:"0 auto", padding:"16px 12px 28px", boxSizing:"border-box", width:"100%" },
   card: { background:"#fff", border:"1px solid #ece9e2", borderRadius:10, padding:20, marginBottom:16, boxShadow:"0 1px 4px rgba(0,0,0,0.04)" },
   h1: { fontSize:22, fontWeight:700, marginBottom:4, fontFamily:"'DM Mono',monospace", letterSpacing:-0.5 },
   h2: { fontSize:16, fontWeight:700, marginBottom:16, fontFamily:"'DM Mono',monospace" },
@@ -443,6 +443,50 @@ function ExplorePage({ onNavigate, currentUser }) {
   );
 }
 
+
+// ─── QUOTE POST (repost con comentario) ──────────────────────────────────────
+function QuotePostModal({ original, currentUser, onClose, onPosted }) {
+  const [content, setContent] = useState("");
+  const [posting, setPosting] = useState(false);
+
+  async function submit() {
+    if(!content.trim()) return;
+    setPosting(true);
+    await supabase.from("posts").insert({
+      author_id: currentUser.id,
+      content: content.trim(),
+      post_type: "text",
+      repost_of: original.id
+    });
+    setPosting(false); onPosted(); onClose();
+  }
+
+  return (
+    <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+      <div style={{ background:"#fff", borderRadius:12, padding:24, width:"100%", maxWidth:500, boxShadow:"0 20px 60px rgba(0,0,0,0.3)" }}>
+        <div style={{ ...S.row, justifyContent:"space-between", marginBottom:16 }}>
+          <h3 style={{ ...S.h2, marginBottom:0 }}>Repostear con comentario</h3>
+          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:"#aaa" }} onClick={onClose}>×</button>
+        </div>
+        <textarea
+          autoFocus
+          placeholder="Añade tu comentario…"
+          value={content} onChange={e=>setContent(e.target.value)}
+          style={{ width:"100%", border:"1px solid #e8e8e8", borderRadius:8, padding:"10px 12px", fontSize:15, fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"none", boxSizing:"border-box", marginBottom:12 }} rows={3} />
+        {/* Preview del post original */}
+        <div style={{ border:"1px solid #e8e8e8", borderRadius:8, padding:12, marginBottom:16, background:"#f8f6f0" }}>
+          <div style={{ ...S.muted, marginBottom:6 }}>@{original.author?.handle}</div>
+          <p style={{ fontSize:13, color:"#444", margin:0, lineHeight:1.5 }}>{original.content?.slice(0,120)}{original.content?.length>120?"…":""}</p>
+        </div>
+        <div style={{ display:"flex", justifyContent:"flex-end", gap:8 }}>
+          <button style={S.btn("outline")} onClick={onClose}>Cancelar</button>
+          <button style={S.btn("primary")} onClick={submit} disabled={posting||!content.trim()}>{posting?"Reposteando…":"Repostear"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── POST COMPOSER ────────────────────────────────────────────────────────────
 function PostComposer({ user, onPosted }) {
   const [type, setType] = useState("text");
@@ -480,11 +524,13 @@ function PostComposer({ user, onPosted }) {
 }
 
 // ─── POST CARD ────────────────────────────────────────────────────────────────
-function PostCard({ post, currentUser, onNavigate, onDeleted }) {
+function PostCard({ post, currentUser, onNavigate, onDeleted, onReload }) {
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(post.likes_count||0);
   const [showComments, setShowComments] = useState(false);
+  const [showQuote, setShowQuote] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  const [repostOf, setRepostOf] = useState(null);
   const author=post.author;
   const isOwn = post.author_id===currentUser?.id;
 
@@ -492,9 +538,14 @@ function PostCard({ post, currentUser, onNavigate, onDeleted }) {
     if(!currentUser?.id) return;
     supabase.from("likes").select("id").eq("user_id",currentUser.id).eq("post_id",post.id).maybeSingle()
       .then(({data})=>{ if(data) setLiked(true); });
+    if(post.repost_of) {
+      supabase.from("posts").select("*, author:profiles(id,name,handle,avatar_color,avatar_emoji)").eq("id",post.repost_of).single()
+        .then(({data})=>{ if(data) setRepostOf(data); });
+    }
   },[post.id, currentUser?.id]);
 
   async function toggleLike() {
+    if(!currentUser?.id) return;
     if(liked){await supabase.from("likes").delete().match({user_id:currentUser.id,post_id:post.id});setLikes(l=>l-1);}
     else{await supabase.from("likes").insert({user_id:currentUser.id,post_id:post.id});setLikes(l=>l+1);}
     setLiked(!liked);
@@ -556,18 +607,30 @@ function PostCard({ post, currentUser, onNavigate, onDeleted }) {
           <span style={{ ...S.mono, color:"#b8963e", fontSize:11 }}>@{post.watch.slug}</span>
         </div>
       )}
+      {/* Repost preview */}
+      {repostOf&&(
+        <div style={{ border:"1px solid #e8e8e8", borderRadius:8, padding:"10px 14px", marginBottom:12, background:"#f8f6f0", cursor:"pointer" }} onClick={()=>onNavigate("profile",repostOf.author?.id)}>
+          <div style={{ ...S.muted, marginBottom:4, fontSize:12 }}>@{repostOf.author?.handle}</div>
+          <p style={{ fontSize:13, color:"#444", margin:0, lineHeight:1.5 }}>{repostOf.content?.slice(0,100)}{repostOf.content?.length>100?"…":""}</p>
+        </div>
+      )}
+
       <div style={{ ...S.row, borderTop:"1px solid #f5f3ef", paddingTop:10, marginTop:4, justifyContent:"space-between" }}>
         <div style={S.row}>
           <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:liked?"#e11d48":"#888", fontFamily:"'DM Sans',sans-serif", padding:"0 8px 0 0", display:"flex", alignItems:"center", gap:4 }} onClick={toggleLike}>
             {liked?"♥":"♡"} {likes}
           </button>
-          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:showComments?"#1a2744":"#888", fontFamily:"'DM Sans',sans-serif", padding:0, display:"flex", alignItems:"center", gap:4 }} onClick={()=>setShowComments(!showComments)}>
+          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:showComments?"#1a2744":"#888", fontFamily:"'DM Sans',sans-serif", padding:"0 8px 0 0", display:"flex", alignItems:"center", gap:4 }} onClick={()=>setShowComments(!showComments)}>
             💬 {post.comments_count||0}
           </button>
+          {currentUser&&<button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#888", fontFamily:"'DM Sans',sans-serif", padding:0, display:"flex", alignItems:"center", gap:4 }} onClick={()=>setShowQuote(true)}>
+            🔁 Repostear
+          </button>}
         </div>
-        {isOwn&&<button style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:"#ccc", fontFamily:"'DM Sans',sans-serif", padding:0 }} onClick={deletePost}>🗑️ Borrar</button>}
+        {isOwn&&<button style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:"#ccc", fontFamily:"'DM Sans',sans-serif", padding:0 }} onClick={deletePost}>🗑️</button>}
       </div>
       {showComments&&<CommentsSection postId={post.id} currentUser={currentUser} />}
+      {showQuote&&currentUser&&<QuotePostModal original={post} currentUser={currentUser} onClose={()=>setShowQuote(false)} onPosted={()=>onReload&&onReload()} />}
     </div>
   );
 }
@@ -627,7 +690,11 @@ function CommentsSection({ postId, currentUser }) {
 }
 
 // ─── AI + BRAND NEWS CARDS ────────────────────────────────────────────────────
-function AINewsCard({ item }) {
+function AINewsCard({ item, currentUser }) {
+  const [liked, setLiked] = useState(false);
+  const [likes, setLikes] = useState(0);
+  const [showComments, setShowComments] = useState(false);
+  const [fakePostId] = useState(`ai-${item.type}-${Math.floor(Date.now()/(1000*60*60*24))}`);
   const icons={curiosidad:"🕰️",noticia:"📰",tecnico:"⚙️"};
   const labels={curiosidad:"Curiosidad del día",noticia:"Noticia",tecnico:"¿Sabías que?"};
   const colors={curiosidad:"#1a3a6b",noticia:"#006039",tecnico:"#8b0000"};
@@ -638,7 +705,37 @@ function AINewsCard({ item }) {
         <div style={{ width:38, height:38, borderRadius:"50%", background:bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, flexShrink:0 }}>{icons[item.type]}</div>
         <div><div style={{ fontWeight:700, fontSize:13, color:bg }}>{labels[item.type]}</div><div style={S.muted}>Wich Woch · Hoy</div></div>
       </div>
-      <p style={{ fontSize:14, lineHeight:1.7, margin:0, color:"#333" }}>{item.content}</p>
+      <p style={{ fontSize:14, lineHeight:1.7, margin:"0 0 12px", color:"#333" }}>{item.content}</p>
+      <div style={{ ...S.row, borderTop:"1px solid #f5f3ef", paddingTop:10 }}>
+        <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:liked?"#e11d48":"#888", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4, padding:"0 8px 0 0" }} onClick={()=>setLiked(!liked)}>
+          {liked?"♥":"♡"} {liked?likes+1:likes}
+        </button>
+        <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#888", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4 }} onClick={()=>setShowComments(!showComments)}>
+          💬 Comentar
+        </button>
+      </div>
+      {showComments&&currentUser&&(
+        <div style={{ marginTop:12, borderTop:"1px solid #f0ede6", paddingTop:12 }}>
+          <AICommentBox label={labels[item.type]} content={item.content} currentUser={currentUser} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AICommentBox({ label, content, currentUser }) {
+  const [comment, setComment] = useState("");
+  const [posted, setPosted] = useState(false);
+  async function submit() {
+    if(!comment.trim()) return;
+    await supabase.from("posts").insert({ author_id:currentUser.id, content:`💬 Re: ${label} — ${comment.trim()}`, post_type:"text" });
+    setComment(""); setPosted(true);
+  }
+  if(posted) return <div style={{ fontSize:13, color:"#2a7a4a" }}>✓ Comentario publicado en tu feed</div>;
+  return (
+    <div style={{ display:"flex", gap:8 }}>
+      <input style={{ ...S.input, fontSize:13, padding:"7px 12px" }} placeholder="Tu opinión sobre esta noticia…" value={comment} onChange={e=>setComment(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} />
+      <button style={{ ...S.btn("primary"), padding:"7px 14px", fontSize:12, flexShrink:0 }} onClick={submit} disabled={!comment.trim()}>→</button>
     </div>
   );
 }
@@ -682,7 +779,7 @@ function FeedPage({ user, onNavigate }) {
             if(!ids.length) return {data:[]};
             return supabase.from("posts").select("*, author:profiles(id,name,handle,account_type,avatar_color,avatar_emoji,location), watch:watches(id,slug,model)").in("author_id",ids).order("created_at",{ascending:false}).limit(20);
           })
-        : supabase.from("posts").select("*, author:profiles(id,name,handle,account_type,avatar_color,avatar_emoji,location), watch:watches(id,slug,model)").order("created_at",{ascending:false}).limit(20),
+        : supabase.from("posts").select("*, author:profiles(id,name,handle,account_type,avatar_color,avatar_emoji,location), watch:watches(id,slug,model)").is("repost_of",null).order("created_at",{ascending:false}).limit(20),
       supabase.from("brand_news").select("*").eq("owners_only",false).order("created_at",{ascending:false}).limit(4),
     ]);
     setPosts(postsRes.data||[]); setBrandNews(bnRes.data||[]); setLoading(false);
@@ -705,8 +802,8 @@ function FeedPage({ user, onNavigate }) {
         <button onClick={()=>setTab("following")} style={{ background:tab==="following"?"#1a2744":"#f0ede6", color:tab==="following"?"#fff":"#666", padding:"6px 16px", borderRadius:8, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:tab==="following"?600:400 }}>Siguiendo</button>
       </div>
       {loading?<Spinner />:buildFeed().map((item,i)=>{
-        if(item.type==="post") return <PostCard key={`p-${item.data.id}`} post={item.data} currentUser={user} onNavigate={onNavigate} />;
-        if(item.type==="ai") return <AINewsCard key={`ai-${i}`} item={item.data} />;
+        if(item.type==="post") return <PostCard key={`p-${item.data.id}`} post={item.data} currentUser={user} onNavigate={onNavigate} onReload={loadAll} />;
+        if(item.type==="ai") return <AINewsCard key={`ai-${i}`} item={item.data} currentUser={user} />;
         if(item.type==="brand") return <BrandNewsCard key={`bn-${item.data.id}`} item={item.data} onNavigate={onNavigate} />;
         return null;
       })}
@@ -1316,6 +1413,24 @@ function WatchReviews({ watchId, currentUser }) {
   );
 }
 
+
+// ─── Auto-generated forum threads (static rotating) ──────────────────────────
+const AUTO_FORUM_THREADS = [
+  { watch_slug:"rolex_submariner", flair:"debate", title:"¿Sigue valiendo lo que cuesta el Submariner en 2025?", content:"Con el mercado gris disparado y los precios oficiales subiendo cada año, ¿sigue siendo el Submariner una compra justificada o hay alternativas mejores?" },
+  { watch_slug:"omega_speedmaster", flair:"curiosidad", title:"El Speedmaster y la NASA: historia completa", content:"¿Sabíais que la NASA sometió a más de 10 relojes a pruebas extremas antes de elegir el Speedmaster? ¿Qué detalles del proceso no son tan conocidos?" },
+  { watch_slug:"patek_nautilus", flair:"debate", title:"Nautilus 5711: ¿burbuja o precio real?", content:"El Nautilus se vende por 3-4x el precio de lista en el mercado secundario. ¿Es una burbuja que va a estallar o el precio refleja su valor real?" },
+  { watch_slug:"ap_royal_oak", flair:"valoracion", title:"Royal Oak Jumbo 15202: el dress watch que lo cambió todo", content:"En 1972 Gérald Genta diseñó el Royal Oak en una noche. 50 años después sigue siendo el referente del luxury sport watch. ¿Qué lo hace tan especial?" },
+  { watch_slug:"tudor_black_bay", flair:"debate", title:"Tudor Black Bay vs Rolex Submariner: ¿cuál elegirías?", content:"Mismo ADN, precio muy diferente. El Black Bay ofrece movimiento in-house, garantía Rolex y estética similar. ¿Merece la pena el salto al Submariner?" },
+  { watch_slug:"gs_snowflake", flair:"curiosidad", title:"Grand Seiko Snowflake: el reloj más infravalorado del mercado", content:"El SBGA211 tiene un acabado imposible de replicar, movimiento Spring Drive único en el mundo y una esfera que parece arte. ¿Por qué no tiene más fama?" },
+  { watch_slug:"iwc_portugieser", flair:"valoracion", title:"Portugieser: el dress watch para los que no quieren dress watch", content:"Grande, legible, con reserva de marcha prominente. El Portugieser rompe todas las reglas del reloj de vestir clásico. ¿Es eso su mayor virtud o su mayor defecto?" },
+  { watch_slug:"breitling_navitimer", flair:"curiosidad", title:"Navitimer: ¿alguien usa realmente la regla de cálculo?", content:"La regla de cálculo circular del Navitimer fue diseñada para pilotos. En 2025, ¿hay alguien que la use realmente o es solo decoración histórica?" },
+];
+
+function getTodayAutoThread() {
+  const day = Math.floor(Date.now() / (1000*60*60*24));
+  return AUTO_FORUM_THREADS[day % AUTO_FORUM_THREADS.length];
+}
+
 // ─── USER BADGES ──────────────────────────────────────────────────────────────
 function UserBadges({ userId, inline=false }) {
   const [badges, setBadges] = useState([]);
@@ -1453,6 +1568,19 @@ function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
         </div>
       </div>
 
+      {/* Auto-generated thread of the day */}
+      {(()=>{
+        const auto = getTodayAutoThread();
+        return (
+          <div style={{ ...S.card, marginBottom:16, borderLeft:"4px solid #b8963e", cursor:"pointer" }} onClick={()=>currentUser?setShowNew(true):onLoginRequired?.()}>
+            <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#b8963e", fontFamily:"'DM Mono',monospace", marginBottom:6 }}>🤖 Debate del día</div>
+            <div style={{ fontWeight:700, fontSize:14, marginBottom:4 }}>{auto.title}</div>
+            <p style={{ fontSize:13, color:"#666", margin:0, lineHeight:1.4 }}>{auto.content.slice(0,100)}…</p>
+            <div style={{ marginTop:8 }}><FlairBadge flair={auto.flair} /><span style={{ ...S.mono, fontSize:10, color:"#aaa", marginLeft:8 }}>@{auto.watch_slug}</span></div>
+          </div>
+        );
+      })()}
+
       {/* Buscador */}
       <div style={{ position:"relative", marginBottom:16 }}>
         <input style={{ ...S.input, paddingLeft:40, fontSize:15 }} placeholder="Busca por tema, reloj, marca…" value={topicSearch} onChange={e=>setTopicSearch(e.target.value)} />
@@ -1545,6 +1673,8 @@ function ThreadPage({ threadId, currentUser, onNavigate, onLoginRequired }) {
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState("");
   const [posting, setPosting] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null); // reply_id we're responding to
+  const [replyContent, setReplyContent] = useState("");
 
   useEffect(()=>{ load(); },[threadId]);
 
@@ -1558,9 +1688,9 @@ function ThreadPage({ threadId, currentUser, onNavigate, onLoginRequired }) {
     if(error) { console.error("Thread error:", error); setLoading(false); return; }
     setThread(t);
     const {data:r}=await supabase.from("forum_replies")
-      .select("id, content, votes, created_at, author_id, author:profiles(id,name,handle,account_type,avatar_color,avatar_emoji)")
+      .select("id, content, votes, created_at, author_id, parent_reply_id, author:profiles(id,name,handle,account_type,avatar_color,avatar_emoji)")
       .eq("thread_id",threadId)
-      .order("votes",{ascending:false});
+      .order("created_at",{ascending:true});
     setReplies(r||[]); setLoading(false);
   }
 
@@ -1583,6 +1713,16 @@ function ThreadPage({ threadId, currentUser, onNavigate, onLoginRequired }) {
     if(!window.confirm("¿Borrar esta respuesta?")) return;
     await supabase.from("forum_replies").delete().eq("id",replyId);
     await load();
+  }
+
+  async function submitNestedReply(parentId) {
+    if(!replyContent.trim()) return;
+    setPosting(true);
+    await supabase.from("forum_replies").insert({
+      thread_id:threadId, author_id:currentUser.id,
+      content:replyContent.trim(), parent_reply_id:parentId
+    });
+    setReplyingTo(null); setReplyContent(""); await load(); setPosting(false);
   }
 
   async function vote(type,id,value) {
@@ -1635,7 +1775,60 @@ function ThreadPage({ threadId, currentUser, onNavigate, onLoginRequired }) {
           <button style={S.btn("primary")} onClick={()=>onLoginRequired?.()}>Entrar / Registrarse</button>
         </div>
       )}
-      {replies.map(r=>(<div key={r.id} style={{ ...S.card, display:"flex", gap:14 }}><div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3, minWidth:36 }}><button style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, color:"#888", padding:0 }} onClick={()=>vote("reply",r.id,1)}>▲</button><span style={{ fontWeight:700, fontSize:13, fontFamily:"'DM Mono',monospace", color:r.votes>0?"#2a7a4a":r.votes<0?"#d44":"#888" }}>{r.votes}</span><button style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, color:"#888", padding:0 }} onClick={()=>vote("reply",r.id,-1)}>▼</button></div><div style={{ flex:1 }}><div style={{ ...S.row, justifyContent:"space-between", marginBottom:8 }}><div style={S.row}><Avatar name={r.author?.name||"?"} size={28} color={r.author?.avatar_color||"#1a2744"} emoji={r.author?.avatar_emoji||null} /><span style={{ fontWeight:600, fontSize:13 }}>@{r.author?.handle}</span>{r.author?.account_type==="repairer"&&<Badge text="Taller" bg="#e8f4ec" color="#4a7c59" />}<UserBadges userId={r.author_id} inline /><span style={S.muted}>{timeAgo(r.created_at)}</span></div>{r.author_id===currentUser?.id&&<button style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color:"#ccc" }} onClick={()=>deleteReply(r.id)}>🗑️</button>}</div><p style={{ fontSize:14, lineHeight:1.6, margin:0 }}>{r.content}</p></div></div>))}
+      {replies.filter(r=>!r.parent_reply_id).map(r=>(
+        <div key={r.id}>
+          <div style={{ ...S.card, display:"flex", gap:14 }}>
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3, minWidth:36 }}>
+              <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, color:"#888", padding:0 }} onClick={()=>vote("reply",r.id,1)}>▲</button>
+              <span style={{ fontWeight:700, fontSize:13, fontFamily:"'DM Mono',monospace", color:r.votes>0?"#2a7a4a":r.votes<0?"#d44":"#888" }}>{r.votes}</span>
+              <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, color:"#888", padding:0 }} onClick={()=>vote("reply",r.id,-1)}>▼</button>
+            </div>
+            <div style={{ flex:1 }}>
+              <div style={{ ...S.row, justifyContent:"space-between", marginBottom:8 }}>
+                <div style={S.row}>
+                  <Avatar name={r.author?.name||"?"} size={28} color={r.author?.avatar_color||"#1a2744"} emoji={r.author?.avatar_emoji||null} />
+                  <span style={{ fontWeight:600, fontSize:13 }}>@{r.author?.handle}</span>
+                  {r.author?.account_type==="repairer"&&<Badge text="Taller" bg="#e8f4ec" color="#4a7c59" />}
+                  <UserBadges userId={r.author_id} inline />
+                  <span style={S.muted}>{timeAgo(r.created_at)}</span>
+                </div>
+                <div style={S.row}>
+                  {currentUser&&<button style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:"#888" }} onClick={()=>setReplyingTo(replyingTo===r.id?null:r.id)}>↩ Responder</button>}
+                  {r.author_id===currentUser?.id&&<button style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color:"#ccc" }} onClick={()=>deleteReply(r.id)}>🗑️</button>}
+                </div>
+              </div>
+              <p style={{ fontSize:14, lineHeight:1.6, margin:"0 0 8px" }}>{r.content}</p>
+              {replyingTo===r.id&&(
+                <div style={{ display:"flex", gap:8, marginTop:8 }}>
+                  <input style={{ ...S.input, fontSize:13, padding:"7px 12px" }} placeholder={`Responder a @${r.author?.handle}…`} value={replyContent} onChange={e=>setReplyContent(e.target.value)} autoFocus onKeyDown={e=>e.key==="Enter"&&submitNestedReply(r.id)} />
+                  <button style={{ ...S.btn("primary"), padding:"7px 14px", fontSize:12, flexShrink:0 }} onClick={()=>submitNestedReply(r.id)} disabled={posting}>→</button>
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Nested replies */}
+          {replies.filter(nr=>nr.parent_reply_id===r.id).map(nr=>(
+            <div key={nr.id} style={{ ...S.card, display:"flex", gap:14, marginLeft:40, borderLeft:"2px solid #f0ede6", marginTop:-8 }}>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3, minWidth:28 }}>
+                <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:"#888", padding:0 }} onClick={()=>vote("reply",nr.id,1)}>▲</button>
+                <span style={{ fontWeight:700, fontSize:11, fontFamily:"'DM Mono',monospace", color:nr.votes>0?"#2a7a4a":nr.votes<0?"#d44":"#888" }}>{nr.votes}</span>
+                <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:"#888", padding:0 }} onClick={()=>vote("reply",nr.id,-1)}>▼</button>
+              </div>
+              <div style={{ flex:1 }}>
+                <div style={{ ...S.row, justifyContent:"space-between", marginBottom:6 }}>
+                  <div style={S.row}>
+                    <Avatar name={nr.author?.name||"?"} size={22} color={nr.author?.avatar_color||"#1a2744"} emoji={nr.author?.avatar_emoji||null} />
+                    <span style={{ fontWeight:600, fontSize:12 }}>@{nr.author?.handle}</span>
+                    <span style={{ ...S.muted, fontSize:11 }}>{timeAgo(nr.created_at)}</span>
+                  </div>
+                  {nr.author_id===currentUser?.id&&<button style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color:"#ccc" }} onClick={()=>deleteReply(nr.id)}>🗑️</button>}
+                </div>
+                <p style={{ fontSize:13, lineHeight:1.5, margin:0, color:"#444" }}>{nr.content}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
       {replies.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888" }}>Sé el primero en responder.</div>}
     </div>
   );
@@ -1752,27 +1945,6 @@ export default function WichWoch() {
         {page.name==="profile"&&<ProfilePage userId={page.id} currentUser={currentUser||{id:""}} onNavigate={navigate} />}
         {page.name==="settings"&&session&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
       </main>
-      {/* Mobile bottom nav */}
-      <MobileNav session={session} page={page} navigate={navigate} />
-    </div>
-  );
-}
-
-function MobileNav({ session, page, navigate }) {
-  const tabs = session
-    ? [{id:"feed",icon:"🏠",label:"Feed"},{id:"explore",icon:"🔍",label:"Explorar"},{id:"relojes",icon:"⌚",label:"Relojes"},{id:"foros",icon:"💬",label:"Foros"},{id:"profile",icon:"👤",label:"Perfil"}]
-    : [{id:"explore",icon:"🔍",label:"Explorar"},{id:"relojes",icon:"⌚",label:"Relojes"},{id:"foros",icon:"💬",label:"Foros"}];
-  return (
-    <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"#1a2744", borderTop:"1px solid rgba(255,255,255,0.1)", padding:"6px 0 10px", zIndex:200 }}>
-      <div style={{ display:"flex", justifyContent:"space-around" }}>
-        {tabs.map(n=>(
-          <button key={n.id} onClick={()=>n.id==="profile"&&session?navigate("profile",session.user.id):navigate(n.id)}
-            style={{ background:"none", border:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, color:page.name===n.id?"#b8963e":"rgba(255,255,255,0.5)", fontFamily:"'DM Sans',sans-serif", padding:"4px 8px" }}>
-            <span style={{ fontSize:20 }}>{n.icon}</span>
-            <span style={{ fontSize:10, fontWeight:page.name===n.id?700:400 }}>{n.label}</span>
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
