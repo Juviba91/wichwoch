@@ -279,7 +279,7 @@ function BrandNewsCard({ item, onNavigate }) {
 }
 
 // ─── FEED ─────────────────────────────────────────────────────────────────────
-function FeedPage({ user, onNavigate }) {
+export function FeedPage({ user, onNavigate }) {
   const [posts, setPosts] = useState([]);
   const [brandNews, setBrandNews] = useState([]);
   const [loading, setLoading] = useState(true);
