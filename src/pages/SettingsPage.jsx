@@ -4,7 +4,7 @@ import { S, AVATAR_COLORS, AVATAR_EMOJIS } from "../data/constants";
 import { Spinner } from "../components/UI";
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
-function SettingsPage({ user, onSaved }) {
+export function SettingsPage({ user, onSaved }) {
   const [form, setForm] = useState({ name:"", bio:"", location:"", website:"", avatar_color:"#1a2744", avatar_emoji:"" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
