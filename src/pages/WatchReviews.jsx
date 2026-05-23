@@ -4,7 +4,7 @@ import { S, timeAgo } from "../data/constants";
 import { Avatar, Badge, Spinner, StarRating } from "../components/UI";
 
 // ─── WATCH REVIEWS ────────────────────────────────────────────────────────────
-function WatchReviews({ watchId, currentUser }) {
+export function WatchReviews({ watchId, currentUser }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
