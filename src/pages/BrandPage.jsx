@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { S, BRAND_COLORS, BRAND_LOGOS, brandFromSlug, timeAgo } from "../data/constants";
 import { Spinner, WatchCard, Badge } from "../components/UI";
 
-function BrandPage({ brandSlug, currentUser, onNavigate }) {
+export function BrandPage({ brandSlug, currentUser, onNavigate }) {
   const [brand, setBrand] = useState(null);
   const [watches, setWatches] = useState([]);
   const [news, setNews] = useState([]);
