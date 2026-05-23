@@ -5,7 +5,7 @@ import { Spinner, Avatar, Badge } from "../components/UI";
 import { UserBadges } from "../components/UserBadges";
 
 // ─── THREAD PAGE (bug fix) ────────────────────────────────────────────────────
-function ThreadPage({ threadId, currentUser, onNavigate, onLoginRequired }) {
+export function ThreadPage({ threadId, currentUser, onNavigate, onLoginRequired }) {
   const [thread, setThread] = useState(null);
   const [replies, setReplies] = useState([]);
   const [loading, setLoading] = useState(true);
