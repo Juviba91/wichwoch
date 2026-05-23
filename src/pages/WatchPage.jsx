@@ -5,7 +5,7 @@ import { Spinner, Badge, Avatar, StarRating } from "../components/UI";
 import { UserBadges } from "../components/UserBadges";
 import { WatchReviews } from "./WatchReviews";
 
-function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
+export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
   const [watch, setWatch] = useState(null);
   const [threads, setThreads] = useState([]);
   const [news, setNews] = useState([]);
