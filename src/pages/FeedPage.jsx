@@ -94,7 +94,7 @@ function PostComposer({ user, onPosted }) {
 }
 
 // ─── POST CARD ────────────────────────────────────────────────────────────────
-function PostCard({ post, currentUser, onNavigate, onDeleted, onReload }) {
+export function PostCard({ post, currentUser, onNavigate, onDeleted, onReload }) {
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(post.likes_count||0);
   const [showComments, setShowComments] = useState(false);
