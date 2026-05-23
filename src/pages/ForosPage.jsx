@@ -147,7 +147,7 @@ function WatchReviews({ watchId, currentUser }) {
 
 // ─── USER BADGES ──────────────────────────────────────────────────────────────
 
-function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
+export function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
   const [topicSearch, setTopicSearch] = useState("");
   const [allThreads, setAllThreads] = useState([]);
   const [filteredThreads, setFilteredThreads] = useState([]);
