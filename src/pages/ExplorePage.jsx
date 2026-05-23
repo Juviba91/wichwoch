@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { S, BRAND_COLORS, BRAND_LOGOS, brandFromSlug } from "../data/constants";
 import { Spinner, WatchCard, Avatar, Badge } from "../components/UI";
 
-function ExplorePage({ onNavigate, currentUser }) {
+export function ExplorePage({ onNavigate, currentUser }) {
   const [watches, setWatches] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
