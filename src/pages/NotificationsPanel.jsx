@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { S, timeAgo } from "../data/constants";
 
-function NotificationsPanel({ userId, onClose, onNavigate }) {
+export function NotificationsPanel({ userId, onClose, onNavigate }) {
   const [notifs, setNotifs] = useState([]);
   const [loading, setLoading] = useState(true);
 
