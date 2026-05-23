@@ -29,7 +29,7 @@ function UserList({ title, users, onNavigate, onBack }) {
 }
 
 // ─── PROFILE ──────────────────────────────────────────────────────────────────
-function ProfilePage({ userId, currentUser, onNavigate }) {
+export function ProfilePage({ userId, currentUser, onNavigate }) {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [watches, setWatches] = useState([]);
