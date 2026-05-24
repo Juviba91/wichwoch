@@ -57,15 +57,15 @@ export function QuotePostModal({ original, currentUser, onClose, onPosted }) {
   );
 }
 
-// ─── POST COMPOSER ────────────────────────────────────────────────────────────
+// ─── POST COMPOSER (LinkedIn style) ──────────────────────────────────────────
 export function PostComposer({ user, onPosted }) {
-  const [type, setType] = useState("text");
   const [content, setContent] = useState("");
+  const [type, setType] = useState("text");
   const [mediaUrl, setMediaUrl] = useState("");
   const [newsTitle, setNewsTitle] = useState("");
   const [newsLink, setNewsLink] = useState("");
+  const [showExtras, setShowExtras] = useState(false);
   const [posting, setPosting] = useState(false);
-  const types=[{id:"text",label:"💬 Texto"},{id:"photo",label:"📷 Foto"},{id:"video",label:"🎬 Vídeo"},{id:"news",label:"📰 Noticia"}];
 
   async function submit() {
     if(!content.trim()) return; setPosting(true);
@@ -74,19 +74,32 @@ export function PostComposer({ user, onPosted }) {
     if(type==="news"){payload.news_title=newsTitle.trim();payload.news_link=newsLink.trim();}
     await supabase.from("posts").insert(payload);
     setContent(""); setMediaUrl(""); setNewsTitle(""); setNewsLink("");
+    setType("text"); setShowExtras(false);
     setPosting(false); onPosted();
   }
 
   return (
     <div style={S.card}>
-      <div style={{ display:"flex", gap:6, marginBottom:12 }}>
-        {types.map(t=>(<button key={t.id} onClick={()=>setType(t.id)} style={{ padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:12, background:type===t.id?"#1a2744":"#f0ede6", color:type===t.id?"#fff":"#666", fontWeight:type===t.id?600:400 }}>{t.label}</button>))}
-      </div>
-      {type==="news"&&<input style={{ ...S.input, marginBottom:8 }} placeholder="Título de la noticia" value={newsTitle} onChange={e=>setNewsTitle(e.target.value)} />}
-      <textarea placeholder={type==="text"?"¿Qué hay en tu muñeca? Usa @rolex_submariner para mencionar un reloj…":type==="photo"?"Describe la foto…":type==="video"?"Describe el vídeo…":"Resumen…"} value={content} onChange={e=>setContent(e.target.value)} style={{ width:"100%", border:"none", outline:"none", resize:"none", fontSize:15, fontFamily:"'DM Sans',sans-serif", background:"transparent", color:"#1a1a1a", boxSizing:"border-box" }} rows={3} />
-      {(type==="photo"||type==="video")&&<input style={{ ...S.input, marginTop:8 }} placeholder={type==="photo"?"URL de la imagen…":"URL del vídeo (YouTube...)"} value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} />}
-      {type==="news"&&<input style={{ ...S.input, marginTop:8 }} placeholder="Link (opcional)" value={newsLink} onChange={e=>setNewsLink(e.target.value)} />}
-      <div style={{ display:"flex", justifyContent:"flex-end", paddingTop:12, borderTop:"1px solid #f5f3ef", marginTop:10 }}>
+      {type==="news"&&showExtras&&<input style={{ ...S.input, marginBottom:8 }} placeholder="Título de la noticia" value={newsTitle} onChange={e=>setNewsTitle(e.target.value)} />}
+      <textarea
+        placeholder="¿Qué hay en tu muñeca? Usa @rolex_submariner para mencionar un reloj…"
+        value={content} onChange={e=>setContent(e.target.value)}
+        style={{ width:"100%", border:"none", outline:"none", resize:"none", fontSize:15, fontFamily:"'DM Sans',sans-serif", background:"transparent", color:"#1a1a1a", boxSizing:"border-box" }} rows={3} />
+      {showExtras&&(type==="photo"||type==="video")&&(
+        <input style={{ ...S.input, marginTop:8 }} placeholder={type==="photo"?"URL de la imagen…":"URL del vídeo (YouTube...)"} value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} />
+      )}
+      {showExtras&&type==="news"&&(
+        <input style={{ ...S.input, marginTop:8 }} placeholder="Link de la noticia (opcional)" value={newsLink} onChange={e=>setNewsLink(e.target.value)} />
+      )}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:12, borderTop:"1px solid #f5f3ef", marginTop:10 }}>
+        <div style={{ display:"flex", gap:4" }}>
+          {[{id:"photo",icon:"📷",label:"Foto"},{id:"video",icon:"🎬",label:"Vídeo"},{id:"news",icon:"📰",label:"Noticia"}].map(t=>(
+            <button key={t.id} onClick={()=>{ setType(t.id); setShowExtras(true); }}
+              style={{ background:type===t.id&&showExtras?"#1a2744":"transparent", color:type===t.id&&showExtras?"#fff":"#888", border:"none", borderRadius:6, padding:"5px 10px", cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4 }}>
+              {t.icon} {t.label}
+            </button>
+          ))}
+        </div>
         <button style={S.btn("primary")} onClick={submit} disabled={posting||!content.trim()}>{posting?"Publicando…":"Publicar"}</button>
       </div>
     </div>
@@ -212,7 +225,14 @@ export function AINewsCard({ item, currentUser }) {
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(0);
   const [showComments, setShowComments] = useState(false);
-  const [fakePostId] = useState(`ai-${item.type}-${Math.floor(Date.now()/(1000*60*60*24))}`);
+  const [commentCount, setCommentCount] = useState(0);
+  const newsDate = new Date().toISOString().split("T")[0];
+
+  useEffect(()=>{
+    supabase.from("news_comments").select("*",{count:"exact",head:true})
+      .eq("news_type",item.type).eq("news_date",newsDate)
+      .then(({count})=>setCommentCount(count||0));
+  },[item.type]);
   const icons={curiosidad:"🕰️",noticia:"📰",tecnico:"⚙️"};
   const labels={curiosidad:"Curiosidad del día",noticia:"Noticia",tecnico:"¿Sabías que?"};
   const colors={curiosidad:"#1a3a6b",noticia:"#006039",tecnico:"#8b0000"};
@@ -224,13 +244,19 @@ export function AINewsCard({ item, currentUser }) {
         <div><div style={{ fontWeight:700, fontSize:13, color:bg }}>{labels[item.type]}</div><div style={S.muted}>Wich Woch · Hoy</div></div>
       </div>
       <p style={{ fontSize:14, lineHeight:1.7, margin:"0 0 12px", color:"#333" }}>{item.content}</p>
-      <div style={{ ...S.row, borderTop:"1px solid #f5f3ef", paddingTop:10 }}>
-        <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:liked?"#e11d48":"#888", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4, padding:"0 8px 0 0" }} onClick={()=>setLiked(!liked)}>
-          {liked?"♥":"♡"} {liked?likes+1:likes}
-        </button>
-        <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#888", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4 }} onClick={()=>setShowComments(!showComments)}>
-          💬 Comentar
-        </button>
+      <div style={{ ...S.row, borderTop:"1px solid #f5f3ef", paddingTop:10, justifyContent:"space-between" }}>
+        <div style={S.row}>
+          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:liked?"#e11d48":"#888", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4, padding:"0 8px 0 0" }} onClick={()=>setLiked(!liked)}>
+            {liked?"♥":"♡"} {liked?likes+1:likes}
+          </button>
+          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:showComments?"#1a2744":"#888", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4, padding:"0 8px 0 0" }} onClick={()=>setShowComments(!showComments)}>
+            💬 {commentCount}
+          </button>
+          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#888", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4 }}
+            onClick={()=>{ if(navigator.share) navigator.share({title:labels[item.type], text:item.content}); else navigator.clipboard.writeText(item.content); }}>
+            ↗ Compartir
+          </button>
+        </div>
       </div>
       {showComments&&(
         <div style={{ marginTop:12, borderTop:"1px solid #f0ede6", paddingTop:12 }}>
@@ -377,7 +403,6 @@ export function FeedPage({ user, onNavigate }) {
   function buildFeed() {
     const feed=[];
     aiNews.forEach(n=>feed.push({type:"ai",data:n}));
-    feed.push({type:"weekly"});
     let bi=0;
     (posts||[]).forEach((p,i)=>{ feed.push({type:"post",data:p}); if((i+1)%5===0&&bi<brandNews.length) feed.push({type:"brand",data:brandNews[bi++]}); });
     while(bi<brandNews.length) feed.push({type:"brand",data:brandNews[bi++]});
@@ -386,6 +411,7 @@ export function FeedPage({ user, onNavigate }) {
 
   return (
     <div>
+      <WeeklyThreadCard onNavigate={onNavigate} currentUser={user} />
       <PostComposer user={user} onPosted={loadAll} />
       <div style={{ display:"flex", gap:4, marginBottom:20 }}>
         <button onClick={()=>setTab("all")} style={{ background:tab==="all"?"#1a2744":"#f0ede6", color:tab==="all"?"#fff":"#666", padding:"6px 16px", borderRadius:8, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:tab==="all"?600:400 }}>Todo</button>
@@ -394,7 +420,7 @@ export function FeedPage({ user, onNavigate }) {
       {loading?<Spinner />:buildFeed().map((item,i)=>{
         if(item.type==="post") return <PostCard key={`p-${item.data.id}`} post={item.data} currentUser={user} onNavigate={onNavigate} onReload={loadAll} />;
         if(item.type==="ai") return <AINewsCard key={`ai-${i}`} item={item.data} currentUser={user} />;
-        if(item.type==="weekly") return <WeeklyThreadCard key="weekly" onNavigate={onNavigate} currentUser={user} />;
+
         if(item.type==="brand") return <BrandNewsCard key={`bn-${item.data.id}`} item={item.data} onNavigate={onNavigate} />;
         return null;
       })}

@@ -203,7 +203,6 @@ export function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
   const [postError, setPostError] = useState(null);
   const [savedThreads, setSavedThreads] = useState([]);
   const searchTimer = useRef(null);
-  const weeklyThread = getCurrentWeeklyThread();
 
   useEffect(()=>{ loadAll(); },[filter,filterBrand,filterFlair]);
   useEffect(()=>{ if(currentUser?.id) loadSaved(); },[currentUser]);
@@ -293,17 +292,7 @@ export function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
         <button style={S.btn("primary")} onClick={()=>currentUser?setShowNew(!showNew):onLoginRequired?.()}>+ Nuevo foro</button>
       </div>
 
-      {/* Weekly thread */}
-      <div style={{ ...S.card, background:"linear-gradient(135deg, #1a2744, #2a3a5a)", border:"none", marginBottom:20, cursor:"pointer" }} onClick={()=>currentUser?setShowNew(true):onLoginRequired?.()}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <div>
-            <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#b8963e", fontFamily:"'DM Mono',monospace", marginBottom:6 }}>📅 Hilo de la semana</div>
-            <div style={{ fontWeight:700, fontSize:15, color:"#fff", marginBottom:4 }}>{weeklyThread.title}</div>
-            <p style={{ fontSize:13, color:"rgba(255,255,255,0.6)", margin:0 }}>{weeklyThread.content.slice(0,80)}…</p>
-          </div>
-          <div style={{ fontSize:24, marginLeft:16 }}>→</div>
-        </div>
-      </div>
+
 
       {/* Auto-generated thread of the day */}
       <DebateDelDia currentUser={currentUser} onNavigate={onNavigate} onLoginRequired={onLoginRequired} />
