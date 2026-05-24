@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { S, BRAND_COLORS, brandFromSlug, timeAgo, getDailyNews } from "../data/constants";
+import { S, BRAND_COLORS, brandFromSlug, timeAgo, getDailyNews, getCurrentWeeklyThread } from "../data/constants";
 import { Avatar, Badge, Spinner } from "../components/UI";
 import { CommentsSection } from "../components/Comments";
 import { UserBadges } from "../components/UserBadges";
@@ -15,7 +15,7 @@ export function parseContent(text, onNavigate) {
 }
 
 // ─── QUOTE POST (repost con comentario) ──────────────────────────────────────
-function QuotePostModal({ original, currentUser, onClose, onPosted }) {
+export function QuotePostModal({ original, currentUser, onClose, onPosted }) {
   const [content, setContent] = useState("");
   const [posting, setPosting] = useState(false);
 
@@ -58,7 +58,7 @@ function QuotePostModal({ original, currentUser, onClose, onPosted }) {
 }
 
 // ─── POST COMPOSER ────────────────────────────────────────────────────────────
-function PostComposer({ user, onPosted }) {
+export function PostComposer({ user, onPosted }) {
   const [type, setType] = useState("text");
   const [content, setContent] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
@@ -208,7 +208,7 @@ export function PostCard({ post, currentUser, onNavigate, onDeleted, onReload })
 // ─── COMMENTS ─────────────────────────────────────────────────────────────────
 
 // ─── AI + BRAND NEWS CARDS ────────────────────────────────────────────────────
-function AINewsCard({ item, currentUser }) {
+export function AINewsCard({ item, currentUser }) {
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(0);
   const [showComments, setShowComments] = useState(false);
@@ -232,33 +232,65 @@ function AINewsCard({ item, currentUser }) {
           💬 Comentar
         </button>
       </div>
-      {showComments&&currentUser&&(
+      {showComments&&(
         <div style={{ marginTop:12, borderTop:"1px solid #f0ede6", paddingTop:12 }}>
-          <AICommentBox label={labels[item.type]} content={item.content} currentUser={currentUser} />
+          <AICommentBox newsType={item.type} newsDate={new Date().toISOString().split("T")[0]} currentUser={currentUser} />
         </div>
       )}
     </div>
   );
 }
 
-function AICommentBox({ label, content, currentUser }) {
+export function AICommentBox({ newsType, newsDate, currentUser }) {
+  const [comments, setComments] = useState([]);
   const [comment, setComment] = useState("");
-  const [posted, setPosted] = useState(false);
-  async function submit() {
-    if(!comment.trim()) return;
-    await supabase.from("posts").insert({ author_id:currentUser.id, content:`💬 Re: ${label} — ${comment.trim()}`, post_type:"text" });
-    setComment(""); setPosted(true);
+  const [loading, setLoading] = useState(true);
+  const [posting, setPosting] = useState(false);
+
+  useEffect(()=>{ load(); },[newsType, newsDate]);
+
+  async function load() {
+    const {data}=await supabase.from("news_comments")
+      .select("*, author:profiles(id,name,handle,avatar_color,avatar_emoji)")
+      .eq("news_type",newsType).eq("news_date",newsDate)
+      .order("created_at",{ascending:true});
+    setComments(data||[]); setLoading(false);
   }
-  if(posted) return <div style={{ fontSize:13, color:"#2a7a4a" }}>✓ Comentario publicado en tu feed</div>;
+
+  async function submit() {
+    if(!comment.trim()||!currentUser?.id) return;
+    setPosting(true);
+    await supabase.from("news_comments").insert({
+      news_type:newsType, news_date:newsDate,
+      author_id:currentUser.id, content:comment.trim()
+    });
+    setComment(""); await load(); setPosting(false);
+  }
+
   return (
-    <div style={{ display:"flex", gap:8 }}>
-      <input style={{ ...S.input, fontSize:13, padding:"7px 12px" }} placeholder="Tu opinión sobre esta noticia…" value={comment} onChange={e=>setComment(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} />
-      <button style={{ ...S.btn("primary"), padding:"7px 14px", fontSize:12, flexShrink:0 }} onClick={submit} disabled={!comment.trim()}>→</button>
+    <div>
+      {!loading&&comments.map(c=>(
+        <div key={c.id} style={{ display:"flex", gap:8, marginBottom:8 }}>
+          <div style={{ width:28, height:28, borderRadius:"50%", background:c.author?.avatar_color||"#1a2744", display:"flex", alignItems:"center", justifyContent:"center", fontSize:c.author?.avatar_emoji?14:10, color:"#fff", flexShrink:0, fontWeight:700, fontFamily:"DM Mono,monospace" }}>
+            {c.author?.avatar_emoji||(c.author?.name||"?").slice(0,2).toUpperCase()}
+          </div>
+          <div style={{ flex:1, background:"#f8f6f0", borderRadius:8, padding:"7px 12px" }}>
+            <span style={{ fontWeight:600, fontSize:12 }}>@{c.author?.handle}</span>
+            <span style={{ fontSize:13, color:"#444", marginLeft:8 }}>{c.content}</span>
+          </div>
+        </div>
+      ))}
+      {currentUser&&(
+        <div style={{ display:"flex", gap:8, marginTop:8 }}>
+          <input style={{ ...S.input, fontSize:13, padding:"7px 12px" }} placeholder="Tu opinión…" value={comment} onChange={e=>setComment(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} />
+          <button style={{ ...S.btn("primary"), padding:"7px 14px", fontSize:12, flexShrink:0 }} onClick={submit} disabled={posting||!comment.trim()}>→</button>
+        </div>
+      )}
     </div>
   );
 }
 
-function BrandNewsCard({ item, onNavigate }) {
+export function BrandNewsCard({ item, onNavigate }) {
   const bg=BRAND_COLORS[item.brand_slug]||"#1a2744";
   return (
     <div style={{ ...S.card, borderLeft:`4px solid ${bg}` }}>
@@ -274,6 +306,45 @@ function BrandNewsCard({ item, onNavigate }) {
       </div>
       <div style={{ fontWeight:700, marginBottom:6 }}>{item.title}</div>
       <p style={{ fontSize:14, lineHeight:1.6, margin:0, color:"#444" }}>{item.content}</p>
+    </div>
+  );
+}
+
+// ─── WEEKLY THREAD CARD ──────────────────────────────────────────────────────
+export function WeeklyThreadCard({ onNavigate, currentUser }) {
+  const weekly = getCurrentWeeklyThread();
+
+  async function handleClick() {
+    // Check if thread already exists for this week
+    const weekNum = Math.floor(Date.now() / (1000*60*60*24*7));
+    const title = weekly.title;
+    const {data:existing}=await supabase.from("forum_threads")
+      .select("id").eq("title",title).maybeSingle();
+    if(existing) {
+      onNavigate("thread", existing.id);
+    } else if(currentUser) {
+      // Find a popular watch to attach the thread to
+      const {data:watch}=await supabase.from("watches").select("id").eq("slug","rolex_submariner").single();
+      const {data:newThread}=await supabase.from("forum_threads").insert({
+        watch_id: watch?.id,
+        author_id: currentUser.id,
+        title: title,
+        content: weekly.content,
+        flair: "debate",
+        is_news: false
+      }).select().single();
+      if(newThread) onNavigate("thread", newThread.id);
+    } else {
+      onNavigate("foros");
+    }
+  }
+
+  return (
+    <div style={{ ...S.card, background:"linear-gradient(135deg, #1a2744, #2a3a5a)", border:"none", cursor:"pointer", marginBottom:16 }} onClick={handleClick}>
+      <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#b8963e", fontFamily:"'DM Mono',monospace", marginBottom:8 }}>📅 Hilo de la semana</div>
+      <div style={{ fontWeight:700, fontSize:15, color:"#fff", marginBottom:6 }}>{weekly.title}</div>
+      <p style={{ fontSize:13, color:"rgba(255,255,255,0.6)", margin:"0 0 12px", lineHeight:1.5 }}>{weekly.content}</p>
+      <div style={{ fontSize:13, color:"#b8963e", fontWeight:600 }}>Participa en el debate →</div>
     </div>
   );
 }
@@ -306,6 +377,7 @@ export function FeedPage({ user, onNavigate }) {
   function buildFeed() {
     const feed=[];
     aiNews.forEach(n=>feed.push({type:"ai",data:n}));
+    feed.push({type:"weekly"});
     let bi=0;
     (posts||[]).forEach((p,i)=>{ feed.push({type:"post",data:p}); if((i+1)%5===0&&bi<brandNews.length) feed.push({type:"brand",data:brandNews[bi++]}); });
     while(bi<brandNews.length) feed.push({type:"brand",data:brandNews[bi++]});
@@ -322,6 +394,7 @@ export function FeedPage({ user, onNavigate }) {
       {loading?<Spinner />:buildFeed().map((item,i)=>{
         if(item.type==="post") return <PostCard key={`p-${item.data.id}`} post={item.data} currentUser={user} onNavigate={onNavigate} onReload={loadAll} />;
         if(item.type==="ai") return <AINewsCard key={`ai-${i}`} item={item.data} currentUser={user} />;
+        if(item.type==="weekly") return <WeeklyThreadCard key="weekly" onNavigate={onNavigate} currentUser={user} />;
         if(item.type==="brand") return <BrandNewsCard key={`bn-${item.data.id}`} item={item.data} onNavigate={onNavigate} />;
         return null;
       })}
