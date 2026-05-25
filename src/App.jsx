@@ -7,6 +7,7 @@ import { AdminPage, isAdmin } from "./admin/AdminPage";
 
 // Pages
 import { FeedPage } from "./pages/FeedPage";
+import { GaragePage } from "./pages/GaragePage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { RelojesPage } from "./pages/RelojesPage";
 import { ForosPage } from "./pages/ForosPage";
@@ -70,7 +71,7 @@ export default function App() {
 
   const currentUser = session ? session.user : null;
   const NAV = session
-    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}]
+    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"},{id:"garage",label:"Garage"}]
     : [{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}];
 
   return (
@@ -111,6 +112,7 @@ export default function App() {
         {page.name==="thread"&&<ThreadPage threadId={page.id} currentUser={currentUser} onNavigate={navigate} onLoginRequired={()=>setGuestMode(false)} />}
         {page.name==="profile"&&<ProfilePage userId={page.id} currentUser={currentUser||{id:""}} onNavigate={navigate} />}
         {page.name==="settings"&&session&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
+        {page.name==="garage"&&session&&<GaragePage currentUser={session.user} onNavigate={navigate} />}
         {page.name==="admin"&&<AdminPage user={session?.user} onNavigate={navigate} />}
       </main>
     </div>
