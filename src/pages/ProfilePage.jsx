@@ -152,7 +152,7 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
             <div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>setSubPage("following")}><div style={{ fontWeight:700, fontSize:18 }}>{profile.following_count||0}</div><div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>siguiendo</div></div>
             <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{watches.length}</div><div style={{ ...S.muted, fontSize:12 }}>relojes</div></div>
             <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{posts.length}</div><div style={{ ...S.muted, fontSize:12 }}>posts</div></div>
-            {(profile.karma||0)>0&&<div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18, color:"#b8963e" }}>⚡{profile.karma||0}</div><div style={{ ...S.muted, fontSize:12 }}>karma</div></div>}
+            {(profile.karma||0)>0&&<div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>window.alert("⚡ El Karma es la suma de votos positivos que has recibido en tus respuestas de foros. Cuanto más útiles sean tus aportaciones a la comunidad, más karma acumulas.")}><div style={{ fontWeight:700, fontSize:18, color:"#b8963e" }}>⚡{profile.karma||0}</div><div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>karma</div></div>}
           </div>
         </div>
       </div>

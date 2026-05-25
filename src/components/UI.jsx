@@ -6,8 +6,12 @@ export function Badge({ text, bg="#f0f0f0", color="#1a1a1a" }) {
 }
 
 export function Avatar({ name="?", size=36, color="#1a2744", emoji=null }) {
-  const i = name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-  return <div style={{ width:size, height:size, borderRadius:"50%", background:color, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:emoji?size*0.5:size*0.35, fontWeight:700, flexShrink:0, fontFamily:"'DM Mono',monospace" }}>{emoji||i}</div>;
+  // Always use initials - take first letter of each word, max 2
+  const words = (name||"?").trim().split(/\s+/);
+  const i = words.length >= 2
+    ? (words[0][0] + words[words.length-1][0]).toUpperCase()
+    : (words[0].slice(0,2)).toUpperCase();
+  return <div style={{ width:size, height:size, borderRadius:"50%", background:color, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:size*0.35, fontWeight:700, flexShrink:0, fontFamily:"'DM Mono',monospace", letterSpacing:-0.5 }}>{i}</div>;
 }
 
 export function Spinner() {

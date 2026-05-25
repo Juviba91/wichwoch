@@ -147,6 +147,47 @@ function WatchReviews({ watchId, currentUser }) {
 
 // ─── USER BADGES ──────────────────────────────────────────────────────────────
 
+
+export function DebateDelDia({ currentUser, onNavigate, onLoginRequired }) {
+  const auto = getTodayAutoThread();
+
+  async function handleClick() {
+    if(!currentUser) { onLoginRequired?.(); return; }
+    // Check if thread already exists
+    const {data:existing}=await supabase.from("forum_threads")
+      .select("id").eq("title",auto.title).maybeSingle();
+    if(existing) {
+      onNavigate("thread", existing.id);
+      return;
+    }
+    // Create thread with watch
+    const {data:watch}=await supabase.from("watches").select("id").eq("slug",auto.watch_slug).maybeSingle();
+    if(!watch) { onNavigate("foros"); return; }
+    const {data:newThread}=await supabase.from("forum_threads").insert({
+      watch_id: watch.id,
+      author_id: currentUser.id,
+      title: auto.title,
+      content: auto.content,
+      flair: auto.flair,
+      is_news: false
+    }).select().single();
+    if(newThread) onNavigate("thread", newThread.id);
+  }
+
+  return (
+    <div style={{ ...S.card, marginBottom:16, borderLeft:"4px solid #b8963e", cursor:"pointer" }} onClick={handleClick}>
+      <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#b8963e", fontFamily:"'DM Mono',monospace", marginBottom:6 }}>🤖 Debate del día</div>
+      <div style={{ fontWeight:700, fontSize:14, marginBottom:4 }}>{auto.title}</div>
+      <p style={{ fontSize:13, color:"#666", margin:"0 0 8px", lineHeight:1.4 }}>{auto.content.slice(0,100)}…</p>
+      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+        <FlairBadge flair={auto.flair} />
+        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:"#aaa" }}>@{auto.watch_slug}</span>
+        <span style={{ marginLeft:"auto", fontSize:12, color:"#b8963e", fontWeight:600 }}>Unirse al debate →</span>
+      </div>
+    </div>
+  );
+}
+
 export function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
   const [topicSearch, setTopicSearch] = useState("");
   const [allThreads, setAllThreads] = useState([]);
@@ -162,7 +203,6 @@ export function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
   const [postError, setPostError] = useState(null);
   const [savedThreads, setSavedThreads] = useState([]);
   const searchTimer = useRef(null);
-  const weeklyThread = getCurrentWeeklyThread();
 
   useEffect(()=>{ loadAll(); },[filter,filterBrand,filterFlair]);
   useEffect(()=>{ if(currentUser?.id) loadSaved(); },[currentUser]);
@@ -252,30 +292,10 @@ export function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
         <button style={S.btn("primary")} onClick={()=>currentUser?setShowNew(!showNew):onLoginRequired?.()}>+ Nuevo foro</button>
       </div>
 
-      {/* Weekly thread */}
-      <div style={{ ...S.card, background:"linear-gradient(135deg, #1a2744, #2a3a5a)", border:"none", marginBottom:20, cursor:"pointer" }} onClick={()=>currentUser?setShowNew(true):onLoginRequired?.()}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <div>
-            <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#b8963e", fontFamily:"'DM Mono',monospace", marginBottom:6 }}>📅 Hilo de la semana</div>
-            <div style={{ fontWeight:700, fontSize:15, color:"#fff", marginBottom:4 }}>{weeklyThread.title}</div>
-            <p style={{ fontSize:13, color:"rgba(255,255,255,0.6)", margin:0 }}>{weeklyThread.content.slice(0,80)}…</p>
-          </div>
-          <div style={{ fontSize:24, marginLeft:16 }}>→</div>
-        </div>
-      </div>
+
 
       {/* Auto-generated thread of the day */}
-      {(()=>{
-        const auto = getTodayAutoThread();
-        return (
-          <div style={{ ...S.card, marginBottom:16, borderLeft:"4px solid #b8963e", cursor:"pointer" }} onClick={()=>currentUser?setShowNew(true):onLoginRequired?.()}>
-            <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#b8963e", fontFamily:"'DM Mono',monospace", marginBottom:6 }}>🤖 Debate del día</div>
-            <div style={{ fontWeight:700, fontSize:14, marginBottom:4 }}>{auto.title}</div>
-            <p style={{ fontSize:13, color:"#666", margin:0, lineHeight:1.4 }}>{auto.content.slice(0,100)}…</p>
-            <div style={{ marginTop:8 }}><FlairBadge flair={auto.flair} /><span style={{ ...S.mono, fontSize:10, color:"#aaa", marginLeft:8 }}>@{auto.watch_slug}</span></div>
-          </div>
-        );
-      })()}
+      <DebateDelDia currentUser={currentUser} onNavigate={onNavigate} onLoginRequired={onLoginRequired} />
 
       {/* Buscador */}
       <div style={{ position:"relative", marginBottom:16 }}>

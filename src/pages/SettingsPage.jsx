@@ -41,13 +41,6 @@ export function SettingsPage({ user, onSaved }) {
         </div>
       </div>
       <div style={S.card}>
-        <h3 style={{ ...S.h2, marginBottom:16 }}>Emoji <span style={{ fontWeight:400, color:"#888", fontSize:13 }}>(opcional)</span></h3>
-        <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-          <div onClick={()=>setF("avatar_emoji","")} style={{ width:44, height:44, borderRadius:"50%", background:form.avatar_color, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", border:!form.avatar_emoji?"3px solid #b8963e":"3px solid transparent", boxSizing:"border-box", fontSize:13, fontWeight:700, color:"#fff", fontFamily:"'DM Mono',monospace" }}>AB</div>
-          {AVATAR_EMOJIS.map(e=>(<div key={e} onClick={()=>setF("avatar_emoji",e)} style={{ width:44, height:44, borderRadius:"50%", background:form.avatar_color, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, cursor:"pointer", border:form.avatar_emoji===e?"3px solid #b8963e":"3px solid transparent", boxSizing:"border-box" }}>{e}</div>))}
-        </div>
-      </div>
-      <div style={S.card}>
         <h3 style={{ ...S.h2, marginBottom:16 }}>Información personal</h3>
         <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
           <div><span style={S.label}>Nombre</span><input style={S.input} value={form.name} onChange={e=>setF("name",e.target.value)} /></div>
