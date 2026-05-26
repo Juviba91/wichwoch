@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { S } from "../data/constants";
 import { Spinner } from "../components/UI";
 
-const ADMIN_EMAILS = ["tu@email.com"]; // ← pon tu email aquí
+const ADMIN_EMAILS = ["jdevill@hotmail.com"]; // ← pon tu email aquí
 
 export function isAdmin(user) {
   return user && ADMIN_EMAILS.includes(user.email);
