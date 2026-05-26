@@ -337,40 +337,47 @@ export function BrandNewsCard({ item, onNavigate }) {
 }
 
 // ─── WEEKLY THREAD CARD ──────────────────────────────────────────────────────
-export function WeeklyThreadCard({ onNavigate, currentUser }) {
+export function WeeklyThreadCard({ onNavigate, currentUser, onPosted }) {
   const weekly = getCurrentWeeklyThread();
+  const [showComposer, setShowComposer] = useState(false);
+  const [content, setContent] = useState("");
+  const [posting, setPosting] = useState(false);
 
-  async function handleClick() {
-    // Check if thread already exists for this week
-    const weekNum = Math.floor(Date.now() / (1000*60*60*24*7));
-    const title = weekly.title;
-    const {data:existing}=await supabase.from("forum_threads")
-      .select("id").eq("title",title).maybeSingle();
-    if(existing) {
-      onNavigate("thread", existing.id);
-    } else if(currentUser) {
-      // Find a popular watch to attach the thread to
-      const {data:watch}=await supabase.from("watches").select("id").eq("slug","rolex_submariner").single();
-      const {data:newThread}=await supabase.from("forum_threads").insert({
-        watch_id: watch?.id,
-        author_id: currentUser.id,
-        title: title,
-        content: weekly.content,
-        flair: "debate",
-        is_news: false
-      }).select().single();
-      if(newThread) onNavigate("thread", newThread.id);
-    } else {
-      onNavigate("foros");
-    }
+  async function publish() {
+    if(!content.trim()||!currentUser) return;
+    setPosting(true);
+    await supabase.from("posts").insert({
+      author_id: currentUser.id,
+      content: `📅 ${weekly.title}\n\n${content.trim()}`,
+      post_type: "text"
+    });
+    setContent(""); setShowComposer(false); setPosting(false);
+    if(onPosted) onPosted();
   }
 
   return (
-    <div style={{ ...S.card, background:"linear-gradient(135deg, #1a2744, #2a3a5a)", border:"none", cursor:"pointer", marginBottom:16 }} onClick={handleClick}>
-      <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#b8963e", fontFamily:"'DM Mono',monospace", marginBottom:8 }}>📅 Hilo de la semana</div>
+    <div style={{ ...S.card, background:"linear-gradient(135deg, #1a2744, #2a3a5a)", border:"none", marginBottom:16 }}>
+      <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#b8963e", fontFamily:"'DM Mono',monospace", marginBottom:8 }}>📅 Post de la semana</div>
       <div style={{ fontWeight:700, fontSize:15, color:"#fff", marginBottom:6 }}>{weekly.title}</div>
-      <p style={{ fontSize:13, color:"rgba(255,255,255,0.6)", margin:"0 0 12px", lineHeight:1.5 }}>{weekly.content}</p>
-      <div style={{ fontSize:13, color:"#b8963e", fontWeight:600 }}>Participa en el debate →</div>
+      <p style={{ fontSize:13, color:"rgba(255,255,255,0.6)", margin:"0 0 14px", lineHeight:1.5 }}>{weekly.content}</p>
+      {!showComposer ? (
+        <button style={{ background:"#b8963e", border:"none", color:"#fff", borderRadius:8, padding:"8px 18px", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}
+          onClick={()=>currentUser?setShowComposer(true):onNavigate("login")}>
+          Participar →
+        </button>
+      ) : (
+        <div>
+          <textarea
+            autoFocus
+            placeholder="Escribe tu respuesta..."
+            value={content} onChange={e=>setContent(e.target.value)}
+            style={{ width:"100%", background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:8, padding:"10px 12px", fontSize:14, color:"#fff", resize:"none", boxSizing:"border-box", fontFamily:"'DM Sans',sans-serif", outline:"none", marginBottom:10 }} rows={3} />
+          <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+            <button style={{ background:"rgba(255,255,255,0.1)", border:"none", color:"rgba(255,255,255,0.7)", borderRadius:8, padding:"7px 14px", fontSize:13, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }} onClick={()=>setShowComposer(false)}>Cancelar</button>
+            <button style={{ background:"#b8963e", border:"none", color:"#fff", borderRadius:8, padding:"7px 14px", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }} onClick={publish} disabled={posting||!content.trim()}>{posting?"Publicando…":"Publicar"}</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -411,7 +418,7 @@ export function FeedPage({ user, onNavigate }) {
 
   return (
     <div>
-      <WeeklyThreadCard onNavigate={onNavigate} currentUser={user} />
+      <WeeklyThreadCard onNavigate={onNavigate} currentUser={user} onPosted={loadAll} />
       <PostComposer user={user} onPosted={loadAll} />
       <div style={{ display:"flex", gap:4, marginBottom:20 }}>
         <button onClick={()=>setTab("all")} style={{ background:tab==="all"?"#1a2744":"#f0ede6", color:tab==="all"?"#fff":"#666", padding:"6px 16px", borderRadius:8, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:tab==="all"?600:400 }}>Todo</button>

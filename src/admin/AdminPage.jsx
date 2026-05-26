@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { S } from "../data/constants";
 import { Spinner } from "../components/UI";
 
-const ADMIN_EMAILS = ["jdevill@hotmail.com"];
+const ADMIN_EMAILS = ["jdevill@hotmail.com"]; // ← pon tu email aquí
 
 export function isAdmin(user) {
   return user && ADMIN_EMAILS.includes(user.email);
@@ -28,24 +28,33 @@ export function AdminPage({ user, onNavigate }) {
   }
 
   async function loadMetrics() {
-    const [
-      {count:totalUsers},
-      {count:totalPosts},
-      {count:totalThreads},
-      {count:totalWatches},
-      {count:totalReviews},
-      {data:recentUsers},
-      {data:topPosts},
-    ] = await Promise.all([
-      supabase.from("profiles").select("*",{count:"exact",head:true}),
-      supabase.from("posts").select("*",{count:"exact",head:true}),
-      supabase.from("forum_threads").select("*",{count:"exact",head:true}),
-      supabase.from("watches").select("*",{count:"exact",head:true}),
-      supabase.from("watch_reviews").select("*",{count:"exact",head:true}).catch(()=>({count:0})),
-      supabase.from("profiles").select("id,name,handle,created_at,account_type").order("created_at",{ascending:false}).limit(5),
-      supabase.from("posts").select("id,content,likes_count,comments_count,created_at,author:profiles(name,handle)").order("likes_count",{ascending:false}).limit(5),
-    ]);
-    setMetrics({ totalUsers, totalPosts, totalThreads, totalWatches, totalReviews, recentUsers:recentUsers||[], topPosts:topPosts||[] });
+    try {
+      const [u, p, t, w, ru, tp] = await Promise.all([
+        supabase.from("profiles").select("*",{count:"exact",head:true}),
+        supabase.from("posts").select("*",{count:"exact",head:true}),
+        supabase.from("forum_threads").select("*",{count:"exact",head:true}),
+        supabase.from("watches").select("*",{count:"exact",head:true}),
+        supabase.from("profiles").select("id,name,handle,created_at,account_type").order("created_at",{ascending:false}).limit(5),
+        supabase.from("posts").select("id,content,likes_count,comments_count,created_at,author:profiles(name,handle)").order("likes_count",{ascending:false}).limit(5),
+      ]);
+      let totalReviews = 0;
+      try {
+        const rv = await supabase.from("watch_reviews").select("*",{count:"exact",head:true});
+        totalReviews = rv.count||0;
+      } catch(e) {}
+      setMetrics({
+        totalUsers: u.count||0,
+        totalPosts: p.count||0,
+        totalThreads: t.count||0,
+        totalWatches: w.count||0,
+        totalReviews,
+        recentUsers: ru.data||[],
+        topPosts: tp.data||[]
+      });
+    } catch(e) {
+      console.error("Metrics error:", e);
+      setMetrics({ totalUsers:0, totalPosts:0, totalThreads:0, totalWatches:0, totalReviews:0, recentUsers:[], topPosts:[] });
+    }
   }
 
   async function loadUsers() {
