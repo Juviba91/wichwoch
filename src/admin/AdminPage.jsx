@@ -64,7 +64,7 @@ export function AdminPage({ user, onNavigate }) {
   }
 
   const [pendingWatches, setPendingWatches] = useState([]);
-  const [rejectModal, setRejectModal] = useState(null); // {id, model, created_by}
+  const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
 
   async function loadPendingWatches() {
@@ -86,7 +86,7 @@ export function AdminPage({ user, onNavigate }) {
         type: "watch_approved",
         content: `Tu reloj "${w.model}" ha sido aprobado y ya aparece en el catálogo ✓`
       }).catch(()=>{});
-      await supabase.from("profiles").update({ flow: supabase.raw("flow + 10") }).eq("id",w.created_by).catch(()=>{});
+      await supabase.rpc("increment_flow", {user_id: w.created_by, amount: 10}).catch(()=>{});
     }
     await loadPendingWatches();
   }
@@ -290,7 +290,7 @@ export function AdminPage({ user, onNavigate }) {
           <div style={{ background:"#fff", borderRadius:12, padding:28, width:"100%", maxWidth:440 }}>
             <h3 style={{ fontFamily:"'DM Mono',monospace", fontSize:16, marginBottom:16 }}>Rechazar "{rejectModal.model}"</h3>
             <span style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:6, display:"block" }}>Motivo del rechazo</span>
-            <textarea rows={3} style={{ width:"100%", border:"1px solid #e0ddd6", borderRadius:8, padding:"10px 14px", fontSize:14, fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"none", boxSizing:"border-box", marginBottom:16 }} placeholder="Ej: Referencia incorrecta, modelo duplicado..." value={rejectReason} onChange={e=>setRejectReason(e.target.value)} autoFocus />
+            <textarea rows={3} style={{ width:"100%", border:"1px solid #e0ddd6", borderRadius:8, padding:"10px 14px", fontSize:14, fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"none", boxSizing:"border-box", marginBottom:16 }} placeholder="Ej: Referencia incorrecta, modelo duplicado..." value={rejectReason} onChange={e=>{ e.stopPropagation(); setRejectReason(e.target.value); }} />
             <p style={{ fontSize:12, color:"#888", marginBottom:16 }}>El usuario recibirá este motivo y podrá editar y reenviar su propuesta.</p>
             <div style={{ display:"flex", justifyContent:"flex-end", gap:8 }}>
               <button style={{ background:"#f0ede6", border:"none", borderRadius:8, padding:"8px 16px", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }} onClick={()=>{ setRejectModal(null); setRejectReason(""); }}>Cancelar</button>

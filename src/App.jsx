@@ -9,6 +9,7 @@ import { AdminPage, isAdmin } from "./admin/AdminPage";
 import { FeedPage } from "./pages/FeedPage";
 import { GaragePage } from "./pages/GaragePage";
 import { WristCheckPage } from "./pages/WristCheckPage";
+import { MantenimientoPage } from "./pages/MantenimientoPage";
 import { CreateWatchPage } from "./pages/CreateWatchPage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { RelojesPage } from "./pages/RelojesPage";
@@ -29,6 +30,7 @@ export default function App() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [guestMode, setGuestMode] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{
@@ -56,7 +58,7 @@ export default function App() {
     } catch(e) { setUnreadCount(0); }
   }
 
-  const navigate=(name,id=null)=>{ setPage({name,id}); setShowNotifs(false); };
+  const navigate=(name,id=null)=>{ setPage({name,id}); setShowNotifs(false); setShowUserMenu(false); };
   async function signOut() {
     await supabase.auth.signOut();
     setSession(null); setProfile(null); setGuestMode(false); setPage({name:"explore"});
@@ -73,7 +75,7 @@ export default function App() {
 
   const currentUser = session ? session.user : null;
   const NAV = session
-    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"},{id:"garage",label:"Garage"}]
+    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}]
     : [{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}];
 
   return (
@@ -93,11 +95,39 @@ export default function App() {
               {unreadCount>0&&<span style={{ position:"absolute", top:-4, right:-4, background:"#e11d48", color:"#fff", borderRadius:"50%", width:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700 }}>{unreadCount}</span>}
             </div>
             {showNotifs&&<NotificationsPanel userId={session.user.id} onClose={()=>setShowNotifs(false)} onNavigate={navigate} />}
-            <div style={{ cursor:"pointer" }} onClick={()=>navigate("profile",session.user.id)}>
-              <Avatar name={profile?.name||session.user.email} size={34} color={profile?.avatar_color||"#1a2744"} emoji={profile?.avatar_emoji||null} />
+            {/* User avatar dropdown */}
+            <div style={{ position:"relative" }}>
+              <div style={{ cursor:"pointer" }} onClick={()=>setShowUserMenu(!showUserMenu)}>
+                <Avatar name={profile?.name||session.user.email} size={34} color={profile?.avatar_color||"#1a2744"} />
+              </div>
+              {showUserMenu&&(
+                <div style={{ position:"absolute", right:0, top:44, width:200, background:"#fff", border:"1px solid #e8e8e8", borderRadius:10, boxShadow:"0 8px 24px rgba(0,0,0,0.12)", zIndex:200, overflow:"hidden" }}>
+                  {[
+                    {icon:"👤", label:"Mi Perfil", action:()=>{ navigate("profile",session.user.id); setShowUserMenu(false); }},
+                    {icon:"⌚", label:"Garage", action:()=>{ navigate("garage"); setShowUserMenu(false); }},
+                    {icon:"🔧", label:"Mantenimiento", action:()=>{ navigate("mantenimiento"); setShowUserMenu(false); }},
+                  ].map(item=>(
+                    <button key={item.label} onClick={item.action} style={{ width:"100%", padding:"11px 16px", background:"none", border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, textAlign:"left", display:"flex", alignItems:"center", gap:10, color:"#1a1a1a" }}
+                      onMouseEnter={e=>e.currentTarget.style.background="#f8f6f0"}
+                      onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                      <span>{item.icon}</span>{item.label}
+                    </button>
+                  ))}
+                  <div style={{ borderTop:"1px solid #f0ede6" }} />
+                  {[
+                    {icon:"⚙️", label:"Ajustes", action:()=>{ navigate("settings"); setShowUserMenu(false); }},
+                    {icon:"🚪", label:"Salir", action:()=>{ signOut(); setShowUserMenu(false); }, color:"#dc2626"},
+                  ].map(item=>(
+                    <button key={item.label} onClick={item.action} style={{ width:"100%", padding:"11px 16px", background:"none", border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, textAlign:"left", display:"flex", alignItems:"center", gap:10, color:item.color||"#1a1a1a" }}
+                      onMouseEnter={e=>e.currentTarget.style.background="#f8f6f0"}
+                      onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                      <span>{item.icon}</span>{item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, padding:"0 2px" }} onClick={()=>navigate("settings")}>⚙️</button>
-            <button style={{ background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", color:"#fff", padding:"5px 12px", borderRadius:6, fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={signOut}>Salir</button>
+            {isAdmin(session?.user)&&<button style={{ ...S.navLink(page.name==="admin"), background:page.name==="admin"?"#b8963e":"rgba(255,255,255,0.1)", color:"#fff", fontSize:12 }} onClick={()=>navigate("admin")}>Admin</button>}
           </>) : (
             <button style={{ background:"#b8963e", border:"none", cursor:"pointer", color:"#fff", padding:"7px 16px", borderRadius:6, fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={()=>setGuestMode(false)}>Entrar</button>
           )}
@@ -115,6 +145,7 @@ export default function App() {
         {page.name==="profile"&&<ProfilePage userId={page.id} currentUser={currentUser||{id:""}} onNavigate={navigate} />}
         {page.name==="settings"&&session&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
         {page.name==="garage"&&session&&<GaragePage currentUser={session.user} onNavigate={navigate} />}
+        {page.name==="mantenimiento"&&session&&<MantenimientoPage currentUser={session.user} onNavigate={navigate} />}
         {page.name==="wristcheck"&&<WristCheckPage currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="create-watch"&&session&&<CreateWatchPage currentUser={session.user} onNavigate={navigate} />}
         {page.name==="admin"&&<AdminPage user={session?.user} onNavigate={navigate} />}
