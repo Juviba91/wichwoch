@@ -152,7 +152,8 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
             <div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>setSubPage("following")}><div style={{ fontWeight:700, fontSize:18 }}>{profile.following_count||0}</div><div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>siguiendo</div></div>
             <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{watches.length}</div><div style={{ ...S.muted, fontSize:12 }}>relojes</div></div>
             <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{posts.length}</div><div style={{ ...S.muted, fontSize:12 }}>posts</div></div>
-            {(profile.flow||0)>=0&&<div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>window.alert("⚡ El Flow es tu nivel de aportación a la comunidad Wich Woch. Sube cuando otros votan positivo tus respuestas en foros. Cuanto más útiles e interesantes sean tus aportaciones, más Flow acumulas.")}><div style={{ fontWeight:700, fontSize:18, color:"#b8963e" }}>⚡{profile.flow||0}</div><div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>karma</div></div>}
+            {(profile.flow||0)>=0&&<div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>window.alert("⚡ El Flow es tu nivel de aportación a la comunidad Wich Woch. Sube cuando otros votan positivo tus respuestas en foros. Cuanto más útiles e interesantes sean tus aportaciones, más Flow acumulas.")}><div style={{ fontWeight:700, fontSize:18, color:"#b8963e" }}>⚡{profile.flow||0}</div><div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>flow</div></div>}
+            
           </div>
         </div>
       </div>
