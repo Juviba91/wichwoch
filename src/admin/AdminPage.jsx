@@ -24,6 +24,7 @@ export function AdminPage({ user, onNavigate }) {
     if(tab==="metricas") await loadMetrics();
     if(tab==="usuarios") await loadUsers();
     if(tab==="contenido") await loadContent();
+    if(tab==="relojes") await loadPendingWatches();
     setLoading(false);
   }
 
@@ -62,6 +63,24 @@ export function AdminPage({ user, onNavigate }) {
     setUsers(data||[]);
   }
 
+  const [pendingWatches, setPendingWatches] = useState([]);
+
+  async function loadPendingWatches() {
+    const {data}=await supabase.from("watches").select("*, creator:profiles(name,handle)").eq("status","pending").order("created_at",{ascending:false});
+    setPendingWatches(data||[]);
+  }
+
+  async function approveWatch(id) {
+    await supabase.from("watches").update({status:"approved"}).eq("id",id);
+    await loadPendingWatches();
+  }
+
+  async function rejectWatch(id) {
+    if(!window.confirm("¿Rechazar este reloj?")) return;
+    await supabase.from("watches").update({status:"rejected"}).eq("id",id);
+    await loadPendingWatches();
+  }
+
   async function loadContent() {
     const [{data:p},{data:t}]=await Promise.all([
       supabase.from("posts").select("*, author:profiles(name,handle)").order("created_at",{ascending:false}).limit(30),
@@ -95,7 +114,7 @@ export function AdminPage({ user, onNavigate }) {
     </div>
   );
 
-  const TABS = [["metricas","📊 Métricas"],["usuarios","👥 Usuarios"],["contenido","📝 Contenido"]];
+  const TABS = [["metricas","📊 Métricas"],["usuarios","👥 Usuarios"],["contenido","📝 Contenido"],["relojes","⌚ Relojes pendientes"]];
 
   return (
     <div>
@@ -212,6 +231,28 @@ export function AdminPage({ user, onNavigate }) {
                   <div style={{ fontWeight:600, fontSize:13, marginTop:4 }}>{t.title}</div>
                 </div>
                 <button style={{ background:"none", border:"1px solid #fcc", color:"#c00", borderRadius:4, padding:"4px 10px", fontSize:12, cursor:"pointer", marginLeft:12, flexShrink:0 }} onClick={()=>deleteThread(t.id)}>Borrar</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* RELOJES PENDIENTES */}
+        {tab==="relojes"&&(
+          <div>
+            <h3 style={{ ...S.h2, marginBottom:16 }}>Relojes pendientes de aprobación ({pendingWatches.length})</h3>
+            {pendingWatches.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin relojes pendientes ✓</div>}
+            {pendingWatches.map(w=>(
+              <div key={w.id} style={{ ...S.card, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div>
+                  <div style={{ fontWeight:700, fontSize:15, marginBottom:2 }}>{w.model}</div>
+                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"#888", marginBottom:4 }}>@{w.slug} · Ref. {w.reference}</div>
+                  <div style={S.muted}>Propuesto por @{w.creator?.handle} · {w.watch_type} · {w.gender}</div>
+                  {w.market_price&&<div style={{ fontSize:12, color:"#b8963e", marginTop:2 }}>💰 {w.market_price}</div>}
+                </div>
+                <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+                  <button style={{ background:"#f0fdf4", border:"1px solid #b3dfc4", color:"#16a34a", borderRadius:6, padding:"6px 14px", fontSize:13, cursor:"pointer", fontWeight:600 }} onClick={()=>approveWatch(w.id)}>✓ Aprobar</button>
+                  <button style={{ background:"#fff3f3", border:"1px solid #fcc", color:"#dc2626", borderRadius:6, padding:"6px 14px", fontSize:13, cursor:"pointer" }} onClick={()=>rejectWatch(w.id)}>✗ Rechazar</button>
+                </div>
               </div>
             ))}
           </div>

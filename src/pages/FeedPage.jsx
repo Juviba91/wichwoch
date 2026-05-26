@@ -66,6 +66,22 @@ export function PostComposer({ user, onPosted }) {
   const [newsLink, setNewsLink] = useState("");
   const [showExtras, setShowExtras] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const fileRef = { current: null };
+
+  async function uploadPhoto(file) {
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `posts/${user.id}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("watch-photos").upload(path, file);
+    if(!error) {
+      const { data } = supabase.storage.from("watch-photos").getPublicUrl(path);
+      setMediaUrl(data.publicUrl);
+      setPreviewUrl(data.publicUrl);
+    }
+    setUploading(false);
+  }
 
   async function submit() {
     if(!content.trim()) return; setPosting(true);
@@ -74,7 +90,7 @@ export function PostComposer({ user, onPosted }) {
     if(type==="news"){payload.news_title=newsTitle.trim();payload.news_link=newsLink.trim();}
     await supabase.from("posts").insert(payload);
     setContent(""); setMediaUrl(""); setNewsTitle(""); setNewsLink("");
-    setType("text"); setShowExtras(false);
+    setType("text"); setShowExtras(false); setPreviewUrl(null);
     setPosting(false); onPosted();
   }
 
@@ -82,11 +98,30 @@ export function PostComposer({ user, onPosted }) {
     <div style={S.card}>
       {type==="news"&&showExtras&&<input style={{ ...S.input, marginBottom:8 }} placeholder="Título de la noticia" value={newsTitle} onChange={e=>setNewsTitle(e.target.value)} />}
       <textarea
-        placeholder="¿Qué hay en tu muñeca? Usa @rolex_submariner para mencionar un reloj…"
+        placeholder="¿Qué hay en tu muñeca? Usa @rolex_submariner o @tudor para hablar de tu reloj…"
         value={content} onChange={e=>setContent(e.target.value)}
         style={{ width:"100%", border:"none", outline:"none", resize:"none", fontSize:15, fontFamily:"'DM Sans',sans-serif", background:"transparent", color:"#1a1a1a", boxSizing:"border-box" }} rows={3} />
-      {showExtras&&(type==="photo"||type==="video")&&(
-        <input style={{ ...S.input, marginTop:8 }} placeholder={type==="photo"?"URL de la imagen…":"URL del vídeo (YouTube...)"} value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} />
+
+      {/* Preview foto subida */}
+      {previewUrl&&(
+        <div style={{ position:"relative", marginTop:8, display:"inline-block" }}>
+          <img src={previewUrl} alt="" style={{ maxHeight:200, borderRadius:8, display:"block" }} />
+          <button style={{ position:"absolute", top:6, right:6, background:"rgba(0,0,0,0.6)", border:"none", color:"#fff", borderRadius:"50%", width:24, height:24, cursor:"pointer", fontSize:12 }} onClick={()=>{ setPreviewUrl(null); setMediaUrl(""); }}>×</button>
+        </div>
+      )}
+
+      {showExtras&&type==="photo"&&!previewUrl&&(
+        <div style={{ marginTop:8 }}>
+          <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", padding:"10px 14px", border:"2px dashed #e0ddd6", borderRadius:8, color:"#888", fontSize:13 }}>
+            {uploading?"⏳ Subiendo...":"📷 Elige una foto de tu dispositivo"}
+            <input type="file" accept="image/*" style={{ display:"none" }} onChange={e=>e.target.files[0]&&uploadPhoto(e.target.files[0])} />
+          </label>
+          <div style={{ textAlign:"center", margin:"8px 0", color:"#aaa", fontSize:12 }}>— o pega una URL —</div>
+          <input style={S.input} placeholder="https://..." value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} />
+        </div>
+      )}
+      {showExtras&&type==="video"&&(
+        <input style={{ ...S.input, marginTop:8 }} placeholder="URL del vídeo (YouTube...)" value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} />
       )}
       {showExtras&&type==="news"&&(
         <input style={{ ...S.input, marginTop:8 }} placeholder="Link de la noticia (opcional)" value={newsLink} onChange={e=>setNewsLink(e.target.value)} />
@@ -100,7 +135,7 @@ export function PostComposer({ user, onPosted }) {
             </button>
           ))}
         </div>
-        <button style={S.btn("primary")} onClick={submit} disabled={posting||!content.trim()}>{posting?"Publicando…":"Publicar"}</button>
+        <button style={S.btn("primary")} onClick={submit} disabled={posting||!content.trim()||uploading}>{posting?"Publicando…":uploading?"Subiendo…":"Publicar"}</button>
       </div>
     </div>
   );
@@ -114,6 +149,7 @@ export function PostCard({ post, currentUser, onNavigate, onDeleted, onReload })
   const [showQuote, setShowQuote] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [repostOf, setRepostOf] = useState(null);
+  const [lightbox, setLightbox] = useState(null);
   const author=post.author;
   const isOwn = post.author_id===currentUser?.id;
 
@@ -171,8 +207,14 @@ export function PostCard({ post, currentUser, onNavigate, onDeleted, onReload })
       )}
       <p style={{ fontSize:15, lineHeight:1.65, margin:"0 0 12px" }}>{parseContent(post.content,onNavigate)}</p>
       {post.post_type==="photo"&&post.media_url&&(
-        <div style={{ marginBottom:12, borderRadius:10, overflow:"hidden" }}>
+        <div style={{ marginBottom:12, borderRadius:10, overflow:"hidden", cursor:"zoom-in" }} onClick={()=>setLightbox(post.media_url)}>
           <img src={post.media_url} alt="" style={{ width:"100%", maxHeight:400, objectFit:"cover", display:"block" }} onError={e=>e.target.style.display="none"} />
+        </div>
+      )}
+      {lightbox&&(
+        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.95)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={()=>setLightbox(null)}>
+          <img src={lightbox} alt="" style={{ maxWidth:"95vw", maxHeight:"95vh", objectFit:"contain", borderRadius:8 }} />
+          <button style={{ position:"absolute", top:20, right:20, background:"rgba(255,255,255,0.2)", border:"none", color:"#fff", borderRadius:"50%", width:40, height:40, fontSize:20, cursor:"pointer" }}>×</button>
         </div>
       )}
       {post.post_type==="video"&&post.media_url&&(
