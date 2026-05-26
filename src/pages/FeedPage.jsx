@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { S, BRAND_COLORS, brandFromSlug, timeAgo, getDailyNews, getCurrentWeeklyThread } from "../data/constants";
 import { Avatar, Badge, Spinner } from "../components/UI";
@@ -68,7 +68,7 @@ export function PostComposer({ user, onPosted }) {
   const [posting, setPosting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const fileRef = { current: null };
+  const fileRef = useRef(null);
 
   async function uploadPhoto(file) {
     setUploading(true);
@@ -207,15 +207,17 @@ export function PostCard({ post, currentUser, onNavigate, onDeleted, onReload })
       )}
       <p style={{ fontSize:15, lineHeight:1.65, margin:"0 0 12px" }}>{parseContent(post.content,onNavigate)}</p>
       {post.post_type==="photo"&&post.media_url&&(
-        <div style={{ marginBottom:12, borderRadius:10, overflow:"hidden", cursor:"zoom-in" }} onClick={()=>setLightbox(post.media_url)}>
-          <img src={post.media_url} alt="" style={{ width:"100%", maxHeight:400, objectFit:"cover", display:"block" }} onError={e=>e.target.style.display="none"} />
-        </div>
-      )}
-      {lightbox&&(
-        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.95)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={()=>setLightbox(null)}>
-          <img src={lightbox} alt="" style={{ maxWidth:"95vw", maxHeight:"95vh", objectFit:"contain", borderRadius:8 }} />
-          <button style={{ position:"absolute", top:20, right:20, background:"rgba(255,255,255,0.2)", border:"none", color:"#fff", borderRadius:"50%", width:40, height:40, fontSize:20, cursor:"pointer" }}>×</button>
-        </div>
+        <>
+          <div style={{ marginBottom:12, borderRadius:10, overflow:"hidden", cursor:"zoom-in" }} onClick={()=>setLightbox(lightbox?null:post.media_url)}>
+            <img src={post.media_url} alt="" style={{ width:"100%", maxHeight:400, objectFit:"cover", display:"block" }} onError={e=>e.target.style.display="none"} />
+          </div>
+          {lightbox&&(
+            <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.95)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={()=>setLightbox(null)}>
+              <img src={lightbox} alt="" style={{ maxWidth:"95vw", maxHeight:"95vh", objectFit:"contain", borderRadius:8 }} />
+              <button style={{ position:"absolute", top:20, right:20, background:"rgba(255,255,255,0.2)", border:"none", color:"#fff", borderRadius:"50%", width:40, height:40, fontSize:20, cursor:"pointer" }}>×</button>
+            </div>
+          )}
+        </>
       )}
       {post.post_type==="video"&&post.media_url&&(
         <div style={{ marginBottom:12 }}>

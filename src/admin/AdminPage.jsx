@@ -66,7 +66,11 @@ export function AdminPage({ user, onNavigate }) {
   const [pendingWatches, setPendingWatches] = useState([]);
 
   async function loadPendingWatches() {
-    const {data}=await supabase.from("watches").select("*, creator:profiles(name,handle)").eq("status","pending").order("created_at",{ascending:false});
+    const {data, error}=await supabase.from("watches")
+      .select("id,slug,model,reference,brand_slug,watch_type,gender,market_price,created_at,created_by,status")
+      .eq("status","pending")
+      .order("created_at",{ascending:false});
+    if(error) console.error("Pending watches error:", error);
     setPendingWatches(data||[]);
   }
 
@@ -246,7 +250,7 @@ export function AdminPage({ user, onNavigate }) {
                 <div>
                   <div style={{ fontWeight:700, fontSize:15, marginBottom:2 }}>{w.model}</div>
                   <div style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"#888", marginBottom:4 }}>@{w.slug} · Ref. {w.reference}</div>
-                  <div style={S.muted}>Propuesto por @{w.creator?.handle} · {w.watch_type} · {w.gender}</div>
+                  <div style={S.muted}>Tipo: {w.watch_type||"—"} · Género: {w.gender||"unisex"}</div>
                   {w.market_price&&<div style={{ fontSize:12, color:"#b8963e", marginTop:2 }}>💰 {w.market_price}</div>}
                 </div>
                 <div style={{ display:"flex", gap:8, flexShrink:0 }}>

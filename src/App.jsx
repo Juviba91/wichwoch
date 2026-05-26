@@ -73,7 +73,7 @@ export default function App() {
 
   const currentUser = session ? session.user : null;
   const NAV = session
-    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"},{id:"garage",label:"Garage"},{id:"wristcheck",label:"⌚ Hoy"}]
+    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"},{id:"garage",label:"Garage"}]
     : [{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}];
 
   return (
