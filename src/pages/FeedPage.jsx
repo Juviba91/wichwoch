@@ -92,7 +92,7 @@ export function PostComposer({ user, onPosted }) {
         <input style={{ ...S.input, marginTop:8 }} placeholder="Link de la noticia (opcional)" value={newsLink} onChange={e=>setNewsLink(e.target.value)} />
       )}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:12, borderTop:"1px solid #f5f3ef", marginTop:10 }}>
-        <div style={{ display:"flex", gap:4" }}>
+        <div style={{ display:"flex", gap:4 }}>
           {[{id:"photo",icon:"📷",label:"Foto"},{id:"video",icon:"🎬",label:"Vídeo"},{id:"news",icon:"📰",label:"Noticia"}].map(t=>(
             <button key={t.id} onClick={()=>{ setType(t.id); setShowExtras(true); }}
               style={{ background:type===t.id&&showExtras?"#1a2744":"transparent", color:type===t.id&&showExtras?"#fff":"#888", border:"none", borderRadius:6, padding:"5px 10px", cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4 }}>

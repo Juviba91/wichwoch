@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { S, timeAgo } from "../data/constants";
 import { Spinner, Avatar, Badge, WatchCard } from "../components/UI";
 import { UserBadges } from "../components/UserBadges";
-import { PostCard } from "./PostCard";
+import { PostCard } from "./FeedPage";
 
 // ─── USER LIST ────────────────────────────────────────────────────────────────
 function UserList({ title, users, onNavigate, onBack }) {
