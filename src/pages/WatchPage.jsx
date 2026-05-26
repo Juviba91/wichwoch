@@ -15,6 +15,7 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
   const [inWishlist, setInWishlist] = useState(false);
   const [saving, setSaving] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
 
   useEffect(()=>{ load(); },[slug]);
 
@@ -79,7 +80,7 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
           <div style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"rgba(255,255,255,0.5)" }}>@{watch.slug}</div>
         </div>
         {watch.image_url&&!imgError ? (
-          <img src={watch.image_url} alt={watch.model} style={{ height:"85%", objectFit:"contain", filter:"drop-shadow(0 8px 24px rgba(0,0,0,0.4))" }} onError={()=>setImgError(true)} crossOrigin="anonymous" />
+          <img src={watch.image_url} alt={watch.model} style={{ height:"85%", objectFit:"contain", filter:"drop-shadow(0 8px 24px rgba(0,0,0,0.4))", cursor:"zoom-in" }} onError={()=>setImgError(true)} onClick={()=>setLightbox(watch.image_url)} />
         ) : (
           <div style={{ textAlign:"center" }}>
             <div style={{ fontSize:56, marginBottom:8, opacity:0.6 }}>⌚</div>
@@ -87,6 +88,13 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
           </div>
         )}
       </div>
+
+      {lightbox&&(
+        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.95)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={()=>setLightbox(null)}>
+          <img src={lightbox} alt="" style={{ maxWidth:"95vw", maxHeight:"95vh", objectFit:"contain", borderRadius:8 }} />
+          <button style={{ position:"absolute", top:20, right:20, background:"rgba(255,255,255,0.2)", border:"none", color:"#fff", borderRadius:"50%", width:40, height:40, fontSize:20, cursor:"pointer" }}>×</button>
+        </div>
+      )}
 
       {/* Info + botones */}
       <div style={{ ...S.card, borderTopLeftRadius:0, borderTopRightRadius:0, borderTop:"none", marginBottom:20 }}>

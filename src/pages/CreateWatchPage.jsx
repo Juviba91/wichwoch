@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { S, BRAND_COLORS } from "../data/constants";
 
@@ -18,12 +18,29 @@ export function CreateWatchPage({ currentUser, onNavigate }) {
   const [form, setForm] = useState({
     brand_slug:"", model:"", reference:"", year:"",
     watch_type:"sport", gender:"unisex", market_price:"",
-    description:"",
+    description:"", editingId: null,
   });
+  const [myProposals, setMyProposals] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
   const setF = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  useEffect(()=>{
+    if(!currentUser?.id) return;
+    supabase.from("watches").select("*").eq("created_by",currentUser.id).neq("status","approved")
+      .order("created_at",{ascending:false})
+      .then(({data})=>setMyProposals(data||[]));
+  },[currentUser]);
+
+  function editProposal(w) {
+    setForm({
+      brand_slug: w.brand_slug||"", model: w.model||"", reference: w.reference||"",
+      year: w.year||"", watch_type: w.watch_type||"sport", gender: w.gender||"unisex",
+      market_price: w.market_price?.replace(/[^0-9]/g,"")||"", description:"", editingId: w.id,
+    });
+    window.scrollTo(0,0);
+  }
 
   async function submit() {
     if(!form.brand_slug||!form.model.trim()||!form.reference.trim()) {
@@ -31,21 +48,27 @@ export function CreateWatchPage({ currentUser, onNavigate }) {
     }
     setSaving(true); setError(null);
     const slug = `${form.brand_slug}_${form.model.toLowerCase().replace(/\s+/g,"_").replace(/[^a-z0-9_]/g,"").slice(0,30)}`;
-    const {error:err} = await supabase.from("watches").insert({
-      brand_slug: form.brand_slug,
-      model: form.model.trim(),
-      reference: form.reference.trim(),
-      year: form.year ? parseInt(form.year) : null,
-      slug,
-      watch_type: form.watch_type,
-      gender: form.gender,
+    const payload = {
+      brand_slug: form.brand_slug, model: form.model.trim(),
+      reference: form.reference.trim(), year: form.year ? parseInt(form.year) : null,
+      slug, watch_type: form.watch_type, gender: form.gender,
       market_price: form.market_price ? `~${form.market_price}€` : null,
-      created_by: currentUser.id,
-      status: "pending",
-    });
+      status: "pending", admin_note: null,
+    };
+    let err;
+    if(form.editingId) {
+      const res = await supabase.from("watches").update(payload).eq("id",form.editingId);
+      err = res.error;
+    } else {
+      const res = await supabase.from("watches").insert({...payload, created_by:currentUser.id});
+      err = res.error;
+    }
     if(err) { setError(err.message); setSaving(false); return; }
     setSaved(true); setSaving(false);
   }
+
+  const statusLabel = {pending:"⏳ Pendiente", rejected:"✗ Rechazado", approved:"✓ Aprobado"};
+  const statusColor = {pending:"#d97706", rejected:"#dc2626", approved:"#16a34a"};
 
   if(saved) return (
     <div style={{ ...S.card, textAlign:"center", padding:48 }}>
@@ -64,10 +87,30 @@ export function CreateWatchPage({ currentUser, onNavigate }) {
       <div style={{ ...S.row, marginBottom:24 }}>
         <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("relojes")}>← Volver</button>
         <div>
-          <h2 style={{ ...S.h1, marginBottom:4 }}>Añadir reloj</h2>
-          <p style={S.muted}>¿No encuentras un reloj? Añádelo tú. Lo revisaremos antes de publicarlo.</p>
+          <h2 style={{ ...S.h1, marginBottom:4 }}>{form.editingId?"Editar propuesta":"Añadir reloj"}</h2>
+          <p style={S.muted}>{form.editingId?"Edita tu propuesta y reenvíala para revisión.":"¿No encuentras un reloj? Añádelo tú. Lo revisaremos antes de publicarlo."}</p>
         </div>
       </div>
+
+      {/* Mis propuestas */}
+      {myProposals.length>0&&(
+        <div style={{ ...S.card, marginBottom:20 }}>
+          <h3 style={{ fontFamily:"'DM Mono',monospace", fontSize:14, marginBottom:14 }}>Mis propuestas</h3>
+          {myProposals.map(w=>(
+            <div key={w.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"10px 0", borderBottom:"1px solid #f0ede6" }}>
+              <div>
+                <div style={{ fontWeight:600, fontSize:14 }}>{w.model}</div>
+                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#aaa", marginBottom:4 }}>Ref. {w.reference}</div>
+                <span style={{ fontSize:11, fontWeight:700, color:statusColor[w.status]||"#888" }}>{statusLabel[w.status]||w.status}</span>
+                {w.admin_note&&<p style={{ fontSize:12, color:"#dc2626", margin:"6px 0 0", background:"#fff3f3", padding:"6px 10px", borderRadius:6 }}>Motivo: {w.admin_note}</p>}
+              </div>
+              {w.status==="rejected"&&(
+                <button style={{ ...S.btn("outline"), fontSize:12, flexShrink:0, marginLeft:12 }} onClick={()=>editProposal(w)}>✏️ Editar y reenviar</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {error&&<div style={S.error}>{error}</div>}
 
@@ -136,7 +179,7 @@ export function CreateWatchPage({ currentUser, onNavigate }) {
         </div>
 
         <div style={{ display:"flex", justifyContent:"flex-end", marginTop:20 }}>
-          <button style={S.btn("primary")} onClick={submit} disabled={saving}>{saving?"Enviando…":"Enviar propuesta"}</button>
+          <button style={S.btn("primary")} onClick={submit} disabled={saving}>{saving?"Enviando…":form.editingId?"Reenviar propuesta":"Enviar propuesta"}</button>
         </div>
       </div>
     </div>

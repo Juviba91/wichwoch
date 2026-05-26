@@ -64,6 +64,8 @@ export function AdminPage({ user, onNavigate }) {
   }
 
   const [pendingWatches, setPendingWatches] = useState([]);
+  const [rejectModal, setRejectModal] = useState(null); // {id, model, created_by}
+  const [rejectReason, setRejectReason] = useState("");
 
   async function loadPendingWatches() {
     const {data, error}=await supabase.from("watches")
@@ -74,15 +76,33 @@ export function AdminPage({ user, onNavigate }) {
     setPendingWatches(data||[]);
   }
 
-  async function approveWatch(id) {
-    await supabase.from("watches").update({status:"approved"}).eq("id",id);
+  async function approveWatch(w) {
+    await supabase.from("watches").update({status:"approved"}).eq("id",w.id);
+    // Notify user + add flow
+    if(w.created_by) {
+      await supabase.from("notifications").insert({
+        recipient_id: w.created_by,
+        sender_id: user.id,
+        type: "watch_approved",
+        content: `Tu reloj "${w.model}" ha sido aprobado y ya aparece en el catálogo ✓`
+      }).catch(()=>{});
+      await supabase.from("profiles").update({ flow: supabase.raw("flow + 10") }).eq("id",w.created_by).catch(()=>{});
+    }
     await loadPendingWatches();
   }
 
-  async function rejectWatch(id) {
-    if(!window.confirm("¿Rechazar este reloj?")) return;
-    await supabase.from("watches").update({status:"rejected"}).eq("id",id);
-    await loadPendingWatches();
+  async function rejectWatch() {
+    if(!rejectReason.trim()||!rejectModal) return;
+    await supabase.from("watches").update({status:"rejected", admin_note:rejectReason.trim()}).eq("id",rejectModal.id);
+    if(rejectModal.created_by) {
+      await supabase.from("notifications").insert({
+        recipient_id: rejectModal.created_by,
+        sender_id: user.id,
+        type: "watch_rejected",
+        content: `Tu reloj "${rejectModal.model}" no ha sido aprobado — ${rejectReason.trim()}. Puedes editarlo y reenviar.`
+      }).catch(()=>{});
+    }
+    setRejectModal(null); setRejectReason(""); await loadPendingWatches();
   }
 
   async function loadContent() {
@@ -254,8 +274,8 @@ export function AdminPage({ user, onNavigate }) {
                   {w.market_price&&<div style={{ fontSize:12, color:"#b8963e", marginTop:2 }}>💰 {w.market_price}</div>}
                 </div>
                 <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-                  <button style={{ background:"#f0fdf4", border:"1px solid #b3dfc4", color:"#16a34a", borderRadius:6, padding:"6px 14px", fontSize:13, cursor:"pointer", fontWeight:600 }} onClick={()=>approveWatch(w.id)}>✓ Aprobar</button>
-                  <button style={{ background:"#fff3f3", border:"1px solid #fcc", color:"#dc2626", borderRadius:6, padding:"6px 14px", fontSize:13, cursor:"pointer" }} onClick={()=>rejectWatch(w.id)}>✗ Rechazar</button>
+                  <button style={{ background:"#f0fdf4", border:"1px solid #b3dfc4", color:"#16a34a", borderRadius:6, padding:"6px 14px", fontSize:13, cursor:"pointer", fontWeight:600 }} onClick={()=>approveWatch(w)}>✓ Aprobar</button>
+                  <button style={{ background:"#fff3f3", border:"1px solid #fcc", color:"#dc2626", borderRadius:6, padding:"6px 14px", fontSize:13, cursor:"pointer" }} onClick={()=>setRejectModal(w)}>✗ Rechazar</button>
                 </div>
               </div>
             ))}
@@ -263,6 +283,22 @@ export function AdminPage({ user, onNavigate }) {
         )}
 
       </>)}
+
+      {/* Reject modal */}
+      {rejectModal&&(
+        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+          <div style={{ background:"#fff", borderRadius:12, padding:28, width:"100%", maxWidth:440 }}>
+            <h3 style={{ fontFamily:"'DM Mono',monospace", fontSize:16, marginBottom:16 }}>Rechazar "{rejectModal.model}"</h3>
+            <span style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:6, display:"block" }}>Motivo del rechazo</span>
+            <textarea rows={3} style={{ width:"100%", border:"1px solid #e0ddd6", borderRadius:8, padding:"10px 14px", fontSize:14, fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"none", boxSizing:"border-box", marginBottom:16 }} placeholder="Ej: Referencia incorrecta, modelo duplicado..." value={rejectReason} onChange={e=>setRejectReason(e.target.value)} autoFocus />
+            <p style={{ fontSize:12, color:"#888", marginBottom:16 }}>El usuario recibirá este motivo y podrá editar y reenviar su propuesta.</p>
+            <div style={{ display:"flex", justifyContent:"flex-end", gap:8 }}>
+              <button style={{ background:"#f0ede6", border:"none", borderRadius:8, padding:"8px 16px", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }} onClick={()=>{ setRejectModal(null); setRejectReason(""); }}>Cancelar</button>
+              <button style={{ background:"#dc2626", border:"none", color:"#fff", borderRadius:8, padding:"8px 16px", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={rejectWatch} disabled={!rejectReason.trim()}>Rechazar y notificar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
