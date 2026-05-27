@@ -233,7 +233,7 @@ export function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
   async function loadAll() {
     setLoading(true);
     let q = supabase.from("forum_threads")
-      .select("id, title, content, votes, replies_count, created_at, watch_id, author_id, flair, author:profiles(id,name,handle,avatar_color,avatar_emoji,karma), watch:watches(id,slug,model,brand_slug)");
+      .select("id, title, content, votes, replies_count, created_at, watch_id, author_id, flair, author:profiles(id,name,handle,avatar_color,avatar_emoji,flow), watch:watches(id,slug,model,brand_slug)");
     if(filter==="top") q = q.order("votes",{ascending:false});
     else q = q.order("created_at",{ascending:false});
     if(filterFlair) q = q.eq("flair",filterFlair);
@@ -368,7 +368,7 @@ export function ForosPage({ currentUser, onNavigate, onLoginRequired }) {
               <p style={{ fontSize:13, color:"#666", margin:"0 0 8px", lineHeight:1.4 }}>{t.content.slice(0,120)}{t.content.length>120?"…":""}</p>
               <div style={{ display:"flex", gap:16, alignItems:"center" }}>
                 <span style={S.muted}>@{t.author?.handle}</span>
-                {t.author?.karma>0&&<span style={{ ...S.mono, fontSize:11, color:"#b8963e" }}>⚡{t.author.karma}</span>}
+                {t.author?.flow>0&&<span style={{ ...S.mono, fontSize:11, color:"#b8963e" }}>⚡{t.author.flow}</span>}
                 <span style={S.muted}>💬 {t.replies_count||0}</span>
                 <span style={S.muted}>{timeAgo(t.created_at)}</span>
                 <button style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", fontSize:16, color:savedThreads.includes(t.id)?"#b8963e":"#ddd" }} onClick={(e)=>toggleSave(t.id,e)}>{savedThreads.includes(t.id)?"🔖":"🔖"}</button>
