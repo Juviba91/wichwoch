@@ -22,6 +22,7 @@ const SOURCES = [
 function GarageWatchCard({ watch, registration, wishlist=false, onClick }) {
   const bg = brandColor(watch.slug);
   const [imgError, setImgError] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
   const cond = CONDITIONS.find(c=>c.id===registration?.condition);
 
   return (
@@ -314,8 +315,14 @@ function WatchPassport({ registration, watch, currentUser, onBack, onUpdated }) 
           {cond&&<div style={{ marginTop:10, display:"inline-block", background:cond.color, borderRadius:4, padding:"3px 10px", fontSize:11, color:"#fff", fontWeight:700 }}>{cond.label}</div>}
         </div>
         {watch.image_url&&!imgError ? (
-          <img src={watch.image_url} alt={watch.model} style={{ height:"85%", objectFit:"contain", filter:"drop-shadow(0 8px 24px rgba(0,0,0,0.4))" }} onError={()=>setImgError(true)} />
+          <img src={watch.image_url} alt={watch.model} style={{ height:"85%", objectFit:"contain", filter:"drop-shadow(0 8px 24px rgba(0,0,0,0.4))", cursor:"zoom-in" }} onError={()=>setImgError(true)} onClick={()=>setLightbox(watch.image_url)} />
         ) : <div style={{ fontSize:64, opacity:0.3 }}>⌚</div>}
+        {lightbox&&(
+          <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.95)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={()=>setLightbox(null)}>
+            <img src={lightbox} alt="" style={{ maxWidth:"95vw", maxHeight:"95vh", objectFit:"contain", borderRadius:8 }} />
+            <button style={{ position:"absolute", top:20, right:20, background:"rgba(255,255,255,0.2)", border:"none", color:"#fff", borderRadius:"50%", width:40, height:40, fontSize:20, cursor:"pointer" }}>×</button>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}

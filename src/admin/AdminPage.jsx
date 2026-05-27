@@ -24,6 +24,7 @@ export function AdminPage({ user, onNavigate }) {
     if(tab==="metricas") await loadMetrics();
     if(tab==="usuarios") await loadUsers();
     if(tab==="contenido") await loadContent();
+    if(tab==="relojes") await loadPendingWatches();
     setLoading(false);
   }
 
@@ -62,6 +63,48 @@ export function AdminPage({ user, onNavigate }) {
     setUsers(data||[]);
   }
 
+  const [pendingWatches, setPendingWatches] = useState([]);
+  const [rejectModal, setRejectModal] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+
+  async function loadPendingWatches() {
+    const {data, error}=await supabase.from("watches")
+      .select("id,slug,model,reference,brand_slug,watch_type,gender,market_price,created_at,created_by,status")
+      .eq("status","pending")
+      .order("created_at",{ascending:false});
+    if(error) console.error("Pending watches error:", error);
+    setPendingWatches(data||[]);
+  }
+
+  async function approveWatch(w) {
+    await supabase.from("watches").update({status:"approved"}).eq("id",w.id);
+    // Notify user + add flow
+    if(w.created_by) {
+      await supabase.from("notifications").insert({
+        recipient_id: w.created_by,
+        sender_id: user.id,
+        type: "watch_approved",
+        content: `Tu reloj "${w.model}" ha sido aprobado y ya aparece en el catálogo ✓`
+      }).catch(()=>{});
+      await supabase.rpc("increment_flow", {user_id: w.created_by, amount: 10}).catch(()=>{});
+    }
+    await loadPendingWatches();
+  }
+
+  async function rejectWatch() {
+    if(!rejectReason.trim()||!rejectModal) return;
+    await supabase.from("watches").update({status:"rejected", admin_note:rejectReason.trim()}).eq("id",rejectModal.id);
+    if(rejectModal.created_by) {
+      await supabase.from("notifications").insert({
+        recipient_id: rejectModal.created_by,
+        sender_id: user.id,
+        type: "watch_rejected",
+        content: `Tu reloj "${rejectModal.model}" no ha sido aprobado — ${rejectReason.trim()}. Puedes editarlo y reenviar.`
+      }).catch(()=>{});
+    }
+    setRejectModal(null); setRejectReason(""); await loadPendingWatches();
+  }
+
   async function loadContent() {
     const [{data:p},{data:t}]=await Promise.all([
       supabase.from("posts").select("*, author:profiles(name,handle)").order("created_at",{ascending:false}).limit(30),
@@ -95,7 +138,7 @@ export function AdminPage({ user, onNavigate }) {
     </div>
   );
 
-  const TABS = [["metricas","📊 Métricas"],["usuarios","👥 Usuarios"],["contenido","📝 Contenido"]];
+  const TABS = [["metricas","📊 Métricas"],["usuarios","👥 Usuarios"],["contenido","📝 Contenido"],["relojes","⌚ Relojes pendientes"]];
 
   return (
     <div>
@@ -217,7 +260,45 @@ export function AdminPage({ user, onNavigate }) {
           </div>
         )}
 
+        {/* RELOJES PENDIENTES */}
+        {tab==="relojes"&&(
+          <div>
+            <h3 style={{ ...S.h2, marginBottom:16 }}>Relojes pendientes de aprobación ({pendingWatches.length})</h3>
+            {pendingWatches.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin relojes pendientes ✓</div>}
+            {pendingWatches.map(w=>(
+              <div key={w.id} style={{ ...S.card, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div>
+                  <div style={{ fontWeight:700, fontSize:15, marginBottom:2 }}>{w.model}</div>
+                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"#888", marginBottom:4 }}>@{w.slug} · Ref. {w.reference}</div>
+                  <div style={S.muted}>Tipo: {w.watch_type||"—"} · Género: {w.gender||"unisex"}</div>
+                  {w.market_price&&<div style={{ fontSize:12, color:"#b8963e", marginTop:2 }}>💰 {w.market_price}</div>}
+                </div>
+                <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+                  <button style={{ background:"#f0fdf4", border:"1px solid #b3dfc4", color:"#16a34a", borderRadius:6, padding:"6px 14px", fontSize:13, cursor:"pointer", fontWeight:600 }} onClick={()=>approveWatch(w)}>✓ Aprobar</button>
+                  <button style={{ background:"#fff3f3", border:"1px solid #fcc", color:"#dc2626", borderRadius:6, padding:"6px 14px", fontSize:13, cursor:"pointer" }} onClick={()=>setRejectModal(w)}>✗ Rechazar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
       </>)}
+
+      {/* Reject modal */}
+      {rejectModal&&(
+        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+          <div style={{ background:"#fff", borderRadius:12, padding:28, width:"100%", maxWidth:440 }}>
+            <h3 style={{ fontFamily:"'DM Mono',monospace", fontSize:16, marginBottom:16 }}>Rechazar "{rejectModal.model}"</h3>
+            <span style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:6, display:"block" }}>Motivo del rechazo</span>
+            <textarea rows={3} style={{ width:"100%", border:"1px solid #e0ddd6", borderRadius:8, padding:"10px 14px", fontSize:14, fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"none", boxSizing:"border-box", marginBottom:16 }} placeholder="Ej: Referencia incorrecta, modelo duplicado..." value={rejectReason} onChange={e=>{ e.stopPropagation(); setRejectReason(e.target.value); }} />
+            <p style={{ fontSize:12, color:"#888", marginBottom:16 }}>El usuario recibirá este motivo y podrá editar y reenviar su propuesta.</p>
+            <div style={{ display:"flex", justifyContent:"flex-end", gap:8 }}>
+              <button style={{ background:"#f0ede6", border:"none", borderRadius:8, padding:"8px 16px", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }} onClick={()=>{ setRejectModal(null); setRejectReason(""); }}>Cancelar</button>
+              <button style={{ background:"#dc2626", border:"none", color:"#fff", borderRadius:8, padding:"8px 16px", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={rejectWatch} disabled={!rejectReason.trim()}>Rechazar y notificar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

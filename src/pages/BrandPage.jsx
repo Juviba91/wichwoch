@@ -59,7 +59,7 @@ export function BrandPage({ brandSlug, currentUser, onNavigate }) {
       </div>
       <div style={{ display:"flex", gap:4, marginBottom:20 }}>
         <button onClick={()=>setTab("relojes")} style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:tab==="relojes"?"#1a2744":"#f0ede6", color:tab==="relojes"?"#fff":"#666", fontWeight:tab==="relojes"?600:400 }}>Relojes ({watches.length})</button>
-        <button onClick={()=>setTab("novedades")} style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:tab==="novedades"?"#1a2744":"#f0ede6", color:tab==="novedades"?"#fff":"#666", fontWeight:tab==="novedades"?600:400 }}>Novedades ({news.length})</button>
+
       </div>
       {tab==="relojes"&&<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(160px, 1fr))", gap:12 }}>{watches.map(w=><WatchCard key={w.id} watch={w} onClick={()=>onNavigate("watch",w.slug)} size="large" />)}</div>}
       {tab==="novedades"&&(
