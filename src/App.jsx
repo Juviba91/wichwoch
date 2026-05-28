@@ -32,6 +32,7 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [guestMode, setGuestMode] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isNewSignup, setIsNewSignup] = useState(false);
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{
@@ -72,8 +73,8 @@ export default function App() {
     </div>
   );
 
-  if(!session && !guestMode) return <AuthPage onExplore={()=>{ setGuestMode(true); setPage({name:"explore"}); }} />;
-  if(session && profile && !profile.onboarding_complete) return <OnboardingPage user={session.user} onComplete={()=>{ loadProfile(session.user.id); setPage({name:"feed"}); }} />;
+  if(!session && !guestMode) return <AuthPage onExplore={()=>{ setGuestMode(true); setPage({name:"explore"}); }} onNewSignup={()=>setIsNewSignup(true)} />;
+  if(session && isNewSignup && profile && !profile.onboarding_complete) return <OnboardingPage user={session.user} onComplete={()=>{ setIsNewSignup(false); loadProfile(session.user.id); setPage({name:"feed"}); }} />;
 
   const currentUser = session ? session.user : null;
   const NAV = session
@@ -129,7 +130,7 @@ export default function App() {
                 </div>
               )}
             </div>
-            {isAdmin(session?.user)&&<button style={{ ...S.navLink(page.name==="admin"), background:page.name==="admin"?"#b8963e":"rgba(255,255,255,0.1)", color:"#fff", fontSize:12 }} onClick={()=>navigate("admin")}>Admin</button>}
+  
           </>) : (
             <button style={{ background:"#b8963e", border:"none", cursor:"pointer", color:"#fff", padding:"7px 16px", borderRadius:6, fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={()=>setGuestMode(false)}>Entrar</button>
           )}
