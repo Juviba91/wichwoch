@@ -10,6 +10,25 @@ export const BRAND_LOGOS = {
   cartier:"C", breitling:"B", tag:"T", vc:"VC", hublot:"H", panerai:"P", gs:"GS", zenith:"Z"
 };
 
+const STORAGE = "https://kmxpachollvsiytppvyy.supabase.co/storage/v1/object/public/brand-logos";
+export const BRAND_LOGO_URLS = {
+  rolex:`${STORAGE}/rolex.jpeg`,
+  omega:`${STORAGE}/omega.jpeg`,
+  patek:`${STORAGE}/patek.jpeg`,
+  ap:`${STORAGE}/ap.jpeg`,
+  iwc:`${STORAGE}/iwc.jpeg`,
+  jlc:`${STORAGE}/jlc.jpeg`,
+  tudor:`${STORAGE}/tudor.jpeg`,
+  cartier:`${STORAGE}/cartier.jpeg`,
+  breitling:`${STORAGE}/breitling.jpeg`,
+  tag:`${STORAGE}/tag.jpeg`,
+  vc:`${STORAGE}/vc.jpeg`,
+  hublot:`${STORAGE}/hublot.jpeg`,
+  panerai:`${STORAGE}/panerai.jpeg`,
+  gs:`${STORAGE}/gs.jpeg`,
+  zenith:`${STORAGE}/zenith.jpeg`,
+};
+
 export const BRAND_NAMES = {
   rolex:"Rolex", omega:"Omega", patek:"Patek Philippe", ap:"Audemars Piguet",
   iwc:"IWC", jlc:"Jaeger-LeCoultre", tudor:"Tudor", cartier:"Cartier",

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
-import { S, BRAND_COLORS, BRAND_LOGOS, brandFromSlug } from "../data/constants";
+import { S, BRAND_COLORS, BRAND_LOGOS, BRAND_LOGO_URLS, brandFromSlug } from "../data/constants";
 import { Spinner, WatchCard, Avatar, Badge } from "../components/UI";
 
 export function ExplorePage({ onNavigate, currentUser }) {
@@ -130,8 +130,12 @@ export function ExplorePage({ onNavigate, currentUser }) {
                   onClick={()=>onNavigate("brand",slug)}
                   onMouseEnter={e=>e.currentTarget.style.transform="translateY(-2px)"}
                   onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>
-                  <div style={{ height:80, background:`linear-gradient(135deg, ${bg}, ${bg}cc)`, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:4 }}>
-                    <div style={{ fontSize:24 }}>{BRAND_LOGOS[slug]||"⌚"}</div>
+                  <div style={{ height:80, background:`linear-gradient(135deg, ${bg}, ${bg}cc)`, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    {BRAND_LOGO_URLS[slug] ? (
+                      <img src={BRAND_LOGO_URLS[slug]} alt={slug} style={{ height:44, objectFit:"contain", filter:"none", opacity:0.9 }} onError={e=>e.target.style.display="none"} />
+                    ) : (
+                      <div style={{ fontSize:24 }}>{BRAND_LOGOS[slug]||"⌚"}</div>
+                    )}
                   </div>
                   <div style={{ padding:"10px 12px", background:"#fff" }}>
                     <div style={{ fontWeight:700, fontSize:13 }}>{name}</div>
