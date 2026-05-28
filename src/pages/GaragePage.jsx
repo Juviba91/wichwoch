@@ -298,7 +298,6 @@ function WatchPassport({ registration, watch, currentUser, onBack, onUpdated }) 
   }
 
   const bg = brandColor(watch.slug);
-  const [imgError, setImgError] = useState(false);
   const cond = CONDITIONS.find(c=>c.id===registration?.condition);
   const source = SOURCES.find(s=>s.id===registration?.purchase_source);
 
