@@ -21,6 +21,7 @@ const SOURCES = [
 // ─── GARAGE WATCH CARD ────────────────────────────────────────────────────────
 function GarageWatchCard({ watch, registration, wishlist=false, onClick }) {
   const bg = brandColor(watch.slug);
+  const [imgError, setImgError] = useState(false);
   const cond = CONDITIONS.find(c=>c.id===registration?.condition);
 
   return (

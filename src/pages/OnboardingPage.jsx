@@ -37,7 +37,17 @@ export function OnboardingPage({ user, onComplete }) {
 
   useEffect(()=>{
     supabase.from("profiles").select("*",{count:"exact",head:true})
-      .then(({count})=>setTotalUsers(count||0));
+      .then(({count})=>{
+        setTotalUsers(count||0);
+        // Pre-assign founder badge on first load
+        if((count||0) <= FOUNDER_LIMIT) {
+          supabase.from("user_badges").insert({
+            user_id: user.id,
+            badge_type: "founder",
+            brand_slug: null
+          }).catch(()=>{});
+        }
+      });
   },[]);
 
   async function searchWatches(q) {

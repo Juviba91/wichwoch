@@ -121,7 +121,7 @@ export default function App() {
                     {icon:"⚙️", label:"Ajustes", action:()=>{ navigate("settings"); setShowUserMenu(false); }},
                     {icon:"🚪", label:"Salir", action:()=>{ signOut(); setShowUserMenu(false); }, color:"#dc2626"},
                   ].map(item=>(
-                    <button key={item.label} onClick={item.action} style={{ width:"100%", padding:"11px 16px", background:"none", border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, textAlign:"left", display:"flex", alignItems:"center", gap:10, color:item.color||"#1a1a1a" }}
+                    <button key={item.label} onClick={item.action} style={{ width:"100%", padding:"11px 16px", background:"none", border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, textAlign:"left", display:"flex", alignItems:"center", gap:10, color:"#1a1a1a" }}
                       onMouseEnter={e=>e.currentTarget.style.background="#f8f6f0"}
                       onMouseLeave={e=>e.currentTarget.style.background="none"}>
                       <span>{item.icon}</span>{item.label}
