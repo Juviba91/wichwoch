@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { S, timeAgo } from "../data/constants";
 import { Spinner, Avatar, Badge, WatchCard } from "../components/UI";
 import { UserBadges } from "../components/UserBadges";
-import { PostCard } from "./FeedPage";
+import { PostCard } from "./PostCard";
 
 // ─── USER LIST ────────────────────────────────────────────────────────────────
 function UserList({ title, users, onNavigate, onBack }) {
@@ -132,7 +132,10 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
             </div>
             <div style={S.row}>
               {!isOwn&&<button style={S.btn(isFollowing?"outline":"primary")} onClick={toggleFollow} disabled={followLoading}>{followLoading?"…":isFollowing?"✓ Siguiendo":"Seguir"}</button>}
-              {isOwn&&<button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("settings")}>⚙️ Ajustes</button>}
+              {isOwn&&<div style={{ display:"flex", gap:8 }}>
+            <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("garage")}>⌚ Mi Garage</button>
+            <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("settings")}>⚙️ Ajustes</button>
+          </div>}
             </div>
           </div>
           <div style={{ marginBottom:14 }}>
@@ -152,8 +155,7 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
             <div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>setSubPage("following")}><div style={{ fontWeight:700, fontSize:18 }}>{profile.following_count||0}</div><div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>siguiendo</div></div>
             <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{watches.length}</div><div style={{ ...S.muted, fontSize:12 }}>relojes</div></div>
             <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{posts.length}</div><div style={{ ...S.muted, fontSize:12 }}>posts</div></div>
-            {(profile.flow||0)>=0&&<div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>window.alert("⚡ El Flow es tu nivel de aportación a la comunidad Wich Woch. Sube cuando otros votan positivo tus respuestas en foros. Cuanto más útiles e interesantes sean tus aportaciones, más Flow acumulas.")}><div style={{ fontWeight:700, fontSize:18, color:"#b8963e" }}>⚡{profile.flow||0}</div><div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>flow</div></div>}
-            
+            {(profile.flow||0)>=0&&<div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>window.alert("⚡ El Flow es tu nivel de aportación a la comunidad Wich Woch. Sube cuando otros votan positivo tus respuestas en foros. Cuanto más útiles e interesantes sean tus aportaciones, más Flow acumulas.")}><div style={{ fontWeight:700, fontSize:18, color:"#b8963e" }}>⚡{profile.flow||0}</div><div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>karma</div></div>}
           </div>
         </div>
       </div>

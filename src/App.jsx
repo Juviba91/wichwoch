@@ -10,6 +10,7 @@ import { FeedPage } from "./pages/FeedPage";
 import { GaragePage } from "./pages/GaragePage";
 import { WristCheckPage } from "./pages/WristCheckPage";
 import { MantenimientoPage } from "./pages/MantenimientoPage";
+import { OnboardingPage } from "./pages/OnboardingPage";
 import { CreateWatchPage } from "./pages/CreateWatchPage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { RelojesPage } from "./pages/RelojesPage";
@@ -72,6 +73,7 @@ export default function App() {
   );
 
   if(!session && !guestMode) return <AuthPage onExplore={()=>{ setGuestMode(true); setPage({name:"explore"}); }} />;
+  if(session && profile && !profile.onboarding_complete) return <OnboardingPage user={session.user} onComplete={()=>{ loadProfile(session.user.id); setPage({name:"feed"}); }} />;
 
   const currentUser = session ? session.user : null;
   const NAV = session
