@@ -132,7 +132,7 @@ export function ExplorePage({ onNavigate, currentUser }) {
                   onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>
                   <div style={{ height:80, background:`linear-gradient(135deg, ${bg}, ${bg}cc)`, display:"flex", alignItems:"center", justifyContent:"center" }}>
                     {BRAND_LOGO_URLS[slug] ? (
-                      <img src={BRAND_LOGO_URLS[slug]} alt={slug} style={{ height:44, objectFit:"contain", filter:"brightness(0) invert(1)", opacity:0.9 }} onError={e=>e.target.style.display="none"} />
+                      <img src={BRAND_LOGO_URLS[slug]} alt={slug} style={{ height:44, objectFit:"contain", filter:"none", opacity:0.9 }} onError={e=>e.target.style.display="none"} />
                     ) : (
                       <div style={{ fontSize:24 }}>{BRAND_LOGOS[slug]||"⌚"}</div>
                     )}

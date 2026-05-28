@@ -51,7 +51,7 @@ export function BrandPage({ brandSlug, currentUser, onNavigate }) {
         </div>
         {BRAND_LOGO_URLS[brandSlug] ? (
           <img src={BRAND_LOGO_URLS[brandSlug]} alt={brand.name}
-            style={{ height:100, objectFit:"contain", filter:"brightness(0) invert(1)", opacity:0.9 }}
+            style={{ height:100, objectFit:"contain", filter:"none", opacity:0.9 }}
             onError={e=>e.target.style.display="none"} />
         ) : (
           <div style={{ fontSize:48, opacity:0.4 }}>{BRAND_LOGOS[brandSlug]||"⌚"}</div>
