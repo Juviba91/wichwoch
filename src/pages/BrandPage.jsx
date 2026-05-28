@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { S, BRAND_COLORS, BRAND_LOGOS, brandFromSlug, timeAgo } from "../data/constants";
+import { S, BRAND_COLORS, BRAND_LOGOS, BRAND_LOGO_URLS, brandFromSlug, timeAgo } from "../data/constants";
 import { Spinner, WatchCard, Badge } from "../components/UI";
 
 export function BrandPage({ brandSlug, currentUser, onNavigate }) {
@@ -44,10 +44,18 @@ export function BrandPage({ brandSlug, currentUser, onNavigate }) {
 
   return (
     <div>
-      <div style={{ height:140, background:`linear-gradient(135deg, ${bg}, ${bg}99)`, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:8 }}>
-        <div style={{ fontSize:40 }}>{BRAND_LOGOS[brandSlug]||"⌚"}</div>
-        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:28, color:"#fff", fontWeight:700 }}>{brand.name}</div>
-        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"rgba(255,255,255,0.5)" }}>@{brand.slug}</div>
+      <div style={{ height:160, background:`linear-gradient(135deg, ${bg}, ${bg}99)`, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 40px", overflow:"hidden" }}>
+        <div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:30, color:"#fff", fontWeight:700, marginBottom:4 }}>{brand.name}</div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"rgba(255,255,255,0.5)" }}>@{brand.slug}</div>
+        </div>
+        {BRAND_LOGO_URLS[brandSlug] ? (
+          <img src={BRAND_LOGO_URLS[brandSlug]} alt={brand.name}
+            style={{ height:100, objectFit:"contain", filter:"brightness(0) invert(1)", opacity:0.9 }}
+            onError={e=>e.target.style.display="none"} />
+        ) : (
+          <div style={{ fontSize:48, opacity:0.4 }}>{BRAND_LOGOS[brandSlug]||"⌚"}</div>
+        )}
       </div>
       <div style={{ ...S.card, borderTopLeftRadius:0, borderTopRightRadius:0, borderTop:"none", marginBottom:20 }}>
         <p style={{ fontSize:14, color:"#555", lineHeight:1.65, margin:"0 0 12px" }}>{brand.description}</p>
