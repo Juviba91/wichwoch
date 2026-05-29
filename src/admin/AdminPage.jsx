@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+
 import { supabase } from "../lib/supabase";
 import { S } from "../data/constants";
 import { Spinner } from "../components/UI";
@@ -126,9 +127,21 @@ export function AdminPage({ user, onNavigate }) {
   }
 
   async function suspendUser(id) {
-    if(!window.confirm("¿Suspender este usuario?")) return;
+    if(!window.confirm("¿Suspender este usuario? No podrá iniciar sesión.")) return;
     await supabase.from("profiles").update({suspended:true}).eq("id",id);
+    await supabase.auth.admin.updateUserById(id, {ban_duration:"87600h"}).catch(()=>{});
     await loadUsers();
+  }
+
+  async function unsuspendUser(id) {
+    await supabase.from("profiles").update({suspended:false}).eq("id",id);
+    await loadUsers();
+  }
+
+  async function deleteWatch(id) {
+    if(!window.confirm("¿Borrar este reloj del catálogo? Esta acción no se puede deshacer.")) return;
+    await supabase.from("watches").delete().eq("id",id);
+    await loadContent();
   }
 
   if(!isAdmin(user)) return (
@@ -224,7 +237,10 @@ export function AdminPage({ user, onNavigate }) {
                       <td style={{ padding:"10px 12px", color:"#888" }}>{u.location||"—"}</td>
                       <td style={{ padding:"10px 12px", color:"#888", fontSize:12 }}>{new Date(u.created_at).toLocaleDateString("es-ES")}</td>
                       <td style={{ padding:"10px 12px" }}>
-                        {!u.suspended&&<button style={{ background:"none", border:"1px solid #fcc", color:"#c00", borderRadius:4, padding:"2px 8px", fontSize:11, cursor:"pointer" }} onClick={()=>suspendUser(u.id)}>Suspender</button>}
+                        {!u.suspended
+                        ? <button style={{ background:"none", border:"1px solid #fcc", color:"#c00", borderRadius:4, padding:"2px 8px", fontSize:11, cursor:"pointer" }} onClick={()=>suspendUser(u.id)}>Suspender</button>
+                        : <button style={{ background:"none", border:"1px solid #b3dfc4", color:"#16a34a", borderRadius:4, padding:"2px 8px", fontSize:11, cursor:"pointer" }} onClick={()=>unsuspendUser(u.id)}>Reactivar</button>
+                      }
                       </td>
                     </tr>
                   ))}
@@ -255,6 +271,27 @@ export function AdminPage({ user, onNavigate }) {
                   <div style={{ fontWeight:600, fontSize:13, marginTop:4 }}>{t.title}</div>
                 </div>
                 <button style={{ background:"none", border:"1px solid #fcc", color:"#c00", borderRadius:4, padding:"4px 10px", fontSize:12, cursor:"pointer", marginLeft:12, flexShrink:0 }} onClick={()=>deleteThread(t.id)}>Borrar</button>
+              </div>
+            ))}
+
+            <h3 style={{ ...S.h2, marginBottom:12, marginTop:8 }}>Relojes en catálogo</h3>
+            {(()=>{
+              const [catalogWatches, setCatalogWatches] = React.useState([]);
+              React.useEffect(()=>{
+                supabase.from("watches").select("id,slug,model,brand_slug,status").eq("status","approved").order("brand_slug").limit(50)
+                  .then(({data})=>setCatalogWatches(data||[]));
+              },[]);
+              return catalogWatches.map(w=>(
+                <div key={w.id} style={{ ...S.card, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <div>
+                    <div style={{ fontWeight:600 }}>{w.model}</div>
+                    <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#aaa" }}>@{w.slug}</div>
+                  </div>
+                  <button style={{ background:"none", border:"1px solid #fcc", color:"#c00", borderRadius:4, padding:"4px 10px", fontSize:12, cursor:"pointer" }} onClick={()=>deleteWatch(w.id)}>Borrar</button>
+                </div>
+              ));
+            })()}
+            <div style={{ display:"none" }}>
               </div>
             ))}
           </div>

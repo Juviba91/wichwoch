@@ -98,7 +98,7 @@ export function PostComposer({ user, onPosted }) {
     <div style={S.card}>
       {type==="news"&&showExtras&&<input style={{ ...S.input, marginBottom:8 }} placeholder="Título de la noticia" value={newsTitle} onChange={e=>setNewsTitle(e.target.value)} />}
       <textarea
-        placeholder="¿Qué hay en tu muñeca? Usa @rolex_submariner o @tudor para hablar de tu reloj…"
+        placeholder="¿Qué hay en tu muñeca hoy? Usa @rolex_submariner para mencionar un reloj, o simplemente comparte lo que piensas…"
         value={content} onChange={e=>setContent(e.target.value)}
         style={{ width:"100%", border:"none", outline:"none", resize:"none", fontSize:15, fontFamily:"'DM Sans',sans-serif", background:"transparent", color:"#1a1a1a", boxSizing:"border-box" }} rows={3} />
 

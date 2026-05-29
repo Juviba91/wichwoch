@@ -20,6 +20,25 @@ export function CreateWatchPage({ currentUser, onNavigate }) {
     watch_type:"sport", gender:"unisex", market_price:"",
     description:"", editingId: null,
   });
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [specs, setSpecs] = useState([{key:"", value:""}]);
+
+  async function uploadImage(file) {
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `catalog/${Date.now()}.${ext}`;
+    const {error} = await supabase.storage.from("watch-images").upload(path, file);
+    if(!error) {
+      const {data} = supabase.storage.from("watch-images").getPublicUrl(path);
+      setImageUrl(data.publicUrl);
+    }
+    setUploading(false);
+  }
+
+  function addSpec() { setSpecs(s=>[...s,{key:"",value:""}]); }
+  function updateSpec(i,k,v) { setSpecs(s=>s.map((sp,idx)=>idx===i?{...sp,[k]:v}:sp)); }
+  function removeSpec(i) { setSpecs(s=>s.filter((_,idx)=>idx!==i)); }
   const [myProposals, setMyProposals] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -48,11 +67,15 @@ export function CreateWatchPage({ currentUser, onNavigate }) {
     }
     setSaving(true); setError(null);
     const slug = `${form.brand_slug}_${form.model.toLowerCase().replace(/\s+/g,"_").replace(/[^a-z0-9_]/g,"").slice(0,30)}`;
+    const validSpecs = specs.filter(s=>s.key.trim()&&s.value.trim());
+    const specsObj = validSpecs.length>0 ? Object.fromEntries(validSpecs.map(s=>[s.key.trim(),s.value.trim()])) : null;
     const payload = {
       brand_slug: form.brand_slug, model: form.model.trim(),
       reference: form.reference.trim(), year: form.year ? parseInt(form.year) : null,
       slug, watch_type: form.watch_type, gender: form.gender,
       market_price: form.market_price ? `~${form.market_price}€` : null,
+      image_url: imageUrl||null,
+      specs: specsObj,
       status: "pending", admin_note: null,
     };
     let err;
@@ -63,7 +86,14 @@ export function CreateWatchPage({ currentUser, onNavigate }) {
       const res = await supabase.from("watches").insert({...payload, created_by:currentUser.id});
       err = res.error;
     }
-    if(err) { setError(err.message); setSaving(false); return; }
+    if(err) {
+      if(err.message?.includes("duplicate key")||err.message?.includes("unique")) {
+        setError("¡Este reloj ya existe en nuestro catálogo! Búscalo en la sección Relojes.");
+      } else {
+        setError(err.message);
+      }
+      setSaving(false); return;
+    }
     setSaved(true); setSaving(false);
   }
 
@@ -174,7 +204,36 @@ export function CreateWatchPage({ currentUser, onNavigate }) {
           </div>
         </div>
 
-        <div style={{ marginTop:16, padding:"12px 16px", background:"#f8f6f0", borderRadius:8 }}>
+        {/* Imagen */}
+        <div style={{ marginTop:16, marginBottom:16 }}>
+          <span style={S.label}>Imagen del reloj <span style={{ color:"#aaa",fontWeight:400 }}>(opcional)</span></span>
+          {imageUrl ? (
+            <div style={{ position:"relative", display:"inline-block" }}>
+              <img src={imageUrl} alt="" style={{ height:120, borderRadius:8, display:"block" }} />
+              <button style={{ position:"absolute", top:6, right:6, background:"rgba(0,0,0,0.6)", border:"none", color:"#fff", borderRadius:"50%", width:24, height:24, cursor:"pointer" }} onClick={()=>setImageUrl("")}>×</button>
+            </div>
+          ) : (
+            <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", padding:"12px 16px", border:"2px dashed #e0ddd6", borderRadius:8, color:"#888", fontSize:13 }}>
+              {uploading?"⏳ Subiendo...":"📷 Subir foto del reloj"}
+              <input type="file" accept="image/*" style={{ display:"none" }} onChange={e=>e.target.files[0]&&uploadImage(e.target.files[0])} />
+            </label>
+          )}
+        </div>
+
+        {/* Specs */}
+        <div style={{ marginBottom:16 }}>
+          <span style={S.label}>Especificaciones técnicas <span style={{ color:"#aaa",fontWeight:400 }}>(opcional)</span></span>
+          {specs.map((sp,i)=>(
+            <div key={i} style={{ display:"flex", gap:8, marginBottom:8 }}>
+              <input style={{ ...S.input, flex:1 }} placeholder="Ej: Diámetro" value={sp.key} onChange={e=>updateSpec(i,"key",e.target.value)} />
+              <input style={{ ...S.input, flex:2 }} placeholder="Ej: 41 mm" value={sp.value} onChange={e=>updateSpec(i,"value",e.target.value)} />
+              <button style={{ background:"none", border:"1px solid #fcc", color:"#c00", borderRadius:6, padding:"0 10px", cursor:"pointer", fontSize:16 }} onClick={()=>removeSpec(i)}>×</button>
+            </div>
+          ))}
+          <button style={{ ...S.btn("outline"), fontSize:12, padding:"5px 12px" }} onClick={addSpec}>+ Añadir spec</button>
+        </div>
+
+        <div style={{ padding:"12px 16px", background:"#f8f6f0", borderRadius:8 }}>
           <p style={{ fontSize:13, color:"#888", margin:0 }}>📋 Tu propuesta será revisada por el equipo de Wich Woch antes de aparecer en el catálogo. Normalmente en menos de 48h.</p>
         </div>
 
