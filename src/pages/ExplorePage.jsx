@@ -7,6 +7,8 @@ export function ExplorePage({ onNavigate, currentUser }) {
   const [watches, setWatches] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const [topWishlisted, setTopWishlisted] = useState([]);
+  const [topThreads, setTopThreads] = useState([]);
+  const [heroIndex, setHeroIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState(null);
@@ -125,7 +127,7 @@ export function ExplorePage({ onNavigate, currentUser }) {
             {brands.map(slug=>{
               const bg=BRAND_COLORS[slug];
               const name=brandFromSlug(slug);
-              const watchCount=watches.filter(w=>w.brand_slug===slug).length;
+              const watchCount=watches.filter(w=>w.brand_slug===slug&&w.id).length;
               return (
                 <div key={slug} style={{ cursor:"pointer", borderRadius:10, overflow:"hidden", border:"1px solid #ece9e2", boxShadow:"0 2px 8px rgba(0,0,0,0.06)" }}
                   onClick={()=>onNavigate("brand",slug)}

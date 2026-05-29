@@ -142,7 +142,7 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
       </div>
 
       <div style={{ display:"flex", gap:4, marginBottom:20, flexWrap:"wrap" }}>
-        {[["info","Info"],["resenas","Reseñas"],["foros",`Foros (${threads.length})`],["novedades",`Novedades (${news.length})`]].map(([id,label])=>(
+        {[["info","Info"],["resenas","Reseñas"],["foros",`Foros (${threads.length})`]].map(([id,label])=>(
           <button key={id} onClick={()=>setTab(id)} style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:tab===id?"#1a2744":"#f0ede6", color:tab===id?"#fff":"#666", fontWeight:tab===id?600:400 }}>{label}</button>
         ))}
       </div>

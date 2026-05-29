@@ -18,7 +18,7 @@ export function WatchReviews({ watchId, currentUser }) {
   async function load() {
     setLoading(true);
     const {data}=await supabase.from("watch_reviews")
-      .select("*, author:profiles(id,name,handle,avatar_color,avatar_emoji)")
+      .select("*, author:profiles(id,name,handle,avatar_color,avatar_emoji,flow)")
       .eq("watch_id",watchId)
       .order("is_owner",{ascending:false})
       .order("created_at",{ascending:false});
@@ -43,7 +43,12 @@ export function WatchReviews({ watchId, currentUser }) {
     setShowForm(false); await load(); setSaving(false);
   }
 
-  const avgRating = reviews.length ? (reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1) : null;
+  // Flow-weighted average
+  const totalFlow = reviews.reduce((s,r)=>s+(r.author?.flow||1),0)||1;
+  const weightedAvg = reviews.length
+    ? (reviews.reduce((s,r)=>s+r.rating*(r.author?.flow||1),0)/totalFlow).toFixed(1)
+    : null;
+  const avgRating = weightedAvg;
 
   return (
     <div>
