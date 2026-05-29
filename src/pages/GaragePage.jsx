@@ -22,7 +22,6 @@ const SOURCES = [
 function GarageWatchCard({ watch, registration, wishlist=false, onClick }) {
   const bg = brandColor(watch.slug);
   const [imgError, setImgError] = useState(false);
-  const [lightbox, setLightbox] = useState(null);
   const cond = CONDITIONS.find(c=>c.id===registration?.condition);
 
   return (
@@ -262,6 +261,8 @@ function AddWatchForm({ currentUser, onSaved, onCancel, toWishlist=false }) {
 function WatchPassport({ registration, watch, currentUser, onBack, onUpdated }) {
   const [services, setServices] = useState([]);
   const [showServiceForm, setShowServiceForm] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
   const [serviceForm, setServiceForm] = useState({ service_date:"", workshop:"", description:"", price:"" });
   const [savingService, setSavingService] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
@@ -298,7 +299,6 @@ function WatchPassport({ registration, watch, currentUser, onBack, onUpdated }) 
   }
 
   const bg = brandColor(watch.slug);
-  const [imgError, setImgError] = useState(false);
   const cond = CONDITIONS.find(c=>c.id===registration?.condition);
   const source = SOURCES.find(s=>s.id===registration?.purchase_source);
 
@@ -457,6 +457,11 @@ export function GaragePage({ currentUser, onNavigate }) {
     await load();
   }
 
+  async function togglePublic(regId, currentValue) {
+    await supabase.from("watch_registrations").update({is_public:!currentValue}).eq("id",regId);
+    await load();
+  }
+
   // Collection Insights
   const allWatches = watches.map(w=>w.watch).filter(Boolean);
   const brandCount = allWatches.reduce((acc,w)=>{ const b=brandFromSlug(w.slug); acc[b]=(acc[b]||0)+1; return acc; },{});
@@ -552,8 +557,14 @@ export function GaragePage({ currentUser, onNavigate }) {
             {filteredWatches.map(w=>w.watch&&(
               <div key={w.id} style={{ position:"relative" }}>
                 <GarageWatchCard watch={w.watch} registration={w} onClick={()=>setSelectedRegistration(w)} />
-                <button style={{ position:"absolute", top:8, right:8, background:"rgba(0,0,0,0.5)", border:"none", color:"#fff", borderRadius:"50%", width:26, height:26, cursor:"pointer", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center", zIndex:10 }}
-                  onClick={e=>{e.stopPropagation();removeWatch(w.watch.id,false);}}>×</button>
+                <div style={{ position:"absolute", top:8, right:8, display:"flex", gap:4, zIndex:10 }}>
+                  <button style={{ background:"rgba(0,0,0,0.5)", border:"none", color:"#fff", borderRadius:12, padding:"2px 8px", cursor:"pointer", fontSize:11, fontFamily:"'DM Sans',sans-serif" }}
+                    onClick={e=>{e.stopPropagation();togglePublic(w.id,w.is_public);}}>
+                    {w.is_public?"👁 Público":"🔒 Privado"}
+                  </button>
+                  <button style={{ background:"rgba(0,0,0,0.5)", border:"none", color:"#fff", borderRadius:"50%", width:26, height:26, cursor:"pointer", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center" }}
+                    onClick={e=>{e.stopPropagation();removeWatch(w.watch.id,false);}}>×</button>
+                </div>
               </div>
             ))}
           </div>

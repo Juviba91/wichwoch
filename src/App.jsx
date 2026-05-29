@@ -10,6 +10,7 @@ import { FeedPage } from "./pages/FeedPage";
 import { GaragePage } from "./pages/GaragePage";
 import { WristCheckPage } from "./pages/WristCheckPage";
 import { MantenimientoPage } from "./pages/MantenimientoPage";
+import { OnboardingPage } from "./pages/OnboardingPage";
 import { CreateWatchPage } from "./pages/CreateWatchPage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { RelojesPage } from "./pages/RelojesPage";
@@ -31,6 +32,7 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [guestMode, setGuestMode] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isNewSignup, setIsNewSignup] = useState(false);
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{
@@ -71,7 +73,8 @@ export default function App() {
     </div>
   );
 
-  if(!session && !guestMode) return <AuthPage onExplore={()=>{ setGuestMode(true); setPage({name:"explore"}); }} />;
+  if(!session && !guestMode) return <AuthPage onExplore={()=>{ setGuestMode(true); setPage({name:"explore"}); }} onNewSignup={()=>setIsNewSignup(true)} />;
+  if(session && isNewSignup && profile && !profile.onboarding_complete) return <OnboardingPage user={session.user} onComplete={()=>{ setIsNewSignup(false); loadProfile(session.user.id); setPage({name:"feed"}); }} />;
 
   const currentUser = session ? session.user : null;
   const NAV = session
@@ -118,7 +121,7 @@ export default function App() {
                     {icon:"⚙️", label:"Ajustes", action:()=>{ navigate("settings"); setShowUserMenu(false); }},
                     {icon:"🚪", label:"Salir", action:()=>{ signOut(); setShowUserMenu(false); }, color:"#dc2626"},
                   ].map(item=>(
-                    <button key={item.label} onClick={item.action} style={{ width:"100%", padding:"11px 16px", background:"none", border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, textAlign:"left", display:"flex", alignItems:"center", gap:10, color:item.color||"#1a1a1a" }}
+                    <button key={item.label} onClick={item.action} style={{ width:"100%", padding:"11px 16px", background:"none", border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, textAlign:"left", display:"flex", alignItems:"center", gap:10, color:"#1a1a1a" }}
                       onMouseEnter={e=>e.currentTarget.style.background="#f8f6f0"}
                       onMouseLeave={e=>e.currentTarget.style.background="none"}>
                       <span>{item.icon}</span>{item.label}
@@ -127,7 +130,7 @@ export default function App() {
                 </div>
               )}
             </div>
-            {isAdmin(session?.user)&&<button style={{ ...S.navLink(page.name==="admin"), background:page.name==="admin"?"#b8963e":"rgba(255,255,255,0.1)", color:"#fff", fontSize:12 }} onClick={()=>navigate("admin")}>Admin</button>}
+  
           </>) : (
             <button style={{ background:"#b8963e", border:"none", cursor:"pointer", color:"#fff", padding:"7px 16px", borderRadius:6, fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={()=>setGuestMode(false)}>Entrar</button>
           )}

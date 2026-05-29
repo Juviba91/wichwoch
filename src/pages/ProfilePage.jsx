@@ -132,7 +132,10 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
             </div>
             <div style={S.row}>
               {!isOwn&&<button style={S.btn(isFollowing?"outline":"primary")} onClick={toggleFollow} disabled={followLoading}>{followLoading?"…":isFollowing?"✓ Siguiendo":"Seguir"}</button>}
-              {isOwn&&<button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("settings")}>⚙️ Ajustes</button>}
+              {isOwn&&<div style={{ display:"flex", gap:8 }}>
+            <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("garage")}>⌚ Mi Garage</button>
+            <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("settings")}>⚙️ Ajustes</button>
+          </div>}
             </div>
           </div>
           <div style={{ marginBottom:14 }}>
@@ -152,21 +155,18 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
             <div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>setSubPage("following")}><div style={{ fontWeight:700, fontSize:18 }}>{profile.following_count||0}</div><div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>siguiendo</div></div>
             <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{watches.length}</div><div style={{ ...S.muted, fontSize:12 }}>relojes</div></div>
             <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{posts.length}</div><div style={{ ...S.muted, fontSize:12 }}>posts</div></div>
-            {(profile.flow||0)>=0&&<div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>window.alert("⚡ El Flow es tu nivel de aportación a la comunidad Wich Woch. Sube cuando otros votan positivo tus respuestas en foros. Cuanto más útiles e interesantes sean tus aportaciones, más Flow acumulas.")}><div style={{ fontWeight:700, fontSize:18, color:"#b8963e" }}>⚡{profile.flow||0}</div><div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>flow</div></div>}
-            
+            {(profile.flow||0)>=0&&<div style={{ textAlign:"center", cursor:"pointer" }} onClick={()=>window.alert("⚡ El Flow es tu nivel de aportación a la comunidad Wich Woch. Sube cuando otros votan positivo tus respuestas en foros. Cuanto más útiles e interesantes sean tus aportaciones, más Flow acumulas.")}><div style={{ fontWeight:700, fontSize:18, color:"#b8963e" }}>⚡{profile.flow||0}</div><div style={{ ...S.muted, fontSize:12, textDecoration:"underline" }}>karma</div></div>}
           </div>
         </div>
       </div>
 
       <div style={{ display:"flex", gap:4, marginBottom:20, flexWrap:"wrap" }}>
-        {[["posts","Posts"],["coleccion","Colección"],["wishlist","Wish List"],["siguiendo","Siguiendo"],["seguidores","Seguidores"]].map(([id,label])=>(
+        {[["posts","Posts"],["siguiendo","Siguiendo"],["seguidores","Seguidores"]].map(([id,label])=>(
           <button key={id} onClick={()=>setTab(id)} style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:tab===id?"#1a2744":"#f0ede6", color:tab===id?"#fff":"#666", fontWeight:tab===id?600:400 }}>{label}</button>
         ))}
       </div>
 
       {tab==="posts"&&(<div>{posts.length===0&&<p style={S.muted}>Sin publicaciones aún.</p>}{posts.map(p=><PostCard key={p.id} post={p} currentUser={currentUser} onNavigate={onNavigate} />)}</div>)}
-      {tab==="coleccion"&&(<div>{isOwn&&<div style={{ marginBottom:16 }}>{!showAddWatch?<button style={S.btn("outline")} onClick={()=>setShowAddWatch(true)}>+ Añadir reloj</button>:<WatchSearchBox toWishlist={false} />}</div>}{watches.length===0&&<p style={S.muted}>Colección vacía.</p>}<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(140px, 1fr))", gap:12 }}>{watches.map(w=>w.watch&&<WatchCard key={w.id} watch={w.watch} onClick={()=>onNavigate("watch",w.watch.slug)} />)}</div></div>)}
-      {tab==="wishlist"&&(<div>{isOwn&&<div style={{ marginBottom:16 }}>{!showAddWish?<button style={S.btn("outline")} onClick={()=>setShowAddWish(true)}>+ Añadir a Wish List</button>:<WatchSearchBox toWishlist={true} />}</div>}{wishlist.length===0&&<p style={S.muted}>Wish List vacía.</p>}<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(140px, 1fr))", gap:12 }}>{wishlist.map(w=>w.watch&&(<div key={w.id} style={{ position:"relative" }}><WatchCard watch={w.watch} onClick={()=>onNavigate("watch",w.watch.slug)} />{isOwn&&<button style={{ position:"absolute", top:6, right:6, background:"rgba(0,0,0,0.5)", border:"none", color:"#fff", borderRadius:"50%", width:22, height:22, cursor:"pointer", fontSize:12 }} onClick={e=>{e.stopPropagation();removeWish(w.watch.id);}}>×</button>}</div>))}</div></div>)}
       {tab==="siguiendo"&&(<div>{followingList.length===0&&<p style={S.muted}>Aún no sigue a nadie.</p>}{followingList.map(u=>(<div key={u.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("profile",u.id)}><div style={S.row}><Avatar name={u.name||"?"} size={46} color={u.avatar_color||"#1a2744"} emoji={u.avatar_emoji||null} /><div><div style={{ fontWeight:600 }}>{u.name}</div><div style={S.muted}>@{u.handle}{u.location&&` · 📍${u.location}`}</div></div></div></div>))}</div>)}
       {tab==="seguidores"&&(<div>{followers.length===0&&<p style={S.muted}>Sin seguidores aún.</p>}{followers.map(u=>(<div key={u.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("profile",u.id)}><div style={S.row}><Avatar name={u.name||"?"} size={46} color={u.avatar_color||"#1a2744"} emoji={u.avatar_emoji||null} /><div><div style={{ fontWeight:600 }}>{u.name}</div><div style={S.muted}>@{u.handle}{u.location&&` · 📍${u.location}`}</div></div></div></div>))}</div>)}
     </div>
