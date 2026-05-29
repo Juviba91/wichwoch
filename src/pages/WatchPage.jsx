@@ -14,6 +14,8 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
   const [inCollection, setInCollection] = useState(false);
   const [inWishlist, setInWishlist] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [myBrandVote, setMyBrandVote] = useState(null);
+  const [brandVotes, setBrandVotes] = useState([]);
   const [imgError, setImgError] = useState(false);
   const [lightbox, setLightbox] = useState(null);
 
@@ -35,6 +37,16 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
       const results = await Promise.all(queries);
       setThreads(results[0].data||[]); setNews(results[1].data||[]);
       if(currentUser?.id) { setInCollection(!!results[2].data); setInWishlist(!!results[3].data); }
+      // Load brand votes
+      if(w) {
+        const brandSlug = w.slug.split("_")[0];
+        const [{data:votes},{data:myVote}] = await Promise.all([
+          supabase.from("brand_watch_votes").select("watch_id, count:watch_id.count()").eq("brand_slug",brandSlug),
+          currentUser?.id ? supabase.from("brand_watch_votes").select("watch_id").eq("user_id",currentUser.id).eq("brand_slug",brandSlug).maybeSingle() : {data:null},
+        ]);
+        setBrandVotes(votes||[]);
+        setMyBrandVote(myVote?.watch_id||null);
+      }
     }
     setLoading(false);
   }
@@ -50,6 +62,18 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
       setInCollection(true);
     }
     setSaving(false);
+  }
+
+  async function voteBestWatch() {
+    if(!currentUser?.id||!watch) { onLoginRequired?.(); return; }
+    const brandSlug = watch.slug.split("_")[0];
+    if(myBrandVote===watch.id) {
+      await supabase.from("brand_watch_votes").delete().match({user_id:currentUser.id,brand_slug:brandSlug});
+      setMyBrandVote(null);
+    } else {
+      await supabase.from("brand_watch_votes").upsert({user_id:currentUser.id,watch_id:watch.id,brand_slug:brandSlug});
+      setMyBrandVote(watch.id);
+    }
   }
 
   async function toggleWishlist() {
@@ -102,6 +126,9 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
           <div>
             <span style={{ ...S.mono, fontSize:13, color:"#888" }}>Ref. {watch.reference}{watch.year?` · ${watch.year}`:""}</span>
             {watch.market_price&&<div style={{ fontSize:13, color:"#b8963e", fontWeight:600, marginTop:4 }}>💰 {watch.market_price}</div>}
+          <button style={{ marginTop:8, background:"none", border:`1px solid ${myBrandVote===watch?.id?"#b8963e":"#e0ddd6"}`, borderRadius:6, padding:"4px 12px", cursor:"pointer", fontSize:12, color:myBrandVote===watch?.id?"#b8963e":"#888", fontFamily:"'DM Sans',sans-serif", fontWeight:myBrandVote===watch?.id?600:400 }} onClick={voteBestWatch}>
+            {myBrandVote===watch?.id?"⭐ Tu voto al mejor":"⭐ Votar mejor reloj de la marca"}
+          </button>
           </div>
           <div style={{ display:"flex", gap:8 }}>
             <button style={{ ...S.btn(inCollection?"primary":"outline"), fontSize:12, padding:"6px 14px" }} onClick={toggleCollection} disabled={saving}>
@@ -115,7 +142,7 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
       </div>
 
       <div style={{ display:"flex", gap:4, marginBottom:20, flexWrap:"wrap" }}>
-        {[["info","Info"],["resenas","Reseñas"],["foros",`Foros (${threads.length})`],["novedades",`Novedades (${news.length})`]].map(([id,label])=>(
+        {[["info","Info"],["resenas","Reseñas"],["foros",`Foros (${threads.length})`]].map(([id,label])=>(
           <button key={id} onClick={()=>setTab(id)} style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:tab===id?"#1a2744":"#f0ede6", color:tab===id?"#fff":"#666", fontWeight:tab===id?600:400 }}>{label}</button>
         ))}
       </div>

@@ -29,6 +29,67 @@ function UserList({ title, users, onNavigate, onBack }) {
 }
 
 // ─── PROFILE ──────────────────────────────────────────────────────────────────
+function UserListas({ userId, currentUser, onNavigate }) {
+  const [lists, setLists] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const isOwn = currentUser?.id === userId;
+
+  useEffect(()=>{
+    supabase.from("watch_lists")
+      .select("*, items:watch_list_items(id,watch:watches(id,slug,image_url,brand_slug))")
+      .eq("user_id",userId)
+      .then(({data})=>{ setLists(data||[]); setLoading(false); });
+  },[userId]);
+
+  if(loading) return <Spinner />;
+
+  return (
+    <div>
+      {isOwn&&<div style={{ marginBottom:16 }}><button style={S.btn("primary")} onClick={()=>onNavigate("listas")}>Gestionar mis listas →</button></div>}
+      {lists.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin listas aún.</div>}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:12 }}>
+        {lists.map(l=>(
+          <div key={l.id} style={{ ...S.card, cursor:"pointer", padding:0, overflow:"hidden", marginBottom:0 }} onClick={()=>onNavigate("listas")}>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", height:70 }}>
+              {[0,1,2].map(i=>{ const w=l.items?.[i]?.watch; const bg=w?brandColor(w.slug):"#f0ede6"; return <div key={i} style={{ background:`linear-gradient(135deg,${bg},${bg}88)`, display:"flex", alignItems:"center", justifyContent:"center" }}>{w?.image_url?<img src={w.image_url} alt="" style={{ height:"80%", objectFit:"contain" }} onError={e=>e.target.style.display="none"} />:<span style={{ fontSize:16, opacity:0.4 }}>⌚</span>}</div>; })}
+            </div>
+            <div style={{ padding:"10px 12px" }}>
+              <div style={{ fontWeight:700, fontSize:13 }}>{l.title}</div>
+              <div style={{ fontSize:11, color:"#aaa" }}>{l.items?.length||0} relojes</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function UserListasPreview({ userId, onNavigate }) {
+  const [lists, setLists] = useState([]);
+  useEffect(()=>{
+    supabase.from("watch_lists")
+      .select("id,title,is_public,items:watch_list_items(id,watch:watches(slug,image_url,brand_slug))")
+      .eq("user_id",userId).order("created_at",{ascending:false}).limit(6)
+      .then(({data})=>setLists(data||[]));
+  },[userId]);
+  if(!lists.length) return <div style={{ ...S.card, textAlign:"center", color:"#888", padding:24 }}>Sin listas aún.</div>;
+  return (
+    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))", gap:12 }}>
+      {lists.map(l=>(
+        <div key={l.id} style={{ ...S.card, cursor:"pointer", padding:0, overflow:"hidden", marginBottom:0 }} onClick={()=>onNavigate("listas")}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", height:70 }}>
+            {[0,1,2].map(i=>{ const w=l.items?.[i]?.watch; const bg=w?brandColor(w.slug):"#f0ede6"; return <div key={i} style={{ background:`linear-gradient(135deg,${bg},${bg}88)`, display:"flex", alignItems:"center", justifyContent:"center" }}>{w?.image_url?<img src={w.image_url} alt="" style={{ height:"80%", objectFit:"contain" }} onError={e=>e.target.style.display="none"} />:<span style={{ fontSize:16, opacity:0.4 }}>⌚</span>}</div>; })}
+          </div>
+          <div style={{ padding:"10px 12px" }}>
+            <div style={{ fontWeight:700, fontSize:13 }}>{l.title}</div>
+            <div style={{ fontSize:11, color:"#aaa" }}>{l.items?.length||0} relojes {!l.is_public&&"· 🔒"}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function ProfilePage({ userId, currentUser, onNavigate }) {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -161,12 +222,22 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
       </div>
 
       <div style={{ display:"flex", gap:4, marginBottom:20, flexWrap:"wrap" }}>
-        {[["posts","Posts"],["siguiendo","Siguiendo"],["seguidores","Seguidores"]].map(([id,label])=>(
+        {[["posts","Posts"],["listas","Listas"],["siguiendo","Siguiendo"],["seguidores","Seguidores"]].map(([id,label])=>(
           <button key={id} onClick={()=>setTab(id)} style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:tab===id?"#1a2744":"#f0ede6", color:tab===id?"#fff":"#666", fontWeight:tab===id?600:400 }}>{label}</button>
         ))}
       </div>
 
-      {tab==="posts"&&(<div>{posts.length===0&&<p style={S.muted}>Sin publicaciones aún.</p>}{posts.map(p=><PostCard key={p.id} post={p} currentUser={currentUser} onNavigate={onNavigate} />)}</div>)}
+      {tab==="posts"&&<div>{posts.length===0&&<p style={S.muted}>Sin publicaciones aún.</p>}{posts.map(p=><PostCard key={p.id} post={p} currentUser={currentUser} onNavigate={onNavigate} />)}</div>}
+      {tab==="listas"&&(
+        <div>
+          <div style={{ marginBottom:16 }}>
+            <button style={S.btn("primary")} onClick={()=>onNavigate("listas")}>
+              {isOwn?"Gestionar mis listas →":"Ver listas →"}
+            </button>
+          </div>
+          <UserListasPreview userId={userId} onNavigate={onNavigate} />
+        </div>
+      )}
       {tab==="siguiendo"&&(<div>{followingList.length===0&&<p style={S.muted}>Aún no sigue a nadie.</p>}{followingList.map(u=>(<div key={u.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("profile",u.id)}><div style={S.row}><Avatar name={u.name||"?"} size={46} color={u.avatar_color||"#1a2744"} emoji={u.avatar_emoji||null} /><div><div style={{ fontWeight:600 }}>{u.name}</div><div style={S.muted}>@{u.handle}{u.location&&` · 📍${u.location}`}</div></div></div></div>))}</div>)}
       {tab==="seguidores"&&(<div>{followers.length===0&&<p style={S.muted}>Sin seguidores aún.</p>}{followers.map(u=>(<div key={u.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("profile",u.id)}><div style={S.row}><Avatar name={u.name||"?"} size={46} color={u.avatar_color||"#1a2744"} emoji={u.avatar_emoji||null} /><div><div style={{ fontWeight:600 }}>{u.name}</div><div style={S.muted}>@{u.handle}{u.location&&` · 📍${u.location}`}</div></div></div></div>))}</div>)}
     </div>
