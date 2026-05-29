@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { S, BRAND_COLORS, BRAND_LOGOS, BRAND_LOGO_URLS, brandFromSlug, brandColor } from "../data/constants";
-import { Spinner, WatchCard, Avatar, Badge } from "../components/UI";
+import { Spinner, Avatar } from "../components/UI";
 
 export function ExplorePage({ onNavigate, currentUser }) {
   const [watches, setWatches] = useState([]);
@@ -18,131 +18,222 @@ export function ExplorePage({ onNavigate, currentUser }) {
   useEffect(()=>{ load(); },[]);
 
   useEffect(()=>{
-    if(!search.trim()||search.length<2) { setSearchResults(null); return; }
+    if(!search.trim()||search.length<2){ setSearchResults(null); return; }
     clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(()=>doSearch(search), 300);
+    timerRef.current = setTimeout(()=>doSearch(search), 350);
     return ()=>clearTimeout(timerRef.current);
   },[search]);
 
   async function load() {
     setLoading(true);
-    const [{data:w},{data:p}]=await Promise.all([
-      supabase.from("watches").select("*").order("brand_slug").limit(20),
-      supabase.from("profiles").select("*").order("followers_count",{ascending:false}).limit(12),
-    ]);
-    setWatches(w||[]); setProfiles(p||[]); setLoading(false);
+    try {
+      const [{data:w},{data:p},{data:wl},{data:th}] = await Promise.all([
+        supabase.from("watches").select("id,slug,model,reference,brand_slug,image_url,market_price").order("brand_slug").limit(100),
+        supabase.from("profiles").select("id,name,handle,avatar_color,bio,location,followers_count,flow").order("flow",{ascending:false}).limit(10),
+        supabase.from("watch_wishlist").select("watch_id, watch:watches(id,slug,model,brand_slug,image_url,market_price)"),
+        supabase.from("forum_threads").select("id,title,votes,replies_count,watch:watches(slug,model)").order("votes",{ascending:false}).limit(1),
+      ]);
+      setWatches(w||[]);
+      setProfiles(p||[]);
+      setTopThreads(th||[]);
+      const counts = {};
+      (wl||[]).forEach(item=>{
+        if(!item.watch_id) return;
+        if(!counts[item.watch_id]) counts[item.watch_id]={count:0,watch:item.watch};
+        counts[item.watch_id].count++;
+      });
+      setTopWishlisted(Object.values(counts).sort((a,b)=>b.count-a.count).slice(0,8));
+    } catch(e){ console.error(e); }
+    setLoading(false);
   }
 
   async function doSearch(q) {
     setSearching(true);
     try {
-      const clean=q.replace(/^@/,"");
-      const [u,w,t]=await Promise.all([
-        supabase.from("profiles").select("id,name,handle,bio,account_type,avatar_color,avatar_emoji,location,followers_count").or(`name.ilike.%${clean}%,handle.ilike.%${clean}%`).limit(5),
-        supabase.from("watches").select("id,slug,model,reference,brand_slug,image_url").or(`model.ilike.%${clean}%,slug.ilike.%${clean}%`).limit(6),
-        supabase.from("forum_threads").select("id,title,content,watch:watches(slug,model)").ilike("title",`%${clean}%`).limit(4),
+      const clean = q.replace(/^@/,"");
+      const [u,w,t] = await Promise.all([
+        supabase.from("profiles").select("id,name,handle,avatar_color,followers_count").or(`name.ilike.%${clean}%,handle.ilike.%${clean}%`).limit(5),
+        supabase.from("watches").select("id,slug,model,brand_slug,image_url").or(`model.ilike.%${clean}%,slug.ilike.%${clean}%`).limit(6),
+        supabase.from("forum_threads").select("id,title,watch:watches(slug,model)").ilike("title",`%${clean}%`).limit(4),
       ]);
       setSearchResults({ users:u.data||[], watches:w.data||[], threads:t.data||[] });
-    } catch(e) {
-      console.error("Search error:", e);
-      setSearchResults({ users:[], watches:[], threads:[] });
-    }
+    } catch(e){ setSearchResults({users:[],watches:[],threads:[]}); }
     setSearching(false);
   }
 
-  const byBrand = watches.reduce((acc,w)=>{ const b=brandFromSlug(w.slug||""); if(!acc[b]) acc[b]=[]; acc[b].push(w); return acc; },{});
-  const brands = Object.keys(BRAND_COLORS);
+  const BRANDS = ["rolex","omega","patek","ap","iwc","jlc","tudor","cartier","breitling","tag","vc","hublot","panerai","gs","zenith"];
+
+  // Hero items
+  const heroItems = [
+    topWishlisted[0] ? { type:"wishlisted", label:"❤️ Más deseado", data:topWishlisted[0] } : null,
+    profiles[0] ? { type:"collector", label:"⚡ Top coleccionista", data:profiles[0] } : null,
+    topThreads[0] ? { type:"thread", label:"💬 Foro del momento", data:topThreads[0] } : null,
+  ].filter(Boolean);
+
+  const hero = heroItems.length > 0 ? heroItems[heroIndex % heroItems.length] : null;
+  const heroWatch = hero?.type==="wishlisted" ? hero.data?.watch : null;
+  const heroBg = heroWatch ? brandColor(heroWatch.slug) : hero?.type==="collector" ? hero?.data?.avatar_color||"#1a2744" : "#1a2744";
 
   return (
     <div>
-      {/* Buscador prominente */}
-      <div style={{ background:"linear-gradient(135deg, #1a2744, #2a3a5a)", borderRadius:16, padding:"32px 28px", marginBottom:28, position:"relative", overflow:"hidden" }}>
-        <div style={{ position:"absolute", top:-20, right:-20, width:150, height:150, borderRadius:"50%", background:"rgba(184,150,62,0.1)" }} />
-        <div style={{ position:"absolute", bottom:-30, left:60, width:100, height:100, borderRadius:"50%", background:"rgba(184,150,62,0.08)" }} />
-        <h2 style={{ color:"#fff", fontFamily:"'DM Mono',monospace", fontSize:20, fontWeight:700, marginBottom:8, position:"relative" }}>Descubre el mundo del reloj</h2>
-        <p style={{ color:"rgba(255,255,255,0.6)", fontSize:14, marginBottom:20, position:"relative" }}>Busca marcas, modelos, coleccionistas y debates</p>
-        <div style={{ position:"relative" }}>
-          <input style={{ ...S.input, paddingLeft:44, fontSize:15, borderRadius:10, border:"none", boxShadow:"0 4px 20px rgba(0,0,0,0.2)" }}
-            placeholder="@rolex_submariner, Omega, coleccionistas Madrid…"
-            value={search} onChange={e=>setSearch(e.target.value)} />
-          <span style={{ position:"absolute", left:14, top:12, fontSize:18 }}>🔍</span>
-          {search&&<button style={{ position:"absolute", right:12, top:10, background:"none", border:"none", cursor:"pointer", color:"#aaa", fontSize:18 }} onClick={()=>setSearch("")}>×</button>}
-        </div>
+      {/* Buscador */}
+      <div style={{ position:"relative", marginBottom:20 }}>
+        <input style={{ ...S.input, paddingLeft:44, fontSize:16, padding:"14px 16px 14px 44px" }}
+          placeholder="Busca relojes, marcas, usuarios o foros…"
+          value={search} onChange={e=>setSearch(e.target.value)} />
+        <span style={{ position:"absolute", left:14, top:14, color:"#888", fontSize:18 }}>🔍</span>
+        {search&&<button style={{ position:"absolute", right:14, top:14, background:"none", border:"none", cursor:"pointer", color:"#aaa", fontSize:18 }} onClick={()=>{ setSearch(""); setSearchResults(null); }}>×</button>}
       </div>
 
       {/* Resultados de búsqueda */}
-      {search.length>=2&&(
-        <div style={{ marginBottom:28 }}>
+      {searchResults&&(
+        <div style={{ marginBottom:24 }}>
           {searching&&<Spinner />}
-          {!searching&&searchResults&&(
-            <>
-              {searchResults.watches.length>0&&(
-                <div style={{ marginBottom:24 }}>
-                  <h3 style={{ fontSize:13, fontWeight:700, fontFamily:"'DM Mono',monospace", letterSpacing:1, textTransform:"uppercase", color:"#666", marginBottom:14 }}>⌚ Relojes</h3>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(160px, 1fr))", gap:12 }}>
-                    {searchResults.watches.map(w=><WatchCard key={w.id} watch={w} onClick={()=>onNavigate("watch",w.slug)} />)}
-                  </div>
-                </div>
-              )}
-              {searchResults.users.length>0&&(
-                <div style={{ marginBottom:24 }}>
-                  <h3 style={{ fontSize:13, fontWeight:700, fontFamily:"'DM Mono',monospace", letterSpacing:1, textTransform:"uppercase", color:"#666", marginBottom:14 }}>👤 Personas</h3>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-                    {searchResults.users.map(u=>(
-                      <div key={u.id} style={{ ...S.card, cursor:"pointer", padding:14 }} onClick={()=>onNavigate("profile",u.id)}>
-                        <div style={S.row}>
-                          <Avatar name={u.name||"?"} size={44} color={u.avatar_color||"#1a2744"} emoji={u.avatar_emoji||null} />
-                          <div><div style={{ fontWeight:600 }}>{u.name}</div><div style={S.muted}>@{u.handle}{u.location&&` · 📍${u.location}`}</div></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {searchResults.threads.length>0&&(
-                <div>
-                  <h3 style={{ fontSize:13, fontWeight:700, fontFamily:"'DM Mono',monospace", letterSpacing:1, textTransform:"uppercase", color:"#666", marginBottom:14 }}>💬 Foros</h3>
-                  {searchResults.threads.map(t=>(
-                    <div key={t.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("thread",t.id)}>
-                      <div style={{ ...S.mono, fontSize:11, color:"#c8a84b", marginBottom:4 }}>@{t.watch?.slug}</div>
-                      <div style={{ fontWeight:700, marginBottom:4 }}>{t.title}</div>
-                      <p style={{ fontSize:13, color:"#555", margin:0 }}>{t.content.slice(0,100)}…</p>
+          {!searching&&searchResults.watches.length===0&&searchResults.users.length===0&&searchResults.threads.length===0&&(
+            <div style={{ ...S.card, textAlign:"center", color:"#888" }}>Sin resultados para "{search}"</div>
+          )}
+          {searchResults.watches.length>0&&(
+            <div style={{ marginBottom:16 }}>
+              <h3 style={{ ...S.h2, marginBottom:10 }}>Relojes</h3>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:10 }}>
+                {searchResults.watches.map(w=>(
+                  <div key={w.id} style={{ borderRadius:10, overflow:"hidden", border:"1px solid #ece9e2", background:"#fff", cursor:"pointer" }} onClick={()=>onNavigate("watch",w.slug)}>
+                    <div style={{ height:90, background:`linear-gradient(135deg,${brandColor(w.slug)},${brandColor(w.slug)}88)`, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      {w.image_url?<img src={w.image_url} alt="" style={{ height:"85%", objectFit:"contain" }} onError={e=>e.target.style.display="none"} />:<span style={{ fontSize:24 }}>⌚</span>}
                     </div>
-                  ))}
+                    <div style={{ padding:"8px 10px" }}>
+                      <div style={{ fontWeight:700, fontSize:12 }}>{w.model}</div>
+                      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:"#aaa" }}>{brandFromSlug(w.slug)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {searchResults.users.length>0&&(
+            <div style={{ marginBottom:16 }}>
+              <h3 style={{ ...S.h2, marginBottom:10 }}>Usuarios</h3>
+              {searchResults.users.map(u=>(
+                <div key={u.id} style={{ ...S.card, display:"flex", alignItems:"center", gap:12, cursor:"pointer" }} onClick={()=>onNavigate("profile",u.id)}>
+                  <div style={{ width:40,height:40,borderRadius:"50%",background:u.avatar_color||"#1a2744",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"#fff",fontSize:14,fontFamily:"'DM Mono',monospace" }}>
+                    {(u.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
+                  </div>
+                  <div><div style={{ fontWeight:600 }}>{u.name}</div><div style={{ ...S.muted, fontSize:12 }}>@{u.handle}</div></div>
                 </div>
-              )}
-              {searchResults.watches.length===0&&searchResults.users.length===0&&searchResults.threads.length===0&&(
-                <div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin resultados para "{search}"</div>
-              )}
-            </>
+              ))}
+            </div>
+          )}
+          {searchResults.threads.length>0&&(
+            <div style={{ marginBottom:16 }}>
+              <h3 style={{ ...S.h2, marginBottom:10 }}>Foros</h3>
+              {searchResults.threads.map(t=>(
+                <div key={t.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("thread",t.id)}>
+                  <div style={{ fontWeight:600 }}>{t.title}</div>
+                  {t.watch&&<div style={{ ...S.muted, fontSize:12 }}>@{t.watch.slug}</div>}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
 
-      {!search&&!loading&&(<>
-        {/* Marcas destacadas */}
-        <div style={{ marginBottom:32 }}>
-          <h3 style={{ ...S.h2, marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>🏷️ Marcas</h3>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(160px, 1fr))", gap:12 }}>
-            {brands.map(slug=>{
-              const bg=BRAND_COLORS[slug];
-              const name=brandFromSlug(slug);
-              const watchCount=watches.filter(w=>w.brand_slug===slug&&w.id).length;
-              return (
-                <div key={slug} style={{ cursor:"pointer", borderRadius:10, overflow:"hidden", border:"1px solid #ece9e2", boxShadow:"0 2px 8px rgba(0,0,0,0.06)" }}
-                  onClick={()=>onNavigate("brand",slug)}
-                  onMouseEnter={e=>e.currentTarget.style.transform="translateY(-2px)"}
-                  onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>
-                  <div style={{ height:80, background:`linear-gradient(135deg, ${bg}, ${bg}cc)`, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    {BRAND_LOGO_URLS[slug] ? (
-                      <img src={BRAND_LOGO_URLS[slug]} alt={slug} style={{ height:44, objectFit:"contain", filter:"none" }} onError={e=>e.target.style.display="none"} />
-                    ) : (
-                      <div style={{ fontSize:24 }}>{BRAND_LOGOS[slug]||"⌚"}</div>
-                    )}
+      {!searchResults&&!loading&&(<>
+
+        {/* Hero carrusel */}
+        {hero&&(
+          <div style={{ borderRadius:12, overflow:"hidden", marginBottom:24, position:"relative", height:200, background:`linear-gradient(135deg,${heroBg},${heroBg}88)`, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 32px", cursor:"pointer" }}
+            onClick={()=>{
+              if(hero.type==="wishlisted"&&heroWatch) onNavigate("watch",heroWatch.slug);
+              else if(hero.type==="collector") onNavigate("profile",hero.data.id);
+              else if(hero.type==="thread") onNavigate("thread",hero.data.id);
+            }}>
+            <div>
+              <div style={{ fontSize:11,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:"rgba(255,255,255,0.6)",fontFamily:"'DM Mono',monospace",marginBottom:8 }}>{hero.label}</div>
+              {hero.type==="wishlisted"&&heroWatch&&<>
+                <div style={{ fontSize:24,fontWeight:700,color:"#fff",marginBottom:4 }}>{heroWatch.model}</div>
+                <div style={{ fontSize:13,color:"rgba(255,255,255,0.6)" }}>{brandFromSlug(heroWatch.slug)} · ❤️ {hero.data.count} en wishlists</div>
+              </>}
+              {hero.type==="collector"&&<>
+                <div style={{ fontSize:24,fontWeight:700,color:"#fff",marginBottom:4 }}>{hero.data.name}</div>
+                <div style={{ fontSize:13,color:"rgba(255,255,255,0.6)" }}>⚡{hero.data.flow||0} Flow · @{hero.data.handle}</div>
+              </>}
+              {hero.type==="thread"&&<>
+                <div style={{ fontSize:20,fontWeight:700,color:"#fff",marginBottom:4,maxWidth:340 }}>{hero.data.title}</div>
+                <div style={{ fontSize:13,color:"rgba(255,255,255,0.6)" }}>💬 {hero.data.replies_count||0} respuestas</div>
+              </>}
+              {heroItems.length>1&&(
+                <div style={{ display:"flex",gap:6,marginTop:16 }}>
+                  {heroItems.map((_,i)=>(
+                    <div key={i} onClick={e=>{ e.stopPropagation(); setHeroIndex(i); }}
+                      style={{ width:i===heroIndex%heroItems.length?20:6,height:6,borderRadius:3,background:i===heroIndex%heroItems.length?"#b8963e":"rgba(255,255,255,0.3)",transition:"width 0.3s",cursor:"pointer" }} />
+                  ))}
+                </div>
+              )}
+            </div>
+            {heroWatch?.image_url&&<img src={heroWatch.image_url} alt="" style={{ height:"80%",objectFit:"contain",filter:"drop-shadow(0 8px 24px rgba(0,0,0,0.4))" }} onError={e=>e.target.style.display="none"} />}
+          </div>
+        )}
+
+        {/* Más deseados */}
+        {topWishlisted.length>0&&(
+          <div style={{ marginBottom:28 }}>
+            <h3 style={{ ...S.h2, marginBottom:12 }}>❤️ Más deseados</h3>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:12 }}>
+              {topWishlisted.slice(0,6).map(({watch,count})=>watch&&(
+                <div key={watch.id} style={{ borderRadius:10,overflow:"hidden",border:"1px solid #ece9e2",background:"#fff",cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,0.06)" }} onClick={()=>onNavigate("watch",watch.slug)}>
+                  <div style={{ height:110,background:`linear-gradient(135deg,${brandColor(watch.slug)},${brandColor(watch.slug)}99)`,display:"flex",alignItems:"center",justifyContent:"center",position:"relative" }}>
+                    {watch.image_url?<img src={watch.image_url} alt="" style={{ height:"85%",objectFit:"contain",filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.3))" }} onError={e=>e.target.style.display="none"} />:<span style={{ fontSize:28 }}>⌚</span>}
+                    <div style={{ position:"absolute",top:6,right:6,background:"rgba(184,150,62,0.9)",borderRadius:10,padding:"2px 8px",fontSize:10,color:"#fff",fontWeight:700 }}>❤️ {count}</div>
                   </div>
-                  <div style={{ padding:"10px 12px", background:"#fff" }}>
-                    <div style={{ fontWeight:700, fontSize:13 }}>{name}</div>
-                    <div style={{ ...S.mono, fontSize:10, color:"#aaa" }}>{watchCount} modelos</div>
+                  <div style={{ padding:"10px 12px" }}>
+                    <div style={{ fontWeight:700,fontSize:13 }}>{watch.model}</div>
+                    <div style={{ fontFamily:"'DM Mono',monospace",fontSize:10,color:"#aaa" }}>{brandFromSlug(watch.slug)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Top coleccionistas */}
+        {profiles.length>0&&(
+          <div style={{ marginBottom:28 }}>
+            <h3 style={{ ...S.h2, marginBottom:12 }}>⚡ Top coleccionistas</h3>
+            <div style={{ display:"flex",gap:10,overflowX:"auto",paddingBottom:8 }}>
+              {profiles.map((p,i)=>(
+                <div key={p.id} style={{ minWidth:120,background:"#fff",border:"1px solid #ece9e2",borderRadius:10,padding:"14px 12px",textAlign:"center",cursor:"pointer",flexShrink:0 }} onClick={()=>onNavigate("profile",p.id)}>
+                  <div style={{ width:44,height:44,borderRadius:"50%",background:p.avatar_color||"#1a2744",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"#fff",fontSize:16,fontFamily:"'DM Mono',monospace",margin:"0 auto 8px" }}>
+                    {(p.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
+                  </div>
+                  {i<3&&<div style={{ fontSize:14,marginBottom:4 }}>{i===0?"🥇":i===1?"🥈":"🥉"}</div>}
+                  <div style={{ fontWeight:700,fontSize:12,marginBottom:2 }}>{p.name?.split(" ")[0]||"?"}</div>
+                  <div style={{ fontFamily:"'DM Mono',monospace",fontSize:10,color:"#aaa",marginBottom:4 }}>@{p.handle}</div>
+                  <div style={{ fontSize:11,color:"#b8963e",fontWeight:600 }}>⚡{p.flow||0}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Marcas */}
+        <div style={{ marginBottom:28 }}>
+          <h3 style={{ ...S.h2, marginBottom:12 }}>Marcas</h3>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))", gap:10 }}>
+            {BRANDS.map(slug=>{
+              const bg = BRAND_COLORS[slug]||"#1a2744";
+              const watchCount = watches.filter(w=>w.brand_slug===slug).length;
+              const logoUrl = BRAND_LOGO_URLS[slug];
+              return (
+                <div key={slug} style={{ borderRadius:10,overflow:"hidden",border:"1px solid #ece9e2",background:"#fff",cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,0.06)" }} onClick={()=>onNavigate("brand",slug)}>
+                  <div style={{ height:80,background:`linear-gradient(135deg,${bg},${bg}cc)`,display:"flex",alignItems:"center",justifyContent:"center" }}>
+                    {logoUrl
+                      ? <img src={logoUrl} alt={slug} style={{ height:44,objectFit:"contain",filter:"none" }} onError={e=>e.target.style.display="none"} />
+                      : <span style={{ fontSize:22,color:"#fff",fontWeight:700,fontFamily:"'DM Mono',monospace" }}>{BRAND_LOGOS[slug]||slug[0].toUpperCase()}</span>
+                    }
+                  </div>
+                  <div style={{ padding:"10px 12px" }}>
+                    <div style={{ fontWeight:700,fontSize:13 }}>{brandFromSlug(`${slug}_x`)}</div>
+                    <div style={{ ...S.muted,fontSize:11 }}>{watchCount} modelos</div>
                   </div>
                 </div>
               );
@@ -150,105 +241,27 @@ export function ExplorePage({ onNavigate, currentUser }) {
           </div>
         </div>
 
-        {/* Relojes icónicos */}
-        <div style={{ marginBottom:32 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-            <h3 style={{ ...S.h2, marginBottom:0, display:"flex", alignItems:"center", gap:8 }}>⌚ Relojes icónicos</h3>
-            <button style={{ ...S.btn("outline"), fontSize:12, padding:"6px 14px" }} onClick={()=>onNavigate("relojes")}>Ver todos →</button>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(160px, 1fr))", gap:12 }}>
-            {watches.slice(0,8).map(w=><WatchCard key={w.id} watch={w} onClick={()=>onNavigate("watch",w.slug)} />)}
-          </div>
-        </div>
-
-        {/* Coleccionistas destacados */}
-        <div style={{ marginBottom:32 }}>
-          <h3 style={{ ...S.h2, marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>👥 Coleccionistas</h3>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(140px, 1fr))", gap:12 }}>
-            {profiles.filter(p=>p.account_type==="collector").slice(0,6).map(p=>(
-              <div key={p.id} style={{ ...S.card, cursor:"pointer", padding:16 }} onClick={()=>onNavigate("profile",p.id)}>
-                <div style={{ ...S.row, marginBottom:8 }}>
-                  <Avatar name={p.name||"?"} size={44} color={p.avatar_color||"#1a2744"} emoji={p.avatar_emoji||null} />
-                  <div>
-                    <div style={{ fontWeight:600, fontSize:14 }}>{p.name}</div>
-                    <div style={S.muted}>@{p.handle}</div>
-                  </div>
+        {/* Relojes destacados */}
+        <div style={{ marginBottom:28 }}>
+          <h3 style={{ ...S.h2, marginBottom:12 }}>Relojes icónicos</h3>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:12 }}>
+            {watches.slice(0,12).map(w=>(
+              <div key={w.id} style={{ borderRadius:10,overflow:"hidden",border:"1px solid #ece9e2",background:"#fff",cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,0.06)" }} onClick={()=>onNavigate("watch",w.slug)}>
+                <div style={{ height:100,background:`linear-gradient(135deg,${brandColor(w.slug)},${brandColor(w.slug)}88)`,display:"flex",alignItems:"center",justifyContent:"center" }}>
+                  {w.image_url?<img src={w.image_url} alt="" style={{ height:"85%",objectFit:"contain",filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.3))" }} onError={e=>e.target.style.display="none"} />:<span style={{ fontSize:28 }}>⌚</span>}
                 </div>
-                {p.location&&<div style={{ fontSize:12, color:"#888" }}>📍 {p.location}</div>}
-                {p.bio&&<p style={{ fontSize:12, color:"#555", margin:"6px 0 0", lineHeight:1.4 }}>{p.bio.slice(0,60)}{p.bio.length>60?"…":""}</p>}
-                <div style={{ marginTop:8, display:"flex", gap:16 }}>
-                  <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:14 }}>{p.followers_count||0}</div><div style={{ fontSize:11, color:"#aaa" }}>seg.</div></div>
+                <div style={{ padding:"8px 10px" }}>
+                  <div style={{ fontWeight:700,fontSize:12 }}>{w.model}</div>
+                  <div style={{ fontFamily:"'DM Mono',monospace",fontSize:10,color:"#aaa" }}>{brandFromSlug(w.slug)}</div>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Talleres */}
-        {profiles.filter(p=>p.account_type==="repairer").length>0&&(
-          <div>
-            <h3 style={{ ...S.h2, marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>🔧 Talleres</h3>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-              {profiles.filter(p=>p.account_type==="repairer").slice(0,4).map(p=>(
-                <div key={p.id} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("profile",p.id)}>
-                  <div style={S.row}>
-                    <div style={{ width:48, height:48, borderRadius:10, background:"#2c4a2e", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>🔧</div>
-                    <div>
-                      <div style={{ fontWeight:600 }}>{p.name}<Badge text="Taller" bg="#e8f4ec" color="#4a7c59" /></div>
-                      <div style={S.muted}>{p.location||"Sin ubicación"}</div>
-                      {p.bio&&<p style={{ fontSize:12, color:"#555", margin:"4px 0 0" }}>{p.bio.slice(0,60)}…</p>}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </>)}
-    </div>
-  );
-}
 
-
-// ─── QUOTE POST (repost con comentario) ──────────────────────────────────────
-function QuotePostModal({ original, currentUser, onClose, onPosted }) {
-  const [content, setContent] = useState("");
-  const [posting, setPosting] = useState(false);
-
-  async function submit() {
-    if(!content.trim()) return;
-    setPosting(true);
-    await supabase.from("posts").insert({
-      author_id: currentUser.id,
-      content: content.trim(),
-      post_type: "text",
-      repost_of: original.id
-    });
-    setPosting(false); onPosted(); onClose();
-  }
-
-  return (
-    <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
-      <div style={{ background:"#fff", borderRadius:12, padding:24, width:"100%", maxWidth:500, boxShadow:"0 20px 60px rgba(0,0,0,0.3)" }}>
-        <div style={{ ...S.row, justifyContent:"space-between", marginBottom:16 }}>
-          <h3 style={{ ...S.h2, marginBottom:0 }}>Repostear con comentario</h3>
-          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:"#aaa" }} onClick={onClose}>×</button>
-        </div>
-        <textarea
-          autoFocus
-          placeholder="Añade tu comentario…"
-          value={content} onChange={e=>setContent(e.target.value)}
-          style={{ width:"100%", border:"1px solid #e8e8e8", borderRadius:8, padding:"10px 12px", fontSize:15, fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"none", boxSizing:"border-box", marginBottom:12 }} rows={3} />
-        {/* Preview del post original */}
-        <div style={{ border:"1px solid #e8e8e8", borderRadius:8, padding:12, marginBottom:16, background:"#f8f6f0" }}>
-          <div style={{ ...S.muted, marginBottom:6 }}>@{original.author?.handle}</div>
-          <p style={{ fontSize:13, color:"#444", margin:0, lineHeight:1.5 }}>{original.content?.slice(0,120)}{original.content?.length>120?"…":""}</p>
-        </div>
-        <div style={{ display:"flex", justifyContent:"flex-end", gap:8 }}>
-          <button style={S.btn("outline")} onClick={onClose}>Cancelar</button>
-          <button style={S.btn("primary")} onClick={submit} disabled={posting||!content.trim()}>{posting?"Reposteando…":"Repostear"}</button>
-        </div>
-      </div>
+      {loading&&<Spinner />}
     </div>
   );
 }
