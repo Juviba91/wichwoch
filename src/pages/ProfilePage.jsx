@@ -227,14 +227,12 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
         ))}
       </div>
 
-      {tab==="listas"&&<UserListas userId={userId} currentUser={currentUser} onNavigate={onNavigate} />}
-      {tab==="posts"&&(<div>{posts.length===0&&<p style={S.muted}>Sin publicaciones aún.</p>}{posts.map(p=><PostCard key={p.id} post={p} currentUser={currentUser} onNavigate={onNavigate} />)}</div>)}
-       onClick={()=>setShowAddWatch(true)}>+ Añadir reloj</button>:<WatchSearchBox toWishlist={false} />}</div>}{watches.length===0&&<p style={S.muted}>Colección vacía.</p>}<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(140px, 1fr))", gap:12 }}>{watches.map(w=>w.watch&&<WatchCard key={w.id} watch={w.watch} onClick={()=>onNavigate("watch",w.watch.slug)} />)}</div></div>)}
-            {tab==="listas"&&(
+      {tab==="posts"&&<div>{posts.length===0&&<p style={S.muted}>Sin publicaciones aún.</p>}{posts.map(p=><PostCard key={p.id} post={p} currentUser={currentUser} onNavigate={onNavigate} />)}</div>}
+      {tab==="listas"&&(
         <div>
           <div style={{ marginBottom:16 }}>
             <button style={S.btn("primary")} onClick={()=>onNavigate("listas")}>
-              {isOwn ? "Gestionar mis listas →" : "Ver listas →"}
+              {isOwn?"Gestionar mis listas →":"Ver listas →"}
             </button>
           </div>
           <UserListasPreview userId={userId} onNavigate={onNavigate} />
