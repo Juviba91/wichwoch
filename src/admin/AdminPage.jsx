@@ -127,9 +127,8 @@ export function AdminPage({ user, onNavigate }) {
   }
 
   async function suspendUser(id) {
-    if(!window.confirm("¿Suspender este usuario? No podrá iniciar sesión.")) return;
+    if(!window.confirm("¿Suspender este usuario? Se marcará como suspendido y no podrá publicar contenido.")) return;
     await supabase.from("profiles").update({suspended:true}).eq("id",id);
-    await supabase.auth.admin.updateUserById(id, {ban_duration:"87600h"}).catch(()=>{});
     await loadUsers();
   }
 
