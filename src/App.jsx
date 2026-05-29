@@ -10,6 +10,8 @@ import { FeedPage } from "./pages/FeedPage";
 import { GaragePage } from "./pages/GaragePage";
 import { WristCheckPage } from "./pages/WristCheckPage";
 import { MantenimientoPage } from "./pages/MantenimientoPage";
+import { ListasPage } from "./pages/ListasPage";
+import { RankingPage } from "./pages/RankingPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { CreateWatchPage } from "./pages/CreateWatchPage";
 import { ExplorePage } from "./pages/ExplorePage";
@@ -78,7 +80,7 @@ export default function App() {
 
   const currentUser = session ? session.user : null;
   const NAV = session
-    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}]
+    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"},{id:"listas",label:"Listas"}]
     : [{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}];
 
   return (
@@ -150,6 +152,8 @@ export default function App() {
         {page.name==="garage"&&session&&<GaragePage currentUser={session.user} onNavigate={navigate} />}
         {page.name==="mantenimiento"&&session&&<MantenimientoPage currentUser={session.user} onNavigate={navigate} />}
         {page.name==="wristcheck"&&<WristCheckPage currentUser={currentUser} onNavigate={navigate} />}
+        {page.name==="listas"&&<ListasPage currentUser={currentUser} onNavigate={navigate} />}
+        {page.name==="ranking"&&<RankingPage currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="create-watch"&&session&&<CreateWatchPage currentUser={session.user} onNavigate={navigate} />}
         {page.name==="admin"&&<AdminPage user={session?.user} onNavigate={navigate} />}
       </main>
