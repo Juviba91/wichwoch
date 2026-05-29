@@ -139,40 +139,42 @@ export function ExplorePage({ onNavigate, currentUser }) {
 
       {!searchResults&&!loading&&(<>
 
-        {/* Hero carrusel */}
-        {hero&&(
-          <div style={{ borderRadius:12, overflow:"hidden", marginBottom:24, position:"relative", height:200, background:`linear-gradient(135deg,${heroBg},${heroBg}88)`, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 32px", cursor:"pointer" }}
-            onClick={()=>{
-              if(hero.type==="wishlisted"&&heroWatch) onNavigate("watch",heroWatch.slug);
-              else if(hero.type==="collector") onNavigate("profile",hero.data.id);
-              else if(hero.type==="thread") onNavigate("thread",hero.data.id);
-            }}>
-            <div>
-              <div style={{ fontSize:11,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:"rgba(255,255,255,0.6)",fontFamily:"'DM Mono',monospace",marginBottom:8 }}>{hero.label}</div>
-              {hero.type==="wishlisted"&&heroWatch&&<>
-                <div style={{ fontSize:24,fontWeight:700,color:"#fff",marginBottom:4 }}>{heroWatch.model}</div>
-                <div style={{ fontSize:13,color:"rgba(255,255,255,0.6)" }}>{brandFromSlug(heroWatch.slug)} · ❤️ {hero.data.count} en wishlists</div>
-              </>}
-              {hero.type==="collector"&&<>
-                <div style={{ fontSize:24,fontWeight:700,color:"#fff",marginBottom:4 }}>{hero.data.name}</div>
-                <div style={{ fontSize:13,color:"rgba(255,255,255,0.6)" }}>⚡{hero.data.flow||0} Flow · @{hero.data.handle}</div>
-              </>}
-              {hero.type==="thread"&&<>
-                <div style={{ fontSize:20,fontWeight:700,color:"#fff",marginBottom:4,maxWidth:340 }}>{hero.data.title}</div>
-                <div style={{ fontSize:13,color:"rgba(255,255,255,0.6)" }}>💬 {hero.data.replies_count||0} respuestas</div>
-              </>}
-              {heroItems.length>1&&(
-                <div style={{ display:"flex",gap:6,marginTop:16 }}>
-                  {heroItems.map((_,i)=>(
-                    <div key={i} onClick={e=>{ e.stopPropagation(); setHeroIndex(i); }}
-                      style={{ width:i===heroIndex%heroItems.length?20:6,height:6,borderRadius:3,background:i===heroIndex%heroItems.length?"#b8963e":"rgba(255,255,255,0.3)",transition:"width 0.3s",cursor:"pointer" }} />
-                  ))}
-                </div>
-              )}
+        {/* Hero — 3 cards verticales */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:24 }}>
+          {/* Card 1: Reloj más deseado */}
+          {topWishlisted[0]?.watch&&(
+            <div style={{ borderRadius:12, background:`linear-gradient(135deg,${brandColor(topWishlisted[0].watch.slug)},${brandColor(topWishlisted[0].watch.slug)}88)`, padding:"20px 16px", cursor:"pointer", display:"flex", flexDirection:"column", minHeight:160 }}
+              onClick={()=>onNavigate("watch",topWishlisted[0].watch.slug)}>
+              <div style={{ fontSize:10,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:"rgba(255,255,255,0.6)",fontFamily:"'DM Mono',monospace",marginBottom:8 }}>❤️ Más deseado</div>
+              {topWishlisted[0].watch.image_url&&<img src={topWishlisted[0].watch.image_url} alt="" style={{ height:70,objectFit:"contain",filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.4))",marginBottom:10 }} onError={e=>e.target.style.display="none"} />}
+              <div style={{ fontWeight:700,fontSize:14,color:"#fff",marginBottom:2 }}>{topWishlisted[0].watch.model}</div>
+              <div style={{ fontSize:11,color:"rgba(255,255,255,0.6)" }}>❤️ {topWishlisted[0].count} wishlists</div>
             </div>
-            {heroWatch?.image_url&&<img src={heroWatch.image_url} alt="" style={{ height:"80%",objectFit:"contain",filter:"drop-shadow(0 8px 24px rgba(0,0,0,0.4))" }} onError={e=>e.target.style.display="none"} />}
-          </div>
-        )}
+          )}
+          {/* Card 2: Foro más comentado */}
+          {topThreads[0]&&(
+            <div style={{ borderRadius:12, background:"linear-gradient(135deg,#1a2744,#2a3a5a)", padding:"20px 16px", cursor:"pointer", display:"flex", flexDirection:"column", minHeight:160 }}
+              onClick={()=>onNavigate("thread",topThreads[0].id)}>
+              <div style={{ fontSize:10,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:"rgba(255,255,255,0.6)",fontFamily:"'DM Mono',monospace",marginBottom:8 }}>💬 Foro del momento</div>
+              <div style={{ fontSize:28,marginBottom:10 }}>💬</div>
+              <div style={{ fontWeight:700,fontSize:14,color:"#fff",marginBottom:2,lineHeight:1.3 }}>{topThreads[0].title?.slice(0,50)}{topThreads[0].title?.length>50?"…":""}</div>
+              <div style={{ fontSize:11,color:"rgba(255,255,255,0.6)",marginTop:"auto" }}>{topThreads[0].replies_count||0} respuestas · ⬆️{topThreads[0].votes||0}</div>
+            </div>
+          )}
+          {/* Card 3: Mejor experto (más Flow) */}
+          {profiles[0]&&(
+            <div style={{ borderRadius:12, background:"linear-gradient(135deg,#b8963e,#8a6f2e)", padding:"20px 16px", cursor:"pointer", display:"flex", flexDirection:"column", minHeight:160 }}
+              onClick={()=>onNavigate("profile",profiles[0].id)}>
+              <div style={{ fontSize:10,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:"rgba(255,255,255,0.6)",fontFamily:"'DM Mono',monospace",marginBottom:8 }}>⚡ Mejor experto</div>
+              <div style={{ width:48,height:48,borderRadius:"50%",background:profiles[0].avatar_color||"#1a2744",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"#fff",fontSize:18,fontFamily:"'DM Mono',monospace",marginBottom:10 }}>
+                {(profiles[0].name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
+              </div>
+              <div style={{ fontWeight:700,fontSize:14,color:"#fff",marginBottom:2 }}>{profiles[0].name}</div>
+              <div style={{ fontSize:11,color:"rgba(255,255,255,0.8)" }}>⚡{profiles[0].flow||0} Flow</div>
+              <div style={{ fontSize:11,color:"rgba(255,255,255,0.6)" }}>@{profiles[0].handle}</div>
+            </div>
+          )}
+        </div>
 
         {/* Más deseados */}
         {topWishlisted.length>0&&(
