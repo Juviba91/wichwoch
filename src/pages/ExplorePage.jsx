@@ -24,8 +24,8 @@ export function ExplorePage({ onNavigate, currentUser }) {
   async function load() {
     setLoading(true);
     const [{data:w},{data:p}]=await Promise.all([
-      supabase.from("watches").select("*").order("brand_slug").limit(20),
-      supabase.from("profiles").select("*").order("followers_count",{ascending:false}).limit(12),
+    supabase.from("watches").select("id,slug,model,reference,brand_slug,image_url").order("brand_slug").limit(100),     
+    supabase.from("profiles").select("id,name,handle,bio,account_type,avatar_color,avatar_emoji,location,followers_count").order("followers_count",{ascending:false}).limit(12),
     ]);
     setWatches(w||[]); setProfiles(p||[]); setLoading(false);
   }
