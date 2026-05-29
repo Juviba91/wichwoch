@@ -24,8 +24,8 @@ export function ExplorePage({ onNavigate, currentUser }) {
   async function load() {
     setLoading(true);
     const [{data:w},{data:p}]=await Promise.all([
-      supabase.from("watches").select("*").order("brand_slug").limit(20),
-      supabase.from("profiles").select("*").order("followers_count",{ascending:false}).limit(12),
+    supabase.from("watches").select("id,slug,model,reference,brand_slug,image_url").order("brand_slug").limit(100),     
+    supabase.from("profiles").select("id,name,handle,bio,account_type,avatar_color,avatar_emoji,location,followers_count").order("followers_count",{ascending:false}).limit(12),
     ]);
     setWatches(w||[]); setProfiles(p||[]); setLoading(false);
   }
@@ -132,7 +132,7 @@ export function ExplorePage({ onNavigate, currentUser }) {
                   onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>
                   <div style={{ height:80, background:`linear-gradient(135deg, ${bg}, ${bg}cc)`, display:"flex", alignItems:"center", justifyContent:"center" }}>
                     {BRAND_LOGO_URLS[slug] ? (
-                      <img src={BRAND_LOGO_URLS[slug]} alt={slug} style={{ height:44, objectFit:"contain", filter:"none", opacity:0.9 }} onError={e=>e.target.style.display="none"} />
+                      <img src={BRAND_LOGO_URLS[slug]} alt={slug} style={{ height:44, objectFit:"contain", filter:"none" }} onError={e=>e.target.style.display="none"} />
                     ) : (
                       <div style={{ fontSize:24 }}>{BRAND_LOGOS[slug]||"⌚"}</div>
                     )}
