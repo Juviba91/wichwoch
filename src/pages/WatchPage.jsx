@@ -5,6 +5,61 @@ import { Spinner, Badge, Avatar, StarRating } from "../components/UI";
 import { UserBadges } from "../components/UserBadges";
 import { WatchReviews } from "./WatchReviews";
 
+
+// ─── ADD TO LIST MODAL ────────────────────────────────────────────────────────
+function AddToListModal({ watchId, lists, onClose, currentUser, onNavigate }) {
+  const [newListTitle, setNewListTitle] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [added, setAdded] = useState(false);
+
+  async function addToList(listId) {
+    await supabase.from("watch_list_items").insert({list_id:listId, watch_id:watchId}).catch(()=>{});
+    setAdded(true);
+    setTimeout(onClose, 1000);
+  }
+
+  async function createAndAdd() {
+    if(!newListTitle.trim()) return;
+    setCreating(true);
+    const {data}=await supabase.from("watch_lists").insert({
+      user_id:currentUser.id, title:newListTitle.trim(), is_public:true
+    }).select().single();
+    if(data) await addToList(data.id);
+    setCreating(false);
+  }
+
+  return (
+    <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+      <div style={{ background:"#fff", borderRadius:12, padding:24, width:"100%", maxWidth:400 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:16 }}>
+          <h3 style={{ fontFamily:"'DM Mono',monospace", fontSize:16, margin:0 }}>Añadir a lista</h3>
+          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:"#aaa" }} onClick={onClose}>×</button>
+        </div>
+        {added&&<div style={{ textAlign:"center", padding:16, color:"#16a34a", fontWeight:700 }}>✓ Añadido a la lista</div>}
+        {!added&&<>
+          {lists.length>0&&(
+            <div style={{ marginBottom:16 }}>
+              <span style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:8, display:"block" }}>Mis listas</span>
+              {lists.map(l=>(
+                <button key={l.id} style={{ width:"100%", padding:"10px 14px", background:"#f8f6f0", border:"1px solid #e8e8e8", borderRadius:8, cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif", fontSize:13, marginBottom:6, fontWeight:600 }} onClick={()=>addToList(l.id)}>
+                  📋 {l.title}
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{ borderTop:"1px solid #f0ede6", paddingTop:16 }}>
+            <span style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:8, display:"block" }}>Nueva lista</span>
+            <div style={{ display:"flex", gap:8 }}>
+              <input style={{ flex:1, border:"1px solid #e0ddd6", borderRadius:8, padding:"9px 12px", fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none" }} placeholder="Nombre de la lista..." value={newListTitle} onChange={e=>setNewListTitle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&createAndAdd()} autoFocus={lists.length===0} />
+              <button style={{ background:"#1a2744", border:"none", color:"#fff", borderRadius:8, padding:"9px 16px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600, flexShrink:0 }} onClick={createAndAdd} disabled={creating||!newListTitle.trim()}>{creating?"…":"Crear"}</button>
+            </div>
+          </div>
+        </>}
+      </div>
+    </div>
+  );
+}
+
 export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
   const [watch, setWatch] = useState(null);
   const [threads, setThreads] = useState([]);
@@ -16,6 +71,8 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
   const [saving, setSaving] = useState(false);
   const [myBrandVote, setMyBrandVote] = useState(null);
   const [brandVotes, setBrandVotes] = useState([]);
+  const [showListModal, setShowListModal] = useState(false);
+  const [userLists, setUserLists] = useState([]);
   const [imgError, setImgError] = useState(false);
   const [lightbox, setLightbox] = useState(null);
 
@@ -36,7 +93,11 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
       }
       const results = await Promise.all(queries);
       setThreads(results[0].data||[]); setNews(results[1].data||[]);
-      if(currentUser?.id) { setInCollection(!!results[2].data); setInWishlist(!!results[3].data); }
+      if(currentUser?.id) {
+        setInCollection(!!results[2].data); setInWishlist(!!results[3].data);
+        const {data:lists}=await supabase.from("watch_lists").select("id,title").eq("user_id",currentUser.id);
+        setUserLists(lists||[]);
+      }
       // Load brand votes
       if(w) {
         const brandSlug = w.slug.split("_")[0];
@@ -126,6 +187,12 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
           <div>
             <span style={{ ...S.mono, fontSize:13, color:"#888" }}>Ref. {watch.reference}{watch.year?` · ${watch.year}`:""}</span>
             {watch.market_price&&<div style={{ fontSize:13, color:"#b8963e", fontWeight:600, marginTop:4 }}>💰 {watch.market_price}</div>}
+          {watch.avg_rating&&(
+            <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:6 }}>
+              {[1,2,3,4,5].map(i=><span key={i} style={{ fontSize:16, color:i<=Math.round(watch.avg_rating)?"#f59e0b":"#e2e8f0" }}>★</span>)}
+              <span style={{ fontSize:13, color:"#888" }}>{watch.avg_rating} ({watch.review_count||0} reseñas)</span>
+            </div>
+          )}
           <button style={{ marginTop:8, background:"none", border:`1px solid ${myBrandVote===watch?.id?"#b8963e":"#e0ddd6"}`, borderRadius:6, padding:"4px 12px", cursor:"pointer", fontSize:12, color:myBrandVote===watch?.id?"#b8963e":"#888", fontFamily:"'DM Sans',sans-serif", fontWeight:myBrandVote===watch?.id?600:400 }} onClick={voteBestWatch}>
             {myBrandVote===watch?.id?"⭐ Tu voto al mejor":"⭐ Votar mejor reloj de la marca"}
           </button>

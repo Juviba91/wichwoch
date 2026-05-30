@@ -62,7 +62,25 @@ export default function App() {
     } catch(e) { setUnreadCount(0); }
   }
 
-  const navigate=(name,id=null)=>{ setPage({name,id}); setShowNotifs(false); setShowUserMenu(false); };
+  const navigate=(name,id=null)=>{ setPage({name,id}); setShowNotifs(false); setShowUserMenu(false); updateOG(name,id); };
+
+  function updateOG(pageName, id) {
+    const base = "https://wichwoch.com";
+    const metas = {
+      feed: { title:"Wich Woch — Feed", desc:"La red social de los amantes de los relojes", url:base },
+      explore: { title:"Explorar — Wich Woch", desc:"Descubre relojes, coleccionistas y marcas", url:`${base}/explore` },
+      foros: { title:"Foros — Wich Woch", desc:"Debates sobre relojería con la comunidad", url:`${base}/foros` },
+      relojes: { title:"Relojes — Wich Woch", desc:"El catálogo de relojes más completo", url:`${base}/relojes` },
+      watch: { title:"Wich Woch — Reloj", desc:"Ficha completa del reloj", url:`${base}/watch/${id}` },
+      brand: { title:`${id} — Wich Woch`, desc:`Todos los relojes de ${id}`, url:`${base}/brand/${id}` },
+      profile: { title:"Perfil — Wich Woch", desc:"Perfil de coleccionista", url:`${base}/profile/${id}` },
+    };
+    const m = metas[pageName]||metas.feed;
+    document.title = m.title;
+    ["og:title","twitter:title"].forEach(p=>{ let el=document.querySelector(`meta[property="${p}"]`)||document.createElement("meta"); el.setAttribute("property",p); el.setAttribute("content",m.title); document.head.appendChild(el); });
+    ["og:description","twitter:description"].forEach(p=>{ let el=document.querySelector(`meta[property="${p}"]`)||document.createElement("meta"); el.setAttribute("property",p); el.setAttribute("content",m.desc); document.head.appendChild(el); });
+    ["og:url","twitter:url"].forEach(p=>{ let el=document.querySelector(`meta[property="${p}"]`)||document.createElement("meta"); el.setAttribute("property",p); el.setAttribute("content",m.url); document.head.appendChild(el); });
+  }
   async function signOut() {
     await supabase.auth.signOut();
     setSession(null); setProfile(null); setGuestMode(false); setPage({name:"explore"});
