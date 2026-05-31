@@ -79,6 +79,7 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
   const [brandVotes, setBrandVotes] = useState([]);
   const [showListModal, setShowListModal] = useState(false);
   const [userLists, setUserLists] = useState([]);
+  const [watchInLists, setWatchInLists] = useState([]);
   const [imgError, setImgError] = useState(false);
   const [lightbox, setLightbox] = useState(null);
 
@@ -101,8 +102,12 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
       setThreads(results[0].data||[]); setNews(results[1].data||[]);
       if(currentUser?.id) {
         setInCollection(!!results[2].data); setInWishlist(!!results[3].data);
-        const {data:lists}=await supabase.from("watch_lists").select("id,title").eq("user_id",currentUser.id);
+        const [{data:lists},{data:listItems}]=await Promise.all([
+          supabase.from("watch_lists").select("id,title").eq("user_id",currentUser.id),
+          supabase.from("watch_list_items").select("list_id").eq("watch_id",w.id),
+        ]);
         setUserLists(lists||[]);
+        setWatchInLists((listItems||[]).map(i=>i.list_id));
       }
       // Load brand votes
       if(w) {
@@ -205,8 +210,8 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
             <button style={{ ...S.btn(inWishlist?"gold":"outline"), fontSize:12, padding:"6px 14px" }} onClick={toggleWishlist} disabled={saving}>
               {inWishlist?"♥ En Wish List":"♡ Wish List"}
             </button>
-            {currentUser&&<button style={{ ...S.btn("outline"), fontSize:12, padding:"6px 14px" }} onClick={()=>setShowListModal(true)}>
-              📋 Añadir a lista
+            {currentUser&&<button style={{ ...S.btn(watchInLists.length>0?"primary":"outline"), fontSize:12, padding:"6px 14px" }} onClick={()=>setShowListModal(true)}>
+              {watchInLists.length>0?`📋 En ${watchInLists.length} lista${watchInLists.length>1?"s":""}` :"📋 Añadir a lista"}
             </button>}
           </div>
           {showListModal&&currentUser&&<AddToListModal watchId={watch.id} lists={userLists} onClose={()=>setShowListModal(false)} currentUser={currentUser} onNavigate={onNavigate} />}

@@ -13,10 +13,12 @@ function QuickRating({ watchId, currentUser, onRated }) {
   async function submit(r) {
     setSaving(true);
     const {data:col}=await supabase.from("watch_registrations").select("id").eq("user_id",currentUser.id).eq("watch_id",watchId).maybeSingle();
-    await supabase.from("watch_reviews").insert({
-      watch_id:watchId, author_id:currentUser.id,
-      rating:r, title:"Valoración rápida", content:"", is_owner:!!col, rating_only:true
-    }).catch(()=>{});
+    try {
+      await supabase.from("watch_reviews").insert({
+        watch_id:watchId, author_id:currentUser.id,
+        rating:r, title:"Valoración rápida", content:"", is_owner:!!col, rating_only:true
+      });
+    } catch(e) { console.error(e); }
     setDone(true); setSaving(false); if(onRated) onRated();
   }
 

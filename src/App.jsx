@@ -33,9 +33,9 @@ export default function App() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [guestMode, setGuestMode] = useState(false);
-    const [isNewSignup, setIsNewSignup] = useState(false);
-    const [showUserMenu, setShowUserMenu] = useState(false);
-    
+  const [isNewSignup, setIsNewSignup] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{
       setSession(session);
@@ -109,8 +109,7 @@ export default function App() {
         <div style={{ cursor:"pointer" }} onClick={()=>navigate(session?"feed":"explore")}><Logo height={38} /></div>
         <div style={{ display:"flex", gap:4 }}>
           {NAV.map(n=><button key={n.id} style={S.navLink(page.name===n.id)} onClick={()=>navigate(n.id)}>{n.label}</button>)}
-          {session&&isAdmin(session?.user)&&<button style={{ ...S.navLink(page.name==="admin") }} onClick={()=>navigate("admin")}>Admin</button>}
-          {isAdmin(session?.user)&&<button style={{ ...S.navLink(page.name==="admin"), background:page.name==="admin"?"#b8963e":"rgba(255,255,255,0.1)", color:"#fff" }} onClick={()=>navigate("admin")}>⚙️ Admin</button>}
+          {session&&isAdmin(session?.user)&&<button style={{ ...S.navLink(page.name==="admin"), background:page.name==="admin"?"#b8963e":"rgba(255,255,255,0.1)" }} onClick={()=>navigate("admin")}>Admin</button>}
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:8, position:"relative" }}>
           {session ? (<>
@@ -119,39 +118,11 @@ export default function App() {
               {unreadCount>0&&<span style={{ position:"absolute", top:-4, right:-4, background:"#e11d48", color:"#fff", borderRadius:"50%", width:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700 }}>{unreadCount}</span>}
             </div>
             {showNotifs&&<NotificationsPanel userId={session.user.id} onClose={()=>setShowNotifs(false)} onNavigate={navigate} />}
-            {/* User avatar dropdown */}
-            <div style={{ position:"relative" }}>
-              <div style={{ cursor:"pointer" }} onClick={()=>setShowUserMenu(!showUserMenu)}>
-                <Avatar name={profile?.name||session.user.email} size={34} color={profile?.avatar_color||"#1a2744"} />
-              </div>
-              {showUserMenu&&(
-                <div style={{ position:"absolute", right:0, top:44, width:200, background:"#fff", border:"1px solid #e8e8e8", borderRadius:10, boxShadow:"0 8px 24px rgba(0,0,0,0.12)", zIndex:200, overflow:"hidden" }}>
-                  {[
-                    {icon:"👤", label:"Mi Perfil", action:()=>{ navigate("profile",session.user.id); setShowUserMenu(false); }},
-                    {icon:"⌚", label:"Garage", action:()=>{ navigate("garage"); setShowUserMenu(false); }},
-                    {icon:"🔧", label:"Mantenimiento", action:()=>{ navigate("mantenimiento"); setShowUserMenu(false); }},
-                  ].map(item=>(
-                    <button key={item.label} onClick={item.action} style={{ width:"100%", padding:"11px 16px", background:"none", border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, textAlign:"left", display:"flex", alignItems:"center", gap:10, color:"#1a1a1a" }}
-                      onMouseEnter={e=>e.currentTarget.style.background="#f8f6f0"}
-                      onMouseLeave={e=>e.currentTarget.style.background="none"}>
-                      <span>{item.icon}</span>{item.label}
-                    </button>
-                  ))}
-                  <div style={{ borderTop:"1px solid #f0ede6" }} />
-                  {[
-                    {icon:"⚙️", label:"Ajustes", action:()=>{ navigate("settings"); setShowUserMenu(false); }},
-                    {icon:"🚪", label:"Salir", action:()=>{ signOut(); setShowUserMenu(false); }, color:"#dc2626"},
-                  ].map(item=>(
-                    <button key={item.label} onClick={item.action} style={{ width:"100%", padding:"11px 16px", background:"none", border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, textAlign:"left", display:"flex", alignItems:"center", gap:10, color:"#1a1a1a" }}
-                      onMouseEnter={e=>e.currentTarget.style.background="#f8f6f0"}
-                      onMouseLeave={e=>e.currentTarget.style.background="none"}>
-                      <span>{item.icon}</span>{item.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+            <div style={{ cursor:"pointer" }} onClick={()=>navigate("profile",session.user.id)} title="Mi Perfil">
+              <Avatar name={profile?.name||session.user.email} size={32} color={profile?.avatar_color||"#1a2744"} />
             </div>
-  
+            <button style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.7)", fontSize:18 }} onClick={()=>navigate("settings")} title="Ajustes">⚙️</button>
+            <button style={{ background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", color:"#fff", padding:"5px 12px", borderRadius:6, fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={signOut}>Salir</button>
           </>) : (
             <button style={{ background:"#b8963e", border:"none", cursor:"pointer", color:"#fff", padding:"7px 16px", borderRadius:6, fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={()=>setGuestMode(false)}>Entrar</button>
           )}

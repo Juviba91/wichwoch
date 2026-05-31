@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { S, timeAgo } from "../data/constants";
+import { S, timeAgo, brandColor } from "../data/constants";
 import { Spinner, Avatar, Badge, WatchCard } from "../components/UI";
 import { UserBadges } from "../components/UserBadges";
 import { PostCard } from "./FeedPage";
