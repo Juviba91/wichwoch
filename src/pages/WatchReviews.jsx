@@ -33,6 +33,34 @@ function QuickRating({ watchId, currentUser, onRated }) {
   );
 }
 
+
+export function WatchRatingSummary({ watchId }) {
+  const [data, setData] = useState(null);
+  useEffect(()=>{
+    if(!watchId) return;
+    supabase.from("watch_reviews")
+      .select("rating, author:profiles(flow)")
+      .eq("watch_id", watchId)
+      .then(({data:reviews})=>{
+        if(!reviews||!reviews.length) return;
+        const totalFlow = reviews.reduce((s,r)=>s+(r.author?.flow||1),0)||1;
+        const weightedAvg = reviews.reduce((s,r)=>s+r.rating*(r.author?.flow||1),0)/totalFlow;
+        setData({ avg:weightedAvg.toFixed(1), count:reviews.length });
+      });
+  },[watchId]);
+
+  if(!data) return null;
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:8 }}>
+      {[1,2,3,4,5].map(i=>(
+        <span key={i} style={{ fontSize:18, color:i<=Math.round(data.avg)?"#f59e0b":"#e2e8f0" }}>★</span>
+      ))}
+      <span style={{ fontSize:13, color:"#888", fontFamily:"'DM Mono',monospace" }}>{data.avg}</span>
+      <span style={{ fontSize:12, color:"#aaa" }}>({data.count} valoraciones)</span>
+    </div>
+  );
+}
+
 export function WatchReviews({ watchId, currentUser }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);

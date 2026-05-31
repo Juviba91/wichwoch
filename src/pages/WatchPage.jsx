@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { S, brandColor, brandFromSlug, timeAgo } from "../data/constants";
 import { Spinner, Badge, Avatar, StarRating } from "../components/UI";
 import { UserBadges } from "../components/UserBadges";
-import { WatchReviews } from "./WatchReviews";
+import { WatchReviews, WatchRatingSummary } from "./WatchReviews";
 
 
 // ─── ADD TO LIST MODAL ────────────────────────────────────────────────────────
@@ -187,24 +187,23 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
           <div>
             <span style={{ ...S.mono, fontSize:13, color:"#888" }}>Ref. {watch.reference}{watch.year?` · ${watch.year}`:""}</span>
             {watch.market_price&&<div style={{ fontSize:13, color:"#b8963e", fontWeight:600, marginTop:4 }}>💰 {watch.market_price}</div>}
-          {watch.avg_rating&&(
-            <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:6 }}>
-              {[1,2,3,4,5].map(i=><span key={i} style={{ fontSize:16, color:i<=Math.round(watch.avg_rating)?"#f59e0b":"#e2e8f0" }}>★</span>)}
-              <span style={{ fontSize:13, color:"#888" }}>{watch.avg_rating} ({watch.review_count||0} reseñas)</span>
-            </div>
-          )}
+          <WatchRatingSummary watchId={watch?.id} />
           <button style={{ marginTop:8, background:"none", border:`1px solid ${myBrandVote===watch?.id?"#b8963e":"#e0ddd6"}`, borderRadius:6, padding:"4px 12px", cursor:"pointer", fontSize:12, color:myBrandVote===watch?.id?"#b8963e":"#888", fontFamily:"'DM Sans',sans-serif", fontWeight:myBrandVote===watch?.id?600:400 }} onClick={voteBestWatch}>
             {myBrandVote===watch?.id?"⭐ Tu voto al mejor":"⭐ Votar mejor reloj de la marca"}
           </button>
           </div>
-          <div style={{ display:"flex", gap:8 }}>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
             <button style={{ ...S.btn(inCollection?"primary":"outline"), fontSize:12, padding:"6px 14px" }} onClick={toggleCollection} disabled={saving}>
-              {inCollection?"✓ En mi colección":"+ Colección"}
+              {inCollection?"✓ En tu Garage":"+ Añadir al Garage"}
             </button>
             <button style={{ ...S.btn(inWishlist?"gold":"outline"), fontSize:12, padding:"6px 14px" }} onClick={toggleWishlist} disabled={saving}>
               {inWishlist?"♥ En Wish List":"♡ Wish List"}
             </button>
+            {currentUser&&<button style={{ ...S.btn("outline"), fontSize:12, padding:"6px 14px" }} onClick={()=>setShowListModal(true)}>
+              📋 Añadir a lista
+            </button>}
           </div>
+          {showListModal&&currentUser&&<AddToListModal watchId={watch.id} lists={userLists} onClose={()=>setShowListModal(false)} currentUser={currentUser} onNavigate={onNavigate} />}
         </div>
       </div>
 
