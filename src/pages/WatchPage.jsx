@@ -11,11 +11,17 @@ function AddToListModal({ watchId, lists, onClose, currentUser, onNavigate }) {
   const [newListTitle, setNewListTitle] = useState("");
   const [creating, setCreating] = useState(false);
   const [added, setAdded] = useState(false);
+  const [addedMsg, setAddedMsg] = useState("");
 
-  async function addToList(listId) {
-    await supabase.from("watch_list_items").insert({list_id:listId, watch_id:watchId}).catch(()=>{});
+  async function addToList(listId, listTitle) {
+    const {error}=await supabase.from("watch_list_items").insert({list_id:listId, watch_id:watchId});
+    if(error&&error.code==="23505") {
+      setAddedMsg("Ya está en esta lista");
+    } else {
+      setAddedMsg(`Añadido a "${listTitle}" ✓`);
+    }
     setAdded(true);
-    setTimeout(onClose, 1000);
+    setTimeout(onClose, 1500);
   }
 
   async function createAndAdd() {
@@ -24,7 +30,7 @@ function AddToListModal({ watchId, lists, onClose, currentUser, onNavigate }) {
     const {data}=await supabase.from("watch_lists").insert({
       user_id:currentUser.id, title:newListTitle.trim(), is_public:true
     }).select().single();
-    if(data) await addToList(data.id);
+    if(data) await addToList(data.id, newListTitle.trim());
     setCreating(false);
   }
 
@@ -35,13 +41,13 @@ function AddToListModal({ watchId, lists, onClose, currentUser, onNavigate }) {
           <h3 style={{ fontFamily:"'DM Mono',monospace", fontSize:16, margin:0 }}>Añadir a lista</h3>
           <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:"#aaa" }} onClick={onClose}>×</button>
         </div>
-        {added&&<div style={{ textAlign:"center", padding:16, color:"#16a34a", fontWeight:700 }}>✓ Añadido a la lista</div>}
+        {added&&<div style={{ textAlign:"center", padding:16, color:"#16a34a", fontWeight:700 }}>{addedMsg}</div>}
         {!added&&<>
           {lists.length>0&&(
             <div style={{ marginBottom:16 }}>
               <span style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:8, display:"block" }}>Mis listas</span>
               {lists.map(l=>(
-                <button key={l.id} style={{ width:"100%", padding:"10px 14px", background:"#f8f6f0", border:"1px solid #e8e8e8", borderRadius:8, cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif", fontSize:13, marginBottom:6, fontWeight:600 }} onClick={()=>addToList(l.id)}>
+                <button key={l.id} style={{ width:"100%", padding:"10px 14px", background:"#f8f6f0", border:"1px solid #e8e8e8", borderRadius:8, cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif", fontSize:13, marginBottom:6, fontWeight:600 }} onClick={()=>addToList(l.id, l.title)}>
                   📋 {l.title}
                 </button>
               ))}

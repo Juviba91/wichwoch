@@ -20,12 +20,17 @@ function QuickRating({ watchId, currentUser, onRated }) {
     setDone(true); setSaving(false); if(onRated) onRated();
   }
 
-  if(done) return <span style={{ fontSize:13, color:"#16a34a", fontWeight:600 }}>✓ Valoración guardada</span>;
+  if(done) return (
+    <div style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px", border:"1px solid #b3dfc4", borderRadius:8, background:"#f0fdf4" }}>
+      {[1,2,3,4,5].map(i=><span key={i} style={{ fontSize:20, color:i<=rating?"#f59e0b":"#e2e8f0" }}>★</span>)}
+      <span style={{ fontSize:13, color:"#16a34a", fontWeight:600 }}>✓ Guardado</span>
+    </div>
+  );
   return (
     <div style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px", border:"1px solid #e8e8e8", borderRadius:8, background:"#fff" }}>
-      <span style={{ fontSize:12, color:"#888" }}>Tu nota:</span>
+      <span style={{ fontSize:12, color:"#888" }}>Tu nota rápida:</span>
       {[1,2,3,4,5].map(i=>(
-        <span key={i} style={{ fontSize:22, cursor:"pointer", color:i<=(hover||rating)?"#f59e0b":"#e2e8f0" }}
+        <span key={i} style={{ fontSize:22, cursor:"pointer", color:i<=(hover||rating)?"#f59e0b":"#e2e8f0", transition:"color 0.1s" }}
           onClick={()=>{ setRating(i); submit(i); }}
           onMouseEnter={()=>setHover(i)} onMouseLeave={()=>setHover(0)}>★</span>
       ))}
