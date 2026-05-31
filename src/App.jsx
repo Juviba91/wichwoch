@@ -34,6 +34,7 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [guestMode, setGuestMode] = useState(false);
     const [isNewSignup, setIsNewSignup] = useState(false);
+    const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{
