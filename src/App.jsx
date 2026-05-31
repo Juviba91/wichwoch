@@ -98,7 +98,7 @@ export default function App() {
 
   const currentUser = session ? session.user : null;
   const NAV = session
-    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}]
+    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"},{id:"perfil",label:"Mi Perfil"}]
     : [{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}];
 
   return (
@@ -108,7 +108,7 @@ export default function App() {
       <nav style={S.nav}>
         <div style={{ cursor:"pointer" }} onClick={()=>navigate(session?"feed":"explore")}><Logo height={38} /></div>
         <div style={{ display:"flex", gap:4 }}>
-          {NAV.map(n=><button key={n.id} style={S.navLink(page.name===n.id)} onClick={()=>navigate(n.id)}>{n.label}</button>)}
+          {NAV.map(n=><button key={n.id} style={S.navLink(page.name===n.id||( n.id==="perfil"&&page.name==="profile"))} onClick={()=>n.id==="perfil"?navigate("profile",session?.user?.id):navigate(n.id)}>{n.label}</button>)}
           {session&&isAdmin(session?.user)&&<button style={{ ...S.navLink(page.name==="admin"), background:page.name==="admin"?"#b8963e":"rgba(255,255,255,0.1)" }} onClick={()=>navigate("admin")}>Admin</button>}
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:8, position:"relative" }}>

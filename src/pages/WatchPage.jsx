@@ -7,7 +7,7 @@ import { WatchReviews, WatchRatingSummary } from "./WatchReviews";
 
 
 // ─── ADD TO LIST MODAL ────────────────────────────────────────────────────────
-function AddToListModal({ watchId, lists, onClose, currentUser, onNavigate }) {
+function AddToListModal({ watchId, lists, watchInLists, onClose, currentUser, onNavigate }) {
   const [newListTitle, setNewListTitle] = useState("");
   const [creating, setCreating] = useState(false);
   const [added, setAdded] = useState(false);
@@ -46,11 +46,16 @@ function AddToListModal({ watchId, lists, onClose, currentUser, onNavigate }) {
           {lists.length>0&&(
             <div style={{ marginBottom:16 }}>
               <span style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:8, display:"block" }}>Mis listas</span>
-              {lists.map(l=>(
-                <button key={l.id} style={{ width:"100%", padding:"10px 14px", background:"#f8f6f0", border:"1px solid #e8e8e8", borderRadius:8, cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif", fontSize:13, marginBottom:6, fontWeight:600 }} onClick={()=>addToList(l.id, l.title)}>
-                  📋 {l.title}
-                </button>
-              ))}
+              {lists.map(l=>{
+                const alreadyIn = watchInLists?.includes(l.id);
+                return (
+                  <button key={l.id} style={{ width:"100%", padding:"10px 14px", background:alreadyIn?"#f0fdf4":"#f8f6f0", border:`1px solid ${alreadyIn?"#b3dfc4":"#e8e8e8"}`, borderRadius:8, cursor:alreadyIn?"default":"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif", fontSize:13, marginBottom:6, fontWeight:600, display:"flex", justifyContent:"space-between", alignItems:"center" }}
+                    onClick={()=>!alreadyIn&&addToList(l.id, l.title)}>
+                    <span>📋 {l.title}</span>
+                    {alreadyIn&&<span style={{ color:"#16a34a", fontSize:12 }}>✓ Ya añadido</span>}
+                  </button>
+                );
+              })}
             </div>
           )}
           <div style={{ borderTop:"1px solid #f0ede6", paddingTop:16 }}>
@@ -214,7 +219,7 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
               {watchInLists.length>0?`📋 En ${watchInLists.length} lista${watchInLists.length>1?"s":""}` :"📋 Añadir a lista"}
             </button>}
           </div>
-          {showListModal&&currentUser&&<AddToListModal watchId={watch.id} lists={userLists} onClose={()=>setShowListModal(false)} currentUser={currentUser} onNavigate={onNavigate} />}
+          {showListModal&&currentUser&&<AddToListModal watchId={watch.id} lists={userLists} watchInLists={watchInLists} onClose={()=>setShowListModal(false)} currentUser={currentUser} onNavigate={onNavigate} />}
         </div>
       </div>
 
