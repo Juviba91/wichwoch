@@ -3,7 +3,73 @@ import { supabase } from "../lib/supabase";
 import { S, brandColor, brandFromSlug, timeAgo } from "../data/constants";
 import { Spinner, Badge, Avatar, StarRating } from "../components/UI";
 import { UserBadges } from "../components/UserBadges";
-import { WatchReviews } from "./WatchReviews";
+import { WatchReviews, WatchRatingSummary } from "./WatchReviews";
+
+
+// ─── ADD TO LIST MODAL ────────────────────────────────────────────────────────
+function AddToListModal({ watchId, lists, watchInLists, onClose, currentUser, onNavigate }) {
+  const [newListTitle, setNewListTitle] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [added, setAdded] = useState(false);
+  const [addedMsg, setAddedMsg] = useState("");
+
+  async function addToList(listId, listTitle) {
+    const {error}=await supabase.from("watch_list_items").insert({list_id:listId, watch_id:watchId});
+    if(error&&error.code==="23505") {
+      setAddedMsg("Ya está en esta lista");
+    } else {
+      setAddedMsg(`Añadido a "${listTitle}" ✓`);
+    }
+    setAdded(true);
+    setTimeout(onClose, 1500);
+  }
+
+  async function createAndAdd() {
+    if(!newListTitle.trim()) return;
+    setCreating(true);
+    const {data}=await supabase.from("watch_lists").insert({
+      user_id:currentUser.id, title:newListTitle.trim(), is_public:true
+    }).select().single();
+    if(data) await addToList(data.id, newListTitle.trim());
+    setCreating(false);
+  }
+
+  return (
+    <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+      <div style={{ background:"#fff", borderRadius:12, padding:24, width:"100%", maxWidth:400 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:16 }}>
+          <h3 style={{ fontFamily:"'DM Mono',monospace", fontSize:16, margin:0 }}>Añadir a lista</h3>
+          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:"#aaa" }} onClick={onClose}>×</button>
+        </div>
+        {added&&<div style={{ textAlign:"center", padding:16, color:"#16a34a", fontWeight:700 }}>{addedMsg}</div>}
+        {!added&&<>
+          {lists.length>0&&(
+            <div style={{ marginBottom:16 }}>
+              <span style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:8, display:"block" }}>Mis listas</span>
+              {lists.map(l=>{
+                const alreadyIn = watchInLists?.includes(l.id);
+                return (
+                  <button key={l.id} style={{ width:"100%", padding:"10px 14px", background:alreadyIn?"#f0fdf4":"#f8f6f0", border:`1px solid ${alreadyIn?"#b3dfc4":"#e8e8e8"}`, borderRadius:8, cursor:alreadyIn?"default":"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif", fontSize:13, marginBottom:6, fontWeight:600, display:"flex", justifyContent:"space-between", alignItems:"center" }}
+                    onClick={()=>!alreadyIn&&addToList(l.id, l.title)}>
+                    <span>📋 {l.title}</span>
+                    {alreadyIn&&<span style={{ color:"#16a34a", fontSize:12 }}>✓ Ya añadido</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <div style={{ borderTop:"1px solid #f0ede6", paddingTop:16 }}>
+            <span style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:8, display:"block" }}>Nueva lista</span>
+            <div style={{ display:"flex", gap:8 }}>
+              <input style={{ flex:1, border:"1px solid #e0ddd6", borderRadius:8, padding:"9px 12px", fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none" }} placeholder="Nombre de la lista..." value={newListTitle} onChange={e=>setNewListTitle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&createAndAdd()} autoFocus={lists.length===0} />
+              <button style={{ background:"#1a2744", border:"none", color:"#fff", borderRadius:8, padding:"9px 16px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600, flexShrink:0 }} onClick={createAndAdd} disabled={creating||!newListTitle.trim()}>{creating?"…":"Crear"}</button>
+            </div>
+          </div>
+        </>}
+      </div>
+    </div>
+  );
+}
 
 export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
   const [watch, setWatch] = useState(null);
@@ -16,6 +82,9 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
   const [saving, setSaving] = useState(false);
   const [myBrandVote, setMyBrandVote] = useState(null);
   const [brandVotes, setBrandVotes] = useState([]);
+  const [showListModal, setShowListModal] = useState(false);
+  const [userLists, setUserLists] = useState([]);
+  const [watchInLists, setWatchInLists] = useState([]);
   const [imgError, setImgError] = useState(false);
   const [lightbox, setLightbox] = useState(null);
 
@@ -36,7 +105,15 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
       }
       const results = await Promise.all(queries);
       setThreads(results[0].data||[]); setNews(results[1].data||[]);
-      if(currentUser?.id) { setInCollection(!!results[2].data); setInWishlist(!!results[3].data); }
+      if(currentUser?.id) {
+        setInCollection(!!results[2].data); setInWishlist(!!results[3].data);
+        const [{data:lists},{data:listItems}]=await Promise.all([
+          supabase.from("watch_lists").select("id,title").eq("user_id",currentUser.id),
+          supabase.from("watch_list_items").select("list_id").eq("watch_id",w.id),
+        ]);
+        setUserLists(lists||[]);
+        setWatchInLists((listItems||[]).map(i=>i.list_id));
+      }
       // Load brand votes
       if(w) {
         const brandSlug = w.slug.split("_")[0];
@@ -126,18 +203,23 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
           <div>
             <span style={{ ...S.mono, fontSize:13, color:"#888" }}>Ref. {watch.reference}{watch.year?` · ${watch.year}`:""}</span>
             {watch.market_price&&<div style={{ fontSize:13, color:"#b8963e", fontWeight:600, marginTop:4 }}>💰 {watch.market_price}</div>}
+          <WatchRatingSummary watchId={watch?.id} />
           <button style={{ marginTop:8, background:"none", border:`1px solid ${myBrandVote===watch?.id?"#b8963e":"#e0ddd6"}`, borderRadius:6, padding:"4px 12px", cursor:"pointer", fontSize:12, color:myBrandVote===watch?.id?"#b8963e":"#888", fontFamily:"'DM Sans',sans-serif", fontWeight:myBrandVote===watch?.id?600:400 }} onClick={voteBestWatch}>
             {myBrandVote===watch?.id?"⭐ Tu voto al mejor":"⭐ Votar mejor reloj de la marca"}
           </button>
           </div>
-          <div style={{ display:"flex", gap:8 }}>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
             <button style={{ ...S.btn(inCollection?"primary":"outline"), fontSize:12, padding:"6px 14px" }} onClick={toggleCollection} disabled={saving}>
-              {inCollection?"✓ En mi colección":"+ Colección"}
+              {inCollection?"✓ En tu Garage":"+ Añadir al Garage"}
             </button>
             <button style={{ ...S.btn(inWishlist?"gold":"outline"), fontSize:12, padding:"6px 14px" }} onClick={toggleWishlist} disabled={saving}>
               {inWishlist?"♥ En Wish List":"♡ Wish List"}
             </button>
+            {currentUser&&<button style={{ ...S.btn(watchInLists.length>0?"primary":"outline"), fontSize:12, padding:"6px 14px" }} onClick={()=>setShowListModal(true)}>
+              {watchInLists.length>0?`📋 En ${watchInLists.length} lista${watchInLists.length>1?"s":""}` :"📋 Añadir a lista"}
+            </button>}
           </div>
+          {showListModal&&currentUser&&<AddToListModal watchId={watch.id} lists={userLists} watchInLists={watchInLists} onClose={()=>setShowListModal(false)} currentUser={currentUser} onNavigate={onNavigate} />}
         </div>
       </div>
 

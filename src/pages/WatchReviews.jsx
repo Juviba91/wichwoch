@@ -4,6 +4,70 @@ import { S, timeAgo } from "../data/constants";
 import { Avatar, Badge, Spinner, StarRating } from "../components/UI";
 
 // ─── WATCH REVIEWS ────────────────────────────────────────────────────────────
+function QuickRating({ watchId, currentUser, onRated }) {
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function submit(r) {
+    setSaving(true);
+    const {data:col}=await supabase.from("watch_registrations").select("id").eq("user_id",currentUser.id).eq("watch_id",watchId).maybeSingle();
+    try {
+      await supabase.from("watch_reviews").insert({
+        watch_id:watchId, author_id:currentUser.id,
+        rating:r, title:"Valoración rápida", content:"", is_owner:!!col, rating_only:true
+      });
+    } catch(e) { console.error(e); }
+    setDone(true); setSaving(false); if(onRated) onRated();
+  }
+
+  if(done) return (
+    <div style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px", border:"1px solid #b3dfc4", borderRadius:8, background:"#f0fdf4" }}>
+      {[1,2,3,4,5].map(i=><span key={i} style={{ fontSize:20, color:i<=rating?"#f59e0b":"#e2e8f0" }}>★</span>)}
+      <span style={{ fontSize:13, color:"#16a34a", fontWeight:600 }}>✓ Guardado</span>
+    </div>
+  );
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px", border:"1px solid #e8e8e8", borderRadius:8, background:"#fff" }}>
+      <span style={{ fontSize:12, color:"#888" }}>Tu nota rápida:</span>
+      {[1,2,3,4,5].map(i=>(
+        <span key={i} style={{ fontSize:22, cursor:"pointer", color:i<=(hover||rating)?"#f59e0b":"#e2e8f0", transition:"color 0.1s" }}
+          onClick={()=>{ setRating(i); submit(i); }}
+          onMouseEnter={()=>setHover(i)} onMouseLeave={()=>setHover(0)}>★</span>
+      ))}
+    </div>
+  );
+}
+
+
+export function WatchRatingSummary({ watchId }) {
+  const [data, setData] = useState(null);
+  useEffect(()=>{
+    if(!watchId) return;
+    supabase.from("watch_reviews")
+      .select("rating, author:profiles(flow)")
+      .eq("watch_id", watchId)
+      .then(({data:reviews})=>{
+        if(!reviews||!reviews.length) return;
+        const totalFlow = reviews.reduce((s,r)=>s+(r.author?.flow||1),0)||1;
+        const weightedAvg = reviews.reduce((s,r)=>s+r.rating*(r.author?.flow||1),0)/totalFlow;
+        setData({ avg:weightedAvg.toFixed(1), count:reviews.length });
+      });
+  },[watchId]);
+
+  if(!data) return null;
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:8 }}>
+      {[1,2,3,4,5].map(i=>(
+        <span key={i} style={{ fontSize:18, color:i<=Math.round(data.avg)?"#f59e0b":"#e2e8f0" }}>★</span>
+      ))}
+      <span style={{ fontSize:13, color:"#888", fontFamily:"'DM Mono',monospace" }}>{data.avg}</span>
+      <span style={{ fontSize:12, color:"#aaa" }}>({data.count} valoraciones)</span>
+    </div>
+  );
+}
+
 export function WatchReviews({ watchId, currentUser }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,11 +143,14 @@ export function WatchReviews({ watchId, currentUser }) {
         </div>
       )}
 
-      {/* Add review button */}
+      {/* Rating/review buttons */}
       {currentUser&&!showForm&&(
-        <button style={{ ...S.btn(myReview?"outline":"primary"), marginBottom:16, fontSize:13 }} onClick={()=>setShowForm(true)}>
-          {myReview?"✏️ Editar mi reseña":"+ Escribir reseña"}
-        </button>
+        <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap" }}>
+          <button style={{ ...S.btn(myReview?"outline":"primary"), fontSize:13 }} onClick={()=>setShowForm(true)}>
+            {myReview?"✏️ Editar reseña":"✍️ Escribir reseña"}
+          </button>
+          {!myReview&&<QuickRating watchId={watchId} currentUser={currentUser} onRated={load} />}
+        </div>
       )}
 
       {/* Review form */}
