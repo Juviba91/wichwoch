@@ -457,6 +457,34 @@ function WatchPassport({ registration, watch, currentUser, onBack, onUpdated }) 
 }
 
 // ─── GARAGE PAGE ──────────────────────────────────────────────────────────────
+function GaragePublicToggle({ userId }) {
+  const [isPublic, setIsPublic] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(()=>{
+    supabase.from("profiles").select("garage_public").eq("id",userId).single()
+      .then(({data})=>{ setIsPublic(data?.garage_public!==false); setLoaded(true); });
+  },[userId]);
+
+  async function toggle() {
+    const newVal = !isPublic;
+    setIsPublic(newVal);
+    await supabase.from("profiles").update({garage_public:newVal}).eq("id",userId);
+  }
+
+  if(!loaded) return null;
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer" }} onClick={toggle}>
+      <span style={{ fontSize:13, color:"rgba(255,255,255,0.0)", fontFamily:"'DM Sans',sans-serif", color:"#888" }}>
+        {isPublic?"👁 Público":"🔒 Privado"}
+      </span>
+      <div style={{ width:40, height:22, borderRadius:11, background:isPublic?"#1a2744":"#ddd", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
+        <div style={{ width:18, height:18, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:isPublic?20:2, transition:"left 0.2s", boxShadow:"0 1px 4px rgba(0,0,0,0.2)" }} />
+      </div>
+    </div>
+  );
+}
+
 export function GaragePage({ currentUser, onNavigate }) {
   const [watches, setWatches] = useState([]);
   const [wishlist, setWishlist] = useState([]);
@@ -585,12 +613,15 @@ export function GaragePage({ currentUser, onNavigate }) {
   return (
     <div>
       {/* Header */}
-      <div style={{ ...S.row, justifyContent:"space-between", marginBottom:20 }}>
+      <div style={{ ...S.row, justifyContent:"space-between", marginBottom:20, flexWrap:"wrap", gap:10 }}>
         <div>
           <h2 style={{ ...S.h1, marginBottom:4 }}>Mi Garage</h2>
           <p style={S.muted}>{watches.length} {watches.length===1?"reloj":"relojes"} en tu colección</p>
         </div>
-        <button style={S.btn("primary")} onClick={()=>{ setShowAddWatch(true); setTab("coleccion"); }}>+ Añadir reloj</button>
+        <div style={S.row}>
+          <GaragePublicToggle userId={currentUser.id} />
+          <button style={S.btn("primary")} onClick={()=>{ setShowAddWatch(true); setTab("coleccion"); }}>+ Añadir reloj</button>
+        </div>
       </div>
 
       {/* Collection Insights */}
