@@ -270,6 +270,7 @@ export function AINewsCard({ item, currentUser }) {
   const [likes, setLikes] = useState(0);
   const [showComments, setShowComments] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
+  const [showQuoteAI, setShowQuoteAI] = useState(false);
   const newsDate = new Date().toISOString().split("T")[0];
 
   useEffect(()=>{
@@ -296,12 +297,15 @@ export function AINewsCard({ item, currentUser }) {
           <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:showComments?"#1a2744":"#888", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4, padding:"0 8px 0 0" }} onClick={()=>setShowComments(!showComments)}>
             💬 {commentCount}
           </button>
-          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#888", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4 }}
-            onClick={()=>{ if(navigator.share) navigator.share({title:labels[item.type], text:item.content}); else navigator.clipboard.writeText(item.content); }}>
-            ↗ Compartir
-          </button>
+          {currentUser&&<button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#888", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4 }}
+            onClick={()=>setShowQuoteAI(true)}>
+            🔁 Repostear
+          </button>}
         </div>
       </div>
+      {showQuoteAI&&currentUser&&(
+        <QuoteNewsModal item={item} currentUser={currentUser} onClose={()=>setShowQuoteAI(false)} />
+      )}
       {showComments&&(
         <div style={{ marginTop:12, borderTop:"1px solid #f0ede6", paddingTop:12 }}>
           <AICommentBox newsType={item.type} newsDate={new Date().toISOString().split("T")[0]} currentUser={currentUser} />
