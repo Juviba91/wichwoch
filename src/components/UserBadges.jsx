@@ -9,12 +9,14 @@ export function UserBadges({ userId, inline=false }) {
       .then(({data})=>setBadges(data||[]));
   },[userId]);
   if(!badges.length) return null;
-  const brandNames = { rolex:"Rolex Owner", omega:"Omega Owner", patek:"Patek Owner", ap:"AP Owner", iwc:"IWC Owner", jlc:"JLC Owner", tudor:"Tudor Owner", cartier:"Cartier Owner", breitling:"Breitling Owner", tag:"TAG Owner", vc:"VC Owner", hublot:"Hublot Owner", panerai:"Panerai Owner", gs:"GS Owner", zenith:"Zenith Owner" };
+  // Only show special badges (founder etc), not brand owner badges
+  const specialBadges = badges.filter(b=>b.badge_type!=="brand_owner"&&!b.brand_slug);
+  if(!specialBadges.length) return null;
   return (
     <span style={{ display:"inline-flex", gap:4, flexWrap:"wrap" }}>
-      {badges.map(b=>(
-        <span key={b.id} style={{ fontSize:9, fontWeight:700, letterSpacing:1, textTransform:"uppercase", padding:"1px 6px", background:"#fff8e8", color:"#b8963e", borderRadius:3, fontFamily:"'DM Mono',monospace", border:"1px solid #f0d080" }}>
-          {brandNames[b.brand_slug]||b.brand_slug}
+      {specialBadges.map(b=>(
+        <span key={b.id} style={{ fontSize:9, fontWeight:700, letterSpacing:1, textTransform:"uppercase", padding:"1px 6px", background:b.badge_type==="founder"?"linear-gradient(135deg,#b8963e,#8a6f2e)":"#fff8e8", color:b.badge_type==="founder"?"#fff":"#b8963e", borderRadius:3, fontFamily:"'DM Mono',monospace", border:"1px solid #f0d080" }}>
+          {b.badge_type==="founder"?"🎖️ Fundador":b.badge_type}
         </span>
       ))}
     </span>
