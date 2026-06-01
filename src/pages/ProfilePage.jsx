@@ -228,6 +228,68 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
       </div>
 
       {tab==="posts"&&<div>{posts.length===0&&<p style={S.muted}>Sin publicaciones aún.</p>}{posts.map(p=><PostCard key={p.id} post={p} currentUser={currentUser} onNavigate={onNavigate} />)}</div>}
+
+      {tab==="garage"&&(
+        <div>
+          {profileWatches.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Garage privado o vacío.</div>}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:12 }}>
+            {profileWatches.map(w=>w.watch&&(
+              <div key={w.id} style={{ borderRadius:10, overflow:"hidden", border:"1px solid #ece9e2", background:"#fff", cursor:"pointer" }} onClick={()=>onNavigate("watch",w.watch.slug)}>
+                <div style={{ height:120, background:`linear-gradient(135deg,${brandColor(w.watch.slug)},${brandColor(w.watch.slug)}88)`, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  {w.watch.image_url?<img src={w.watch.image_url} alt="" style={{ height:"85%", objectFit:"contain", filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.3))" }} onError={e=>e.target.style.display="none"} />:<span style={{ fontSize:28 }}>⌚</span>}
+                </div>
+                <div style={{ padding:"10px 12px" }}>
+                  <div style={{ fontWeight:700, fontSize:13 }}>{w.watch.model}</div>
+                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:"#aaa" }}>{brandFromSlug(w.watch.slug)}</div>
+                  {w.condition&&<div style={{ fontSize:10, color:"#888", marginTop:2, textTransform:"capitalize" }}>{w.condition.replace("_"," ")}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab==="wishlist"&&(
+        <div>
+          {profileWishlist.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Wish List vacía.</div>}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:12 }}>
+            {profileWishlist.map((w,i)=>w.watch&&(
+              <div key={i} style={{ borderRadius:10, overflow:"hidden", border:"1px solid #ece9e2", background:"#fff", cursor:"pointer" }} onClick={()=>onNavigate("watch",w.watch.slug)}>
+                <div style={{ height:120, background:`linear-gradient(135deg,${brandColor(w.watch.slug)},${brandColor(w.watch.slug)}88)`, display:"flex", alignItems:"center", justifyContent:"center", position:"relative" }}>
+                  {w.watch.image_url?<img src={w.watch.image_url} alt="" style={{ height:"85%", objectFit:"contain", filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.3))" }} onError={e=>e.target.style.display="none"} />:<span style={{ fontSize:28 }}>⌚</span>}
+                  <div style={{ position:"absolute", top:6, left:6, background:"rgba(184,150,62,0.9)", borderRadius:4, padding:"2px 6px", fontSize:9, color:"#fff", fontWeight:700 }}>❤️</div>
+                </div>
+                <div style={{ padding:"10px 12px" }}>
+                  <div style={{ fontWeight:700, fontSize:13 }}>{w.watch.model}</div>
+                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:"#aaa" }}>{brandFromSlug(w.watch.slug)}</div>
+                  {w.watch.market_price&&<div style={{ fontSize:10, color:"#b8963e", marginTop:2 }}>{w.watch.market_price}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab==="resenas"&&(
+        <div>
+          {profileReviews.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin reseñas escritas aún.</div>}
+          {profileReviews.map((r,i)=>r.watch&&(
+            <div key={i} style={{ ...S.card, cursor:"pointer" }} onClick={()=>onNavigate("watch",r.watch.slug)}>
+              <div style={{ display:"flex", gap:12, marginBottom:8 }}>
+                <div style={{ width:44, height:44, borderRadius:8, background:`linear-gradient(135deg,${brandColor(r.watch.slug)},${brandColor(r.watch.slug)}88)`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  {r.watch.image_url?<img src={r.watch.image_url} alt="" style={{ height:"80%", objectFit:"contain" }} onError={e=>e.target.style.display="none"} />:<span>⌚</span>}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:700, fontSize:14 }}>{r.watch.model}</div>
+                  <div style={{ display:"flex", gap:2 }}>{[1,2,3,4,5].map(s=><span key={s} style={{ fontSize:14, color:s<=r.rating?"#f59e0b":"#e2e8f0" }}>★</span>)}</div>
+                </div>
+              </div>
+              {r.title&&<div style={{ fontWeight:600, marginBottom:4 }}>{r.title}</div>}
+              {r.content&&<p style={{ fontSize:13, color:"#555", margin:0, lineHeight:1.5 }}>{r.content}</p>}
+            </div>
+          ))}
+        </div>
+      )}
       {tab==="listas"&&(
         <div>
           <div style={{ marginBottom:16 }}>

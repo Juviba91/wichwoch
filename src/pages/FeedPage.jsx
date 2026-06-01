@@ -426,6 +426,34 @@ export function WeeklyThreadCard({ onNavigate, currentUser, onPosted }) {
   );
 }
 
+// ─── FORUM ACTIVITY CARD ─────────────────────────────────────────────────────
+export function ForumActivityCard({ thread, onNavigate }) {
+  const bg = { debate:"#e8f0ff", pregunta:"#fef3c7", valoracion:"#f0fdf4", coleccion:"#fdf2f8", mantenimiento:"#fff7ed", compraventa:"#f0f9ff", novedad:"#fef2f2" };
+  const col = { debate:"#2563eb", pregunta:"#d97706", valoracion:"#16a34a", coleccion:"#9333ea", mantenimiento:"#ea580c", compraventa:"#0284c7", novedad:"#dc2626" };
+  const flair = thread.flair||"debate";
+  return (
+    <div style={{ ...S.card, cursor:"pointer", borderLeft:`3px solid ${col[flair]||"#2563eb"}` }} onClick={()=>onNavigate("thread",thread.id)}>
+      <div style={{ display:"flex", gap:10, marginBottom:8 }}>
+        <div style={{ width:32, height:32, borderRadius:"50%", background:thread.author?.avatar_color||"#1a2744", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:"#fff", fontFamily:"'DM Mono',monospace", flexShrink:0 }}>
+          {(thread.author?.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
+        </div>
+        <div>
+          <span style={{ fontWeight:600, fontSize:13 }}>@{thread.author?.handle}</span>
+          <span style={{ fontSize:12, color:"#888", marginLeft:6 }}>creó un foro</span>
+          <span style={{ fontSize:10, fontWeight:700, letterSpacing:1, textTransform:"uppercase", padding:"2px 8px", background:bg[flair]||"#e8f0ff", color:col[flair]||"#2563eb", borderRadius:20, fontFamily:"'DM Mono',monospace", marginLeft:8 }}>{flair}</span>
+        </div>
+      </div>
+      <div style={{ fontWeight:700, fontSize:14, marginBottom:4 }}>{thread.title}</div>
+      <p style={{ fontSize:13, color:"#666", margin:"0 0 8px", lineHeight:1.4 }}>{thread.content?.slice(0,100)}{thread.content?.length>100?"…":""}</p>
+      <div style={{ display:"flex", gap:12 }}>
+        <span style={{ fontSize:12, color:"#888" }}>💬 {thread.replies_count||0}</span>
+        <span style={{ fontSize:12, color:"#888" }}>⬆️ {thread.votes||0}</span>
+        {thread.watch&&<span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:"#b8963e" }}>@{thread.watch.slug}</span>}
+      </div>
+    </div>
+  );
+}
+
 // ─── FEED ─────────────────────────────────────────────────────────────────────
 export function FeedPage({ user, onNavigate }) {
   const [posts, setPosts] = useState([]);
@@ -469,7 +497,10 @@ export function FeedPage({ user, onNavigate }) {
         <button onClick={()=>setTab("following")} style={{ background:tab==="following"?"#1a2744":"#f0ede6", color:tab==="following"?"#fff":"#666", padding:"6px 16px", borderRadius:8, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:tab==="following"?600:400 }}>Siguiendo</button>
       </div>
       {loading?<Spinner />:buildFeed().map((item,i)=>{
-        if(item.type==="post") return <PostCard key={`p-${item.data.id}`} post={item.data} currentUser={user} onNavigate={onNavigate} onReload={loadAll} />;
+        if(item.type==="post") {
+          if(item.data._type==="forum") return <ForumActivityCard key={`f-${item.data.id}`} thread={item.data} onNavigate={onNavigate} />;
+          return <PostCard key={`p-${item.data.id}`} post={item.data} currentUser={user} onNavigate={onNavigate} onReload={loadAll} />;
+        }
         if(item.type==="ai") return <AINewsCard key={`ai-${i}`} item={item.data} currentUser={user} />;
 
         if(item.type==="brand") return <BrandNewsCard key={`bn-${item.data.id}`} item={item.data} onNavigate={onNavigate} />;
