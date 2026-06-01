@@ -485,10 +485,10 @@ export function FeedPage({ user, onNavigate }) {
 
   function buildFeed() {
     const feed=[];
-    aiNews.forEach(n=>feed.push({type:"ai",data:n}));
+    if(tab==="all") aiNews.forEach(n=>feed.push({type:"ai",data:n}));
     let bi=0;
-    (posts||[]).forEach((p,i)=>{ feed.push({type:"post",data:p}); if((i+1)%5===0&&bi<brandNews.length) feed.push({type:"brand",data:brandNews[bi++]}); });
-    while(bi<brandNews.length) feed.push({type:"brand",data:brandNews[bi++]});
+    (posts||[]).forEach((p,i)=>{ feed.push({type:"post",data:p}); if((i+1)%5===0&&bi<brandNews.length&&tab==="all") feed.push({type:"brand",data:brandNews[bi++]}); });
+    if(tab==="all") while(bi<brandNews.length) feed.push({type:"brand",data:brandNews[bi++]});
     return feed;
   }
 
