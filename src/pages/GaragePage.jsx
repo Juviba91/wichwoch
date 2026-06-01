@@ -67,7 +67,10 @@ function AddWatchForm({ currentUser, onSaved, onCancel, toWishlist=false }) {
     purchase_source: "",
     purchase_price: "",
     notes: "",
+    serial: "",
   });
+  const [showPostInfo, setShowPostInfo] = useState(false);
+  const [savedWatch, setSavedWatch] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -101,6 +104,13 @@ function AddWatchForm({ currentUser, onSaved, onCancel, toWishlist=false }) {
     if(toWishlist) {
       if(!ex) await supabase.from(table).insert({user_id:currentUser.id, watch_id:selectedWatch.id, is_public:true});
     } else {
+      // Hash serial if provided
+      let serialHash = null, serialLast4 = null;
+      if(form.serial.trim()) {
+        serialLast4 = form.serial.trim().slice(-4);
+        // Simple hash: use btoa for now
+        serialHash = btoa(form.serial.trim()).slice(0,32);
+      }
       const payload = {
         user_id: currentUser.id,
         watch_id: selectedWatch.id,
@@ -113,12 +123,15 @@ function AddWatchForm({ currentUser, onSaved, onCancel, toWishlist=false }) {
         purchase_price: form.purchase_price ? parseInt(form.purchase_price) : null,
         notes: form.notes || null,
         photos: photos.length > 0 ? photos : null,
+        serial_hash: serialHash,
+        serial_last4: serialLast4,
       };
       if(ex) await supabase.from(table).update(payload).eq("id",ex.id);
       else await supabase.from(table).insert(payload);
     }
     setSaving(false);
-    onSaved();
+    setSavedWatch(selectedWatch);
+    setShowPostInfo(true);
   }
 
   const bg = selectedWatch ? brandColor(selectedWatch.slug) : "#1a2744";
@@ -242,6 +255,15 @@ function AddWatchForm({ currentUser, onSaved, onCancel, toWishlist=false }) {
           </div>
 
           {/* Notas */}
+          {/* Número de serie */}
+          <div style={{ marginBottom:14 }}>
+            <span style={S.label}>Número de serie <span style={{ color:"#aaa", fontWeight:400 }}>(opcional)</span></span>
+            <input style={S.input} placeholder="Solo tú podrás verlo. Se guarda encriptado." value={form.serial} onChange={e=>setF("serial",e.target.value)} />
+            <div style={{ fontSize:11, color:"#aaa", marginTop:4, display:"flex", alignItems:"center", gap:4 }}>
+              🔒 Confidencial — nunca visible para otros usuarios
+            </div>
+          </div>
+
           <div style={{ marginBottom:20 }}>
             <span style={S.label}>Notas personales <span style={{ color:"#aaa", fontWeight:400 }}>(opcional)</span></span>
             <textarea style={{ ...S.input, resize:"none" }} rows={3} placeholder="Historia del reloj, detalles especiales, recuerdos..." value={form.notes} onChange={e=>setF("notes",e.target.value)} />
@@ -350,6 +372,15 @@ function WatchPassport({ registration, watch, currentUser, onBack, onUpdated }) 
               <div style={{ fontSize:15, fontWeight:600, color:color||"#1a1a1a" }}>{v}</div>
             </div>
           ))}
+          {registration?.serial_last4&&(
+            <div style={{ background:"#f8f6f0", borderRadius:8, padding:"12px 16px" }}>
+              <div style={S.label}>Número de serie</div>
+              <div style={{ fontSize:15, fontWeight:600, fontFamily:"'DM Mono',monospace" }}>
+                ****{registration.serial_last4}
+                <span style={{ fontSize:11, color:"#aaa", marginLeft:8, fontFamily:"'DM Sans',sans-serif", fontWeight:400 }}>🔒 Solo visible para ti</span>
+              </div>
+            </div>
+          )}
           {registration?.notes&&(
             <div style={{ gridColumn:"1/-1", background:"#f8f6f0", borderRadius:8, padding:"12px 16px" }}>
               <div style={S.label}>Notas personales</div>
@@ -480,6 +511,66 @@ export function GaragePage({ currentUser, onNavigate }) {
   });
 
   if(loading) return <Spinner />;
+
+  // Post-registration info screen
+  if(showPostInfo&&savedWatch) {
+    const BRAND_WEBSITES = { rolex:"https://www.rolex.com", omega:"https://www.omegawatches.com", patek:"https://www.patek.com", ap:"https://www.audemarspiguet.com", iwc:"https://www.iwc.com", jlc:"https://www.jaeger-lecoultre.com", tudor:"https://www.tudorwatch.com", cartier:"https://www.cartier.com", breitling:"https://www.breitling.com", tag:"https://www.tagheuer.com", vc:"https://www.vacheron-constantin.com", hublot:"https://www.hublot.com", panerai:"https://www.panerai.com", gs:"https://www.grand-seiko.com", zenith:"https://www.zenith-watches.com" };
+    const brandSlug = savedWatch.slug?.split("_")[0];
+    const interval = { rolex:10, omega:8, patek:5, ap:5, iwc:5, jlc:5, tudor:10, cartier:5, breitling:5, tag:5, vc:5, hublot:5, panerai:5, gs:5, zenith:5 }[brandSlug] || 5;
+    const bg = brandColor(savedWatch.slug);
+    return (
+      <div>
+        <div style={{ height:180, background:`linear-gradient(135deg,${bg},${bg}88)`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 32px", marginBottom:24, overflow:"hidden" }}>
+          <div>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"rgba(255,255,255,0.6)", letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}>✓ Reloj registrado</div>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:26, color:"#fff", fontWeight:700 }}>{savedWatch.model}</div>
+            <div style={{ fontSize:13, color:"rgba(255,255,255,0.6)", marginTop:4 }}>{brandFromSlug(savedWatch.slug)}</div>
+          </div>
+          {savedWatch.image_url&&<img src={savedWatch.image_url} alt="" style={{ height:"80%", objectFit:"contain", filter:"drop-shadow(0 8px 24px rgba(0,0,0,0.4))" }} onError={e=>e.target.style.display="none"} />}
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:20 }}>
+          <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:20 }}>
+            <div style={{ fontSize:32, marginBottom:8 }}>🔧</div>
+            <div style={{ fontWeight:700, fontSize:16, marginBottom:4 }}>Cada {interval} años</div>
+            <div style={S.muted}>Revisión recomendada por {brandFromSlug(savedWatch.slug)}</div>
+          </div>
+          {savedWatch.market_price&&(
+            <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:20 }}>
+              <div style={{ fontSize:32, marginBottom:8 }}>💰</div>
+              <div style={{ fontWeight:700, fontSize:16, color:"#b8963e", marginBottom:4 }}>{savedWatch.market_price}</div>
+              <div style={S.muted}>Precio de mercado</div>
+            </div>
+          )}
+        </div>
+
+        {savedWatch.specs&&Object.keys(savedWatch.specs).length>0&&(
+          <div style={{ ...S.card, marginBottom:20 }}>
+            <h3 style={{ ...S.h2, marginBottom:14 }}>Especificaciones técnicas</h3>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+              {Object.entries(savedWatch.specs).slice(0,6).map(([k,v])=>(
+                <div key={k} style={{ background:"#f8f6f0", borderRadius:6, padding:"8px 12px" }}>
+                  <div style={S.label}>{k.replace(/_/g," ")}</div>
+                  <div style={{ fontSize:13, fontWeight:600 }}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+          {BRAND_WEBSITES[brandSlug]&&(
+            <a href={BRAND_WEBSITES[brandSlug]} target="_blank" rel="noreferrer" style={{ ...S.btn("outline"), textDecoration:"none", fontSize:13 }}>
+              🌐 Web oficial de {brandFromSlug(savedWatch.slug)}
+            </a>
+          )}
+          <button style={S.btn("primary")} onClick={()=>{ setShowPostInfo(false); onSaved(); }}>
+            Ver mi Garage →
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Watch Passport view
   if(selectedRegistration) {

@@ -11,6 +11,7 @@ import { GaragePage } from "./pages/GaragePage";
 import { WristCheckPage } from "./pages/WristCheckPage";
 import { MantenimientoPage } from "./pages/MantenimientoPage";
 import { ListasPage } from "./pages/ListasPage";
+import { WorkshopsPage } from "./pages/WorkshopsPage";
 import { RankingPage } from "./pages/RankingPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { CreateWatchPage } from "./pages/CreateWatchPage";
@@ -143,6 +144,7 @@ export default function App() {
         {page.name==="mantenimiento"&&session&&<MantenimientoPage currentUser={session.user} onNavigate={navigate} />}
         {page.name==="wristcheck"&&<WristCheckPage currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="listas"&&<ListasPage currentUser={currentUser} onNavigate={navigate} />}
+        {page.name==="talleres"&&<WorkshopsPage currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="ranking"&&<RankingPage currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="create-watch"&&session&&<CreateWatchPage currentUser={session.user} onNavigate={navigate} />}
         {page.name==="admin"&&<AdminPage user={session?.user} onNavigate={navigate} />}
