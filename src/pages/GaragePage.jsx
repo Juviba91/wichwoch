@@ -69,8 +69,6 @@ function AddWatchForm({ currentUser, onSaved, onCancel, toWishlist=false }) {
     notes: "",
     serial: "",
   });
-  const [showPostInfo, setShowPostInfo] = useState(false);
-  const [savedWatch, setSavedWatch] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -130,8 +128,7 @@ function AddWatchForm({ currentUser, onSaved, onCancel, toWishlist=false }) {
       else await supabase.from(table).insert(payload);
     }
     setSaving(false);
-    setSavedWatch(selectedWatch);
-    setShowPostInfo(true);
+    onSaved(selectedWatch);
   }
 
   const bg = selectedWatch ? brandColor(selectedWatch.slug) : "#1a2744";
@@ -470,6 +467,8 @@ export function GaragePage({ currentUser, onNavigate }) {
   const [showAddWish, setShowAddWish] = useState(false);
   const [tab, setTab] = useState("coleccion");
   const [selectedRegistration, setSelectedRegistration] = useState(null);
+  const [showPostInfo, setShowPostInfo] = useState(false);
+  const [savedWatch, setSavedWatch] = useState(null);
 
   useEffect(()=>{ if(currentUser?.id) load(); },[currentUser]);
 
@@ -623,7 +622,7 @@ export function GaragePage({ currentUser, onNavigate }) {
         <div>
           {showAddWatch&&(
             <AddWatchForm currentUser={currentUser} toWishlist={false}
-              onSaved={()=>{ setShowAddWatch(false); load(); }}
+              onSaved={(watch)=>{ setShowAddWatch(false); if(watch){ setSavedWatch(watch); setShowPostInfo(true); } load(); }}
               onCancel={()=>setShowAddWatch(false)} />
           )}
 
