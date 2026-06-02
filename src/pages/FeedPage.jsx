@@ -98,7 +98,7 @@ export function PostComposer({ user, onPosted }) {
     <div style={S.card}>
       {type==="news"&&showExtras&&<input style={{ ...S.input, marginBottom:8 }} placeholder="Título de la noticia" value={newsTitle} onChange={e=>setNewsTitle(e.target.value)} />}
       <textarea
-        placeholder="¿Qué hay en tu muñeca hoy? Usa @rolex_submariner para mencionar un reloj, o simplemente comparte lo que piensas…"
+        placeholder="¿Qué reloj llevas hoy! Usa @ y la marca de tu reloj o el modelo para mencionar el tuyo, o simplemente comparte lo que piensas…"
         value={content} onChange={e=>setContent(e.target.value)}
         style={{ width:"100%", border:"none", outline:"none", resize:"none", fontSize:15, fontFamily:"'DM Sans',sans-serif", background:"transparent", color:"#1a1a1a", boxSizing:"border-box" }} rows={3} />
 
@@ -121,7 +121,7 @@ export function PostComposer({ user, onPosted }) {
         </div>
       )}
       {showExtras&&type==="video"&&(
-        <input style={{ ...S.input, marginTop:8 }} placeholder="URL del vídeo (YouTube...)" value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} />
+        <input style={{ ...S.input, marginTop:8 }} placeholder="URL del vídeo " value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} />
       )}
       {showExtras&&type==="news"&&(
         <input style={{ ...S.input, marginTop:8 }} placeholder="Link de la noticia (opcional)" value={newsLink} onChange={e=>setNewsLink(e.target.value)} />
