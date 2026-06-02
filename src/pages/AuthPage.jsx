@@ -5,6 +5,8 @@ import { Logo } from "../components/UI";
 
 export function AuthPage({ onExplore, onNewSignup }) {
   const [mode, setMode] = useState("login");
+  const [accountType, setAccountType] = useState("user");
+  const [corporateUrl, setCorporateUrl] = useState("");
   const [form, setForm] = useState({ email:"", password:"", name:"", handle:"", account_type:"collector" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

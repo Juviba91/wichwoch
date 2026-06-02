@@ -26,6 +26,7 @@ export function AdminPage({ user, onNavigate }) {
     if(tab==="usuarios") await loadUsers();
     if(tab==="contenido") await loadContent();
     if(tab==="relojes") await loadPendingWatches();
+    if(tab==="empresas") await loadPendingBusinesses();
     setLoading(false);
   }
 
@@ -67,6 +68,44 @@ export function AdminPage({ user, onNavigate }) {
   const [pendingWatches, setPendingWatches] = useState([]);
   const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+
+  const [pendingBusinesses, setPendingBusinesses] = useState([]);
+
+  async function loadPendingBusinesses() {
+    const {data}=await supabase.from("profiles")
+      .select("id,name,handle,account_type,corporate_url,created_at,email:id")
+      .eq("pending_approval",true)
+      .order("created_at",{ascending:false});
+    setPendingBusinesses(data||[]);
+  }
+
+  async function approveBusiness(id, type) {
+    await supabase.from("profiles").update({
+      pending_approval:false,
+      verified_business:true,
+    }).eq("id",id);
+    await supabase.from("notifications").insert({
+      recipient_id:id,
+      type:"business_approved",
+      content:`Tu cuenta de ${type==="taller"?"taller":"marca"} ha sido verificada ✓ Ya puedes personalizar tu perfil.`
+    }).catch(()=>{});
+    await loadPendingBusinesses();
+  }
+
+  async function rejectBusiness(id, type) {
+    const reason = window.prompt("Motivo del rechazo:");
+    if(!reason) return;
+    await supabase.from("profiles").update({
+      pending_approval:false,
+      account_type:"user",
+    }).eq("id",id);
+    await supabase.from("notifications").insert({
+      recipient_id:id,
+      type:"business_rejected",
+      content:`Tu solicitud de cuenta ${type==="taller"?"de taller":"de marca"} no ha sido aprobada — ${reason}`
+    }).catch(()=>{});
+    await loadPendingBusinesses();
+  }
 
   async function loadPendingWatches() {
     const {data, error}=await supabase.from("watches")
@@ -150,7 +189,7 @@ export function AdminPage({ user, onNavigate }) {
     </div>
   );
 
-  const TABS = [["metricas","📊 Métricas"],["usuarios","👥 Usuarios"],["contenido","📝 Contenido"],["relojes","⌚ Relojes pendientes"]];
+  const TABS = [["metricas","📊 Métricas"],["usuarios","👥 Usuarios"],["contenido","📝 Contenido"],["relojes","⌚ Relojes pendientes"],["empresas","🏢 Empresas pendientes"]];
 
   return (
     <div>
