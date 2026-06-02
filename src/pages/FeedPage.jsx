@@ -98,7 +98,7 @@ export function PostComposer({ user, onPosted }) {
     <div style={S.card}>
       {type==="news"&&showExtras&&<input style={{ ...S.input, marginBottom:8 }} placeholder="Título de la noticia" value={newsTitle} onChange={e=>setNewsTitle(e.target.value)} />}
       <textarea
-        placeholder="¿Qué hay en tu muñeca hoy? Usa @rolex_submariner para mencionar un reloj, o simplemente comparte lo que piensas…"
+        placeholder="¿Qué reloj llevas hoy! Usa @ y la marca de tu reloj o el modelo para mencionar el tuyo, o simplemente comparte lo que piensas…"
         value={content} onChange={e=>setContent(e.target.value)}
         style={{ width:"100%", border:"none", outline:"none", resize:"none", fontSize:15, fontFamily:"'DM Sans',sans-serif", background:"transparent", color:"#1a1a1a", boxSizing:"border-box" }} rows={3} />
 
@@ -121,7 +121,7 @@ export function PostComposer({ user, onPosted }) {
         </div>
       )}
       {showExtras&&type==="video"&&(
-        <input style={{ ...S.input, marginTop:8 }} placeholder="URL del vídeo (YouTube...)" value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} />
+        <input style={{ ...S.input, marginTop:8 }} placeholder="URL del vídeo " value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} />
       )}
       {showExtras&&type==="news"&&(
         <input style={{ ...S.input, marginTop:8 }} placeholder="Link de la noticia (opcional)" value={newsLink} onChange={e=>setNewsLink(e.target.value)} />
@@ -270,6 +270,7 @@ export function AINewsCard({ item, currentUser }) {
   const [likes, setLikes] = useState(0);
   const [showComments, setShowComments] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
+  const [showQuoteAI, setShowQuoteAI] = useState(false);
   const newsDate = new Date().toISOString().split("T")[0];
 
   useEffect(()=>{
@@ -296,12 +297,15 @@ export function AINewsCard({ item, currentUser }) {
           <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:showComments?"#1a2744":"#888", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4, padding:"0 8px 0 0" }} onClick={()=>setShowComments(!showComments)}>
             💬 {commentCount}
           </button>
-          <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#888", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4 }}
-            onClick={()=>{ if(navigator.share) navigator.share({title:labels[item.type], text:item.content}); else navigator.clipboard.writeText(item.content); }}>
-            ↗ Compartir
-          </button>
+          {currentUser&&<button style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#888", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4 }}
+            onClick={()=>setShowQuoteAI(true)}>
+            🔁 Repostear
+          </button>}
         </div>
       </div>
+      {showQuoteAI&&currentUser&&(
+        <QuoteNewsModal item={item} currentUser={currentUser} onClose={()=>setShowQuoteAI(false)} />
+      )}
       {showComments&&(
         <div style={{ marginTop:12, borderTop:"1px solid #f0ede6", paddingTop:12 }}>
           <AICommentBox newsType={item.type} newsDate={new Date().toISOString().split("T")[0]} currentUser={currentUser} />
@@ -481,10 +485,10 @@ export function FeedPage({ user, onNavigate }) {
 
   function buildFeed() {
     const feed=[];
-    aiNews.forEach(n=>feed.push({type:"ai",data:n}));
+    if(tab==="all") aiNews.forEach(n=>feed.push({type:"ai",data:n}));
     let bi=0;
-    (posts||[]).forEach((p,i)=>{ feed.push({type:"post",data:p}); if((i+1)%5===0&&bi<brandNews.length) feed.push({type:"brand",data:brandNews[bi++]}); });
-    while(bi<brandNews.length) feed.push({type:"brand",data:brandNews[bi++]});
+    (posts||[]).forEach((p,i)=>{ feed.push({type:"post",data:p}); if((i+1)%5===0&&bi<brandNews.length&&tab==="all") feed.push({type:"brand",data:brandNews[bi++]}); });
+    if(tab==="all") while(bi<brandNews.length) feed.push({type:"brand",data:brandNews[bi++]});
     return feed;
   }
 

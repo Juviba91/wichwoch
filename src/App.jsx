@@ -11,6 +11,7 @@ import { GaragePage } from "./pages/GaragePage";
 import { WristCheckPage } from "./pages/WristCheckPage";
 import { MantenimientoPage } from "./pages/MantenimientoPage";
 import { ListasPage } from "./pages/ListasPage";
+import { WorkshopsPage } from "./pages/WorkshopsPage";
 import { RankingPage } from "./pages/RankingPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { CreateWatchPage } from "./pages/CreateWatchPage";
@@ -118,9 +119,6 @@ export default function App() {
               {unreadCount>0&&<span style={{ position:"absolute", top:-4, right:-4, background:"#e11d48", color:"#fff", borderRadius:"50%", width:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700 }}>{unreadCount}</span>}
             </div>
             {showNotifs&&<NotificationsPanel userId={session.user.id} onClose={()=>setShowNotifs(false)} onNavigate={navigate} />}
-            <div style={{ cursor:"pointer" }} onClick={()=>navigate("profile",session.user.id)} title="Mi Perfil">
-              <Avatar name={profile?.name||session.user.email} size={32} color={profile?.avatar_color||"#1a2744"} />
-            </div>
             <button style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.7)", fontSize:18 }} onClick={()=>navigate("settings")} title="Ajustes">⚙️</button>
             <button style={{ background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", color:"#fff", padding:"5px 12px", borderRadius:6, fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={signOut}>Salir</button>
           </>) : (
@@ -143,6 +141,7 @@ export default function App() {
         {page.name==="mantenimiento"&&session&&<MantenimientoPage currentUser={session.user} onNavigate={navigate} />}
         {page.name==="wristcheck"&&<WristCheckPage currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="listas"&&<ListasPage currentUser={currentUser} onNavigate={navigate} />}
+        {page.name==="talleres"&&<WorkshopsPage currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="ranking"&&<RankingPage currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="create-watch"&&session&&<CreateWatchPage currentUser={session.user} onNavigate={navigate} />}
         {page.name==="admin"&&<AdminPage user={session?.user} onNavigate={navigate} />}

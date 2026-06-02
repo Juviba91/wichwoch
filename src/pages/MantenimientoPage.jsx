@@ -110,7 +110,7 @@ export function MantenimientoPage({ currentUser, onNavigate }) {
         <div style={{ ...S.card, borderLeft:"4px solid #b8963e", background:"#fff8e8", marginBottom:20 }}>
           <div style={{ fontWeight:700, fontSize:14, marginBottom:6 }}>🔧 ¿Necesitas un taller de confianza?</div>
           <p style={{ fontSize:13, color:"#666", margin:"0 0 12px" }}>Tienes {urgent.length} reloj{urgent.length>1?"es que necesitan":"que necesita"} revisión. Te recomendamos buscar un taller verificado por la comunidad.</p>
-          <button style={S.btn("primary")} onClick={()=>onNavigate("explore")}>Ver talleres en Explorar →</button>
+          <button style={S.btn("primary")} onClick={()=>onNavigate("talleres")}>Ver talleres →</button>
         </div>
       )}
 
@@ -206,7 +206,7 @@ export function MantenimientoPage({ currentUser, onNavigate }) {
                   <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                     <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("garage")}>Ver en Garage →</button>
                     {getServiceStatus(w.watch, services[w.id]).urgent&&(
-                      <button style={{ ...S.btn("gold"), fontSize:12 }} onClick={()=>onNavigate("explore")}>
+                      <button style={{ ...S.btn("gold"), fontSize:12 }} onClick={()=>onNavigate("talleres")}>
                         🔧 Buscar taller →
                       </button>
                     )}
