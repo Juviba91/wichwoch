@@ -693,11 +693,7 @@ export function GaragePage({ currentUser, onNavigate }) {
         </div>
       )}
 
-      {/* Tabs */}
-      <div style={{ display:"flex", gap:4, marginBottom:16 }}>
-        <button onClick={()=>setTab("coleccion")} style={{ padding:"6px 16px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:tab==="coleccion"?"#1a2744":"#f0ede6", color:tab==="coleccion"?"#fff":"#666", fontWeight:tab==="coleccion"?600:400 }}>Colección ({watches.length})</button>
-        <button onClick={()=>setTab("wishlist")} style={{ padding:"6px 16px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:tab==="wishlist"?"#b8963e":"#f0ede6", color:tab==="wishlist"?"#fff":"#888", fontWeight:tab==="wishlist"?600:400 }}>Wish List ({wishlist.length})</button>
-      </div>
+
 
       {/* Colección */}
       {tab==="coleccion"&&(
