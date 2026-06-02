@@ -457,6 +457,54 @@ function WatchPassport({ registration, watch, currentUser, onBack, onUpdated }) 
 }
 
 // ─── GARAGE PAGE ──────────────────────────────────────────────────────────────
+function GarageCarousel({ watches, onSelect }) {
+  const [idx, setIdx] = useState(0);
+  const w = watches[idx];
+  if(!w?.watch) return null;
+  const bg = brandColor(w.watch.slug);
+  const [imgError, setImgError] = useState(false);
+
+  return (
+    <div style={{ marginBottom:20 }}>
+      <div style={{ position:"relative", height:280, borderRadius:16, background:`linear-gradient(135deg,${bg},${bg}88)`, overflow:"hidden", cursor:"pointer" }}
+        onClick={()=>onSelect({...w,watch:w.watch})}>
+        {/* Watch image */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%", padding:"0 40px" }}>
+          {w.watch.image_url&&!imgError
+            ? <img src={w.watch.image_url} alt={w.watch.model} style={{ maxHeight:200, objectFit:"contain", filter:"drop-shadow(0 12px 32px rgba(0,0,0,0.5))", transition:"transform 0.3s" }} onError={()=>setImgError(true)} />
+            : <span style={{ fontSize:80, opacity:0.3 }}>⌚</span>
+          }
+        </div>
+        {/* Info overlay */}
+        <div style={{ position:"absolute", bottom:0, left:0, right:0, background:"linear-gradient(transparent,rgba(0,0,0,0.7))", padding:"32px 24px 20px" }}>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"rgba(255,255,255,0.5)", letterSpacing:2, textTransform:"uppercase", marginBottom:4 }}>{brandFromSlug(w.watch.slug)}</div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:22, color:"#fff", fontWeight:700 }}>{w.watch.model}</div>
+          {w.watch.market_price&&<div style={{ fontSize:13, color:"#b8963e", marginTop:4 }}>💰 {w.watch.market_price}</div>}
+        </div>
+        {/* Condition badge */}
+        {w.condition&&(
+          <div style={{ position:"absolute", top:16, right:16, background:"rgba(0,0,0,0.5)", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#fff", fontWeight:700, textTransform:"capitalize" }}>
+            {w.condition.replace("_"," ")}
+          </div>
+        )}
+        {/* Tap hint */}
+        <div style={{ position:"absolute", top:16, left:16, background:"rgba(0,0,0,0.4)", borderRadius:6, padding:"4px 10px", fontSize:11, color:"rgba(255,255,255,0.7)" }}>
+          Ver Watch Passport →
+        </div>
+      </div>
+      {/* Dots navigation */}
+      {watches.length>1&&(
+        <div style={{ display:"flex", justifyContent:"center", gap:8, marginTop:12 }}>
+          {watches.map((_,i)=>(
+            <div key={i} onClick={()=>{ setIdx(i); setImgError(false); }}
+              style={{ width:i===idx?24:8, height:8, borderRadius:4, background:i===idx?"#1a2744":"#e0ddd6", cursor:"pointer", transition:"width 0.3s" }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GaragePublicToggle({ userId }) {
   const [isPublic, setIsPublic] = useState(true);
   const [loaded, setLoaded] = useState(false);
@@ -624,19 +672,22 @@ export function GaragePage({ currentUser, onNavigate }) {
         </div>
       </div>
 
-      {/* Collection Insights */}
+      {/* Carrusel de relojes */}
+      {watches.length>0&&<GarageCarousel watches={watches} onSelect={setSelectedRegistration} />}
+
+      {/* Stats row */}
       {watches.length>0&&(
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))", gap:10, marginBottom:24 }}>
+        <div style={{ display:"flex", gap:16, marginBottom:24, flexWrap:"wrap" }}>
           {[
             ["⌚", watches.length, watches.length===1?"reloj":"relojes"],
             ["❤️", wishlist.length, "wish list"],
             topBrand ? ["🏆", topBrand[0], "marca favorita"] : null,
-            topType ? ["📊", topType[0], "tipo principal"] : null,
+            topType ? ["📊", topType[0], "tipo"] : null,
           ].filter(Boolean).map(([icon,val,label])=>(
-            <div key={label} style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"16px 12px" }}>
-              <div style={{ fontSize:22, marginBottom:4 }}>{icon}</div>
-              <div style={{ fontWeight:700, fontSize:16, color:"#1a2744", marginBottom:2, textTransform:"capitalize" }}>{val}</div>
-              <div style={S.muted}>{label}</div>
+            <div key={label} style={{ textAlign:"center" }}>
+              <span style={{ fontSize:16 }}>{icon}</span>
+              <span style={{ fontWeight:700, fontSize:15, color:"#1a2744", marginLeft:6, textTransform:"capitalize" }}>{val}</span>
+              <span style={{ color:"#aaa", fontSize:13, marginLeft:4 }}>{label}</span>
             </div>
           ))}
         </div>
