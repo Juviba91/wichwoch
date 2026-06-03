@@ -3,6 +3,51 @@ import { supabase } from "../lib/supabase";
 import { S, BRAND_COLORS, BRAND_LOGOS, BRAND_LOGO_URLS, brandFromSlug, brandColor } from "../data/constants";
 import { Spinner, Avatar } from "../components/UI";
 
+function TalleresPreview({ onNavigate }) {
+  const [talleres, setTalleres] = useState([]);
+  useEffect(()=>{
+    supabase.from("workshops").select("id,name,city,specialties,verified,photo_url").eq("verified",true).limit(3)
+      .then(({data})=>setTalleres(data||[]));
+  },[]);
+
+  if(!talleres.length) return null;
+
+  const SPEC = { vintage:"⏳ Vintage", sport:"🏃 Sport", certificado:"✓ Certificado", restauracion:"🔨 Restauración", complicaciones:"⚙️ Complicaciones", diver:"🤿 Buceo", chrono:"⏱️ Cronógrafo" };
+
+  return (
+    <div style={{ marginBottom:28 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+        <h3 style={{ ...S.h2, marginBottom:0 }}>🔧 Talleres verificados</h3>
+        <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("talleres")}>Ver todos →</button>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))", gap:12 }}>
+        {talleres.map(t=>(
+          <div key={t.id} style={{ ...S.card, cursor:"pointer", padding:0, overflow:"hidden", marginBottom:0 }}
+            onClick={()=>onNavigate("talleres")}
+            onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,0.1)"; }}
+            onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.04)"; }}>
+            <div style={{ height:80, background:"linear-gradient(135deg,#1a2744,#2a3a5a)", display:"flex", alignItems:"center", justifyContent:"center", position:"relative" }}>
+              {t.photo_url?<img src={t.photo_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", opacity:0.5 }} />:<span style={{ fontSize:32, opacity:0.3 }}>🔧</span>}
+              <div style={{ position:"absolute", bottom:8, left:12 }}>
+                <div style={{ fontWeight:700, fontSize:14, color:"#fff" }}>{t.name}</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)" }}>📍 {t.city}</div>
+              </div>
+              {t.verified&&<div style={{ position:"absolute", top:8, right:8, background:"#b8963e", borderRadius:4, padding:"2px 6px", fontSize:9, color:"#fff", fontWeight:700 }}>✓ Verificado</div>}
+            </div>
+            <div style={{ padding:"10px 14px" }}>
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                {(t.specialties||[]).slice(0,3).map(s=>(
+                  <span key={s} style={{ fontSize:10, background:"#f0ede6", borderRadius:4, padding:"2px 6px", color:"#666" }}>{SPEC[s]||s}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ExplorePage({ onNavigate, currentUser }) {
   const [watches, setWatches] = useState([]);
   const [profiles, setProfiles] = useState([]);
@@ -222,6 +267,17 @@ export function ExplorePage({ onNavigate, currentUser }) {
             </div>
           </div>
         )}
+
+        {/* Talleres */}
+        <TalleresPreview onNavigate={onNavigate} />
+
+        {/* Todos los relojes */}
+        <div style={{ marginBottom:28 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+            <h3 style={{ ...S.h2, marginBottom:0 }}>Relojes icónicos</h3>
+            <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("relojes")}>Ver todos →</button>
+          </div>
+        </div>
 
         {/* Marcas */}
         <div style={{ marginBottom:28 }}>
