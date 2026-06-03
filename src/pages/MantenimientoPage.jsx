@@ -61,11 +61,7 @@ export function MantenimientoPage({ currentUser, onNavigate }) {
   }
 
   const urgent = watches.filter(w=>getStatus(w.watch,services[w.id]).urgent);
-  const totalValue = watches.reduce((s,w)=>{
-    if(!w.watch?.market_price) return s;
-    const num = parseInt(w.watch.market_price.replace(/[^0-9]/g,""));
-    return s + (isNaN(num)?0:num);
-  },0);
+
 
   if(loading) return <Spinner />;
   if(view==="detail"&&selected) return (
@@ -84,13 +80,7 @@ export function MantenimientoPage({ currentUser, onNavigate }) {
           <div style={{ fontWeight:700, fontSize:22 }}>{watches.length}</div>
           <div style={S.muted}>relojes</div>
         </div>
-        {totalValue>0&&(
-          <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:20 }}>
-            <div style={{ fontSize:28, marginBottom:4 }}>💰</div>
-            <div style={{ fontWeight:700, fontSize:18, color:"#b8963e" }}>{totalValue.toLocaleString()}€</div>
-            <div style={S.muted}>valor estimado</div>
-          </div>
-        )}
+
         <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:20 }}>
           <div style={{ fontSize:28, marginBottom:4 }}>✓</div>
           <div style={{ fontWeight:700, fontSize:22, color:urgent.length>0?"#dc2626":"#16a34a" }}>{urgent.length}</div>
@@ -136,7 +126,7 @@ export function MantenimientoPage({ currentUser, onNavigate }) {
 
           return (
             <div key={w.id} style={{ ...S.card, display:"flex", alignItems:"center", gap:14, cursor:"pointer" }}
-              onClick={()=>{ setSelected(w); setView("detail"); }}>
+              onClick={()=>onNavigate("garage_watch", w.id)}>
               <div style={{ width:52, height:52, borderRadius:10, background:`linear-gradient(135deg,${brandColor(w.watch?.slug||"")},${brandColor(w.watch?.slug||"")}88)`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                 {w.watch?.image_url?<img src={w.watch.image_url} alt="" style={{ height:"85%", objectFit:"contain" }} onError={e=>e.target.style.display="none"} />:<span style={{ fontSize:22 }}>⌚</span>}
               </div>

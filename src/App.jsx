@@ -143,6 +143,7 @@ export default function App() {
         {page.name==="settings"&&session&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
         {page.name==="garage"&&session&&<GaragePage currentUser={session.user} onNavigate={navigate} />}
         {page.name==="mantenimiento"&&session&&<MantenimientoPage currentUser={session.user} onNavigate={navigate} />}
+        {page.name==="garage_watch"&&session&&<GaragePage currentUser={session.user} onNavigate={navigate} openWatchId={page.id} />}
         {page.name==="wristcheck"&&<WristCheckPage currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="listas"&&<ListasPage currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="talleres"&&<WorkshopsPage currentUser={currentUser} onNavigate={navigate} />}

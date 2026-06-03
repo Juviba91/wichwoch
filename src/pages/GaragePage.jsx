@@ -583,7 +583,7 @@ function PostRegistrationInfo({ watch, onClose }) {
 }
 
 // ─── GARAGE PAGE ──────────────────────────────────────────────────────────────
-export function GaragePage({ currentUser, onNavigate }) {
+export function GaragePage({ currentUser, onNavigate, openWatchId }) {
   const [watches, setWatches] = useState([]);
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -594,6 +594,13 @@ export function GaragePage({ currentUser, onNavigate }) {
   const [savedWatch, setSavedWatch] = useState(null);
 
   useEffect(()=>{ if(currentUser?.id) load(); },[currentUser]);
+
+  useEffect(()=>{
+    if(openWatchId&&watches.length>0) {
+      const found = watches.find(w=>w.id===openWatchId);
+      if(found) setSelectedRegistration({...found, defaultTab:"mantenimiento"});
+    }
+  },[openWatchId, watches]);
 
   async function load() {
     setLoading(true);
