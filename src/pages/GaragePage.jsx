@@ -310,7 +310,8 @@ function InlineServiceForm({ registrationId, currentUser, onSaved }) {
       price:form.price?parseInt(form.price):null,
     });
     setSaving(false); setDone(true);
-    setTimeout(()=>{ setDone(false); setOpen(false); setForm({service_type:"",service_date:"",workshop:"",description:"",price:""}); if(onSaved) onSaved(); }, 1500);
+    setForm({service_type:"",service_date:"",workshop:"",description:"",price:""});
+    setTimeout(()=>{ setDone(false); setOpen(false); if(onSaved) onSaved(); }, 1500);
   }
 
   if(done) return <div style={{ background:"#f0fdf4", border:"1px solid #b3dfc4", borderRadius:8, padding:"12px 16px", marginBottom:16, color:"#16a34a", fontWeight:600 }}>✓ Servicio registrado</div>;
@@ -356,8 +357,10 @@ function WatchPassportMaint({ registration, watch, services, currentUser, onAddS
   const brandSlug = (watch?.slug||"").split("_")[0];
   const interval = INTERVALS[brandSlug] || 5;
 
-  // Smart calculation: use last service OR purchase year
-  let lastDate = services[0]?.service_date || null;
+  // Sort services by date descending to get most recent
+  const sortedServices = [...services].sort((a,b)=>new Date(b.service_date)-new Date(a.service_date));
+  // Smart calculation: use most recent service date OR purchase year
+  let lastDate = sortedServices[0]?.service_date || null;
   let basedOn = "último servicio";
   if(!lastDate && registration?.purchase_year) {
     lastDate = `${registration.purchase_year}-01-01`;
@@ -433,7 +436,7 @@ function WatchPassportMaint({ registration, watch, services, currentUser, onAddS
       {services.length>0&&(
         <div>
           <div style={{ fontSize:12, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#aaa", fontFamily:"'DM Mono',monospace", marginBottom:10 }}>Historial</div>
-          {services.slice(0,3).map((s,i)=>(
+          {sortedServices.slice(0,3).map((s,i)=>(
             <div key={s.id} style={{ display:"flex", gap:12, paddingBottom:10, marginBottom:10, borderBottom:i<Math.min(services.length,3)-1?"1px solid #f0ede6":"none" }}>
               <div style={{ width:8, height:8, borderRadius:"50%", background:"#b8963e", marginTop:5, flexShrink:0 }} />
               <div>
@@ -445,7 +448,7 @@ function WatchPassportMaint({ registration, watch, services, currentUser, onAddS
           ))}
         </div>
       )}
-      {services.length===0&&(
+      {sortedServices.length===0&&(
         <div style={{ textAlign:"center", padding:"24px 0", color:"#aaa", fontSize:13 }}>Sin servicios registrados aún.</div>
       )}
     </div>
