@@ -271,14 +271,6 @@ export function ExplorePage({ onNavigate, currentUser }) {
         {/* Talleres */}
         <TalleresPreview onNavigate={onNavigate} />
 
-        {/* Todos los relojes */}
-        <div style={{ marginBottom:28 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-            <h3 style={{ ...S.h2, marginBottom:0 }}>Relojes icónicos</h3>
-            <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("relojes")}>Ver todos →</button>
-          </div>
-        </div>
-
         {/* Marcas */}
         <div style={{ marginBottom:28 }}>
           <h3 style={{ ...S.h2, marginBottom:12 }}>Marcas</h3>
@@ -307,7 +299,10 @@ export function ExplorePage({ onNavigate, currentUser }) {
 
         {/* Relojes destacados */}
         <div style={{ marginBottom:28 }}>
-          <h3 style={{ ...S.h2, marginBottom:12 }}>Relojes icónicos</h3>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+            <h3 style={{ ...S.h2, marginBottom:0 }}>Relojes icónicos</h3>
+            <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("relojes")}>Ver todos →</button>
+          </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:12 }}>
             {watches.slice(0,12).map(w=>(
               <div key={w.id} style={{ borderRadius:10,overflow:"hidden",border:"1px solid #ece9e2",background:"#fff",cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,0.06)" }} onClick={()=>onNavigate("watch",w.slug)}>

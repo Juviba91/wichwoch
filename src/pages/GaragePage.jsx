@@ -160,7 +160,7 @@ function WatchPassport({ registration, watch, currentUser, onBack, onUpdated, de
       )}
 
       <div style={{ display:"flex", gap:4, margin:"16px 0", flexWrap:"wrap" }}>
-        {[["mantenimiento","🔧 Mantenimiento"],["info","📋 Info"],["fotos","📷 Fotos"],["specs","⚙️ Specs"]].map(([id,label])=>(
+        {[["mantenimiento","🔧 Mantenimiento"],["info","📋 Datos personales"],["fotos","📷 Fotos"],["specs","⚙️ Specs"]].map(([id,label])=>(
           <button key={id} onClick={()=>setActiveTab(id)} style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:activeTab===id?"#1a2744":"#f0ede6", color:activeTab===id?"#fff":"#666", fontWeight:activeTab===id?600:400 }}>{label}</button>
         ))}
       </div>
@@ -290,6 +290,66 @@ function WatchPassport({ registration, watch, currentUser, onBack, onUpdated, de
 }
 
 
+
+function InlineServiceForm({ registrationId, currentUser, onSaved }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
+  const [form, setForm] = useState({ service_type:"", service_date:"", workshop:"", description:"", price:"" });
+  const SERVICE_TYPES = ["Revisión completa / overhaul","Cambio de correa / brazalete","Ajuste de precisión","Reparación de cristal","Servicio de corona / impermeabilidad"];
+  const setF = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  async function submit() {
+    if(!form.service_date) return;
+    setSaving(true);
+    const desc = form.service_type ? `${form.service_type}${form.description?` — ${form.description}`:""}` : form.description;
+    await supabase.from("watch_service_history").insert({
+      registration_id:registrationId, user_id:currentUser.id,
+      service_date:form.service_date, workshop:form.workshop||null,
+      description:desc||"Servicio registrado",
+      price:form.price?parseInt(form.price):null,
+    });
+    setSaving(false); setDone(true);
+    setTimeout(()=>{ setDone(false); setOpen(false); setForm({service_type:"",service_date:"",workshop:"",description:"",price:""}); if(onSaved) onSaved(); }, 1500);
+  }
+
+  if(done) return <div style={{ background:"#f0fdf4", border:"1px solid #b3dfc4", borderRadius:8, padding:"12px 16px", marginBottom:16, color:"#16a34a", fontWeight:600 }}>✓ Servicio registrado</div>;
+
+  return (
+    <div style={{ marginBottom:16 }}>
+      {!open
+        ? <button style={{ background:"#1a2744", border:"none", color:"#fff", borderRadius:8, padding:"10px 18px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={()=>setOpen(true)}>+ Registrar servicio</button>
+        : (
+          <div style={{ background:"#f8f6f0", borderRadius:10, padding:16, border:"1px solid #e0ddd6" }}>
+            <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>Nuevo servicio</div>
+            <div style={{ marginBottom:10 }}>
+              <span style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:6, display:"block" }}>Tipo de servicio</span>
+              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                {SERVICE_TYPES.map(t=>(
+                  <label key={t} style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", padding:"8px 12px", borderRadius:6, border:`1px solid ${form.service_type===t?"#1a2744":"#e8e8e8"}`, background:form.service_type===t?"#f0f4ff":"#fff" }}>
+                    <input type="radio" name="stype" checked={form.service_type===t} onChange={()=>setF("service_type",t)} style={{ accentColor:"#1a2744" }} />
+                    <span style={{ fontSize:13 }}>{t}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+              <div><span style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:4, display:"block" }}>Fecha *</span><input style={{ width:"100%", border:"1px solid #e0ddd6", borderRadius:8, padding:"9px 12px", fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" }} type="date" value={form.service_date} onChange={e=>setF("service_date",e.target.value)} /></div>
+              <div><span style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:4, display:"block" }}>Taller</span><input style={{ width:"100%", border:"1px solid #e0ddd6", borderRadius:8, padding:"9px 12px", fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" }} placeholder="Nombre del taller" value={form.workshop} onChange={e=>setF("workshop",e.target.value)} /></div>
+            </div>
+            <div style={{ marginBottom:10 }}><span style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:4, display:"block" }}>Notas adicionales</span><textarea style={{ width:"100%", border:"1px solid #e0ddd6", borderRadius:8, padding:"9px 12px", fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"none", boxSizing:"border-box" }} rows={2} placeholder="Detalles del servicio..." value={form.description} onChange={e=>setF("description",e.target.value)} /></div>
+            <div style={{ marginBottom:14 }}><span style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:4, display:"block" }}>Coste (€)</span><input style={{ width:"100%", border:"1px solid #e0ddd6", borderRadius:8, padding:"9px 12px", fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" }} type="number" placeholder="350" value={form.price} onChange={e=>setF("price",e.target.value)} /></div>
+            <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+              <button style={{ background:"none", border:"1px solid #e0ddd6", borderRadius:8, padding:"8px 16px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif" }} onClick={()=>setOpen(false)}>Cancelar</button>
+              <button style={{ background:"#1a2744", border:"none", color:"#fff", borderRadius:8, padding:"8px 18px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={submit} disabled={saving||!form.service_date}>{saving?"Guardando…":"Guardar"}</button>
+            </div>
+          </div>
+        )
+      }
+    </div>
+  );
+}
+
 // ─── WATCH PASSPORT MAINT TAB ─────────────────────────────────────────────────
 function WatchPassportMaint({ registration, watch, services, currentUser, onAddService }) {
   const INTERVALS = { rolex:10, omega:8, patek:5, ap:5, iwc:5, jlc:5, tudor:10, cartier:5, breitling:5, tag:5, vc:5, hublot:5, panerai:5, gs:5, zenith:5 };
@@ -360,16 +420,14 @@ function WatchPassportMaint({ registration, watch, services, currentUser, onAddS
       </div>
 
       {/* Acciones */}
-      <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16 }}>
-        <button style={{ background:"#1a2744", border:"none", color:"#fff", borderRadius:8, padding:"10px 18px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={onAddService}>
-          + Registrar servicio
-        </button>
-        {(status==="vencido"||status==="urgente"||status==="proximo")&&(
-          <a href="/talleres" style={{ background:"#b8963e", border:"none", color:"#fff", borderRadius:8, padding:"10px 18px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600, textDecoration:"none" }}>
+      <InlineServiceForm registrationId={registration.id} currentUser={currentUser} onSaved={onAddService} />
+      {(status==="vencido"||status==="urgente"||status==="proximo")&&(
+        <div style={{ marginBottom:16 }}>
+          <button style={{ background:"#b8963e", border:"none", color:"#fff", borderRadius:8, padding:"10px 18px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={()=>{}}>
             🔧 Buscar taller
-          </a>
-        )}
-      </div>
+          </button>
+        </div>
+      )}
 
       {/* Historial mini */}
       {services.length>0&&(

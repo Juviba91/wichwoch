@@ -100,8 +100,8 @@ export default function App() {
 
   const currentUser = session ? session.user : null;
   const NAV = session
-    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"},{id:"perfil",label:"Mi Perfil"}]
-    : [{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}];
+    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"foros",label:"Foros"},{id:"mantenimiento",label:"Mantenimiento"},{id:"miperfil",label:"Mi Perfil"}]
+    : [{id:"explore",label:"Explorar"},{id:"foros",label:"Foros"}];
 
   return (
     <div style={S.app}>
