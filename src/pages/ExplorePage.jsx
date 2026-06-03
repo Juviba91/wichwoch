@@ -52,7 +52,7 @@ export function ExplorePage({ onNavigate, currentUser }) {
     try {
       const clean = q.replace(/^@/,"");
       const [u,w,t] = await Promise.all([
-        supabase.from("profiles").select("id,name,handle,avatar_color,followers_count").or(`name.ilike.%${clean}%,handle.ilike.%${clean}%`).limit(5),
+        supabase.from("profiles").select("id,name,handle,avatar_color,followers_count,account_type").or(`name.ilike.%${clean}%,handle.ilike.%${clean}%`).limit(5),
         supabase.from("watches").select("id,slug,model,brand_slug,image_url").or(`model.ilike.%${clean}%,slug.ilike.%${clean}%`).limit(6),
         supabase.from("forum_threads").select("id,title,watch:watches(slug,model)").ilike("title",`%${clean}%`).limit(4),
       ]);
@@ -118,7 +118,13 @@ export function ExplorePage({ onNavigate, currentUser }) {
                   <div style={{ width:40,height:40,borderRadius:"50%",background:u.avatar_color||"#1a2744",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"#fff",fontSize:14,fontFamily:"'DM Mono',monospace" }}>
                     {(u.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
                   </div>
-                  <div><div style={{ fontWeight:600 }}>{u.name}</div><div style={{ ...S.muted, fontSize:12 }}>@{u.handle}</div></div>
+                  <div>
+                    <div style={{ fontWeight:600 }}>{u.name}
+                      {u.account_type==="taller"&&<span style={{ marginLeft:6, fontSize:10, background:"#f0ede6", borderRadius:4, padding:"1px 6px", color:"#888" }}>🔧 Taller</span>}
+                      {u.account_type==="marca"&&<span style={{ marginLeft:6, fontSize:10, background:"#1a2744", borderRadius:4, padding:"1px 6px", color:"#fff" }}>🏷️ Marca</span>}
+                    </div>
+                    <div style={{ ...S.muted, fontSize:12 }}>@{u.handle}</div>
+                  </div>
                 </div>
               ))}
             </div>

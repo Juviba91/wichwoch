@@ -90,6 +90,157 @@ function UserListasPreview({ userId, onNavigate }) {
   );
 }
 
+function TallerProfile({ profile, isOwn, currentUser, onNavigate, posts }) {
+  const [following, setFollowing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(()=>{
+    if(!currentUser?.id||isOwn) return;
+    supabase.from("follows").select("id").eq("follower_id",currentUser.id).eq("following_id",profile.id).maybeSingle()
+      .then(({data})=>setFollowing(!!data));
+  },[profile.id, currentUser?.id]);
+
+  async function toggleFollow() {
+    if(!currentUser?.id) return;
+    setSaving(true);
+    if(following) {
+      await supabase.from("follows").delete().match({follower_id:currentUser.id,following_id:profile.id});
+      setFollowing(false);
+    } else {
+      await supabase.from("follows").insert({follower_id:currentUser.id,following_id:profile.id});
+      setFollowing(true);
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div>
+      {/* Hero */}
+      <div style={{ height:160, background:"linear-gradient(135deg,#1a2744,#2a3a5a)", borderRadius:12, marginBottom:0, position:"relative", overflow:"hidden", display:"flex", alignItems:"flex-end", padding:"0 28px 20px" }}>
+        <div>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+            <span style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#b8963e", fontFamily:"'DM Mono',monospace" }}>🔧 Taller verificado</span>
+            {profile.verified_business&&<span style={{ fontSize:10, background:"#b8963e", color:"#fff", borderRadius:4, padding:"2px 6px", fontWeight:700 }}>✓</span>}
+          </div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, fontWeight:700, color:"#fff" }}>{profile.name}</div>
+          {profile.location&&<div style={{ fontSize:13, color:"rgba(255,255,255,0.6)", marginTop:4 }}>📍 {profile.location}</div>}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div style={{ ...S.card, borderTopLeftRadius:0, borderTopRightRadius:0, borderTop:"none", marginBottom:16 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div style={{ display:"flex", gap:24 }}>
+            <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{profile.followers_count||0}</div><div style={S.muted}>seguidores</div></div>
+          </div>
+          <div style={{ display:"flex", gap:8 }}>
+            {!isOwn&&currentUser&&<button style={S.btn(following?"outline":"primary")} onClick={toggleFollow} disabled={saving}>{following?"Siguiendo":"Seguir"}</button>}
+            {isOwn&&<button style={S.btn("outline")} onClick={()=>onNavigate("settings")}>⚙️ Editar perfil</button>}
+          </div>
+        </div>
+        {profile.bio&&<p style={{ fontSize:14, color:"#555", margin:"12px 0 0", lineHeight:1.6 }}>{profile.bio}</p>}
+        {profile.corporate_url&&<a href={profile.corporate_url.startsWith("http")?profile.corporate_url:`https://${profile.corporate_url}`} target="_blank" rel="noreferrer" style={{ fontSize:13, color:"#1a2744", display:"block", marginTop:8 }}>🌐 {profile.corporate_url}</a>}
+        {profile.pending_approval&&isOwn&&<div style={{ marginTop:12, padding:"8px 14px", background:"#fff8e8", borderRadius:6, fontSize:12, color:"#b8963e" }}>⏳ Tu cuenta está pendiente de verificación. Te notificaremos en breve.</div>}
+      </div>
+
+      {/* Posts */}
+      <h3 style={{ ...S.h2, marginBottom:12 }}>Publicaciones</h3>
+      {posts.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin publicaciones aún.</div>}
+      {posts.map(p=><PostCard key={p.id} post={p} currentUser={currentUser} onNavigate={onNavigate} />)}
+    </div>
+  );
+}
+
+function MarcaProfile({ profile, isOwn, currentUser, onNavigate, posts }) {
+  const [watches, setWatches] = useState([]);
+  const [following, setFollowing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const brandSlug = profile.brand_slug_linked || profile.handle;
+
+  useEffect(()=>{
+    supabase.from("watches").select("id,slug,model,image_url,brand_slug,market_price").eq("brand_slug",brandSlug).eq("status","approved").limit(12)
+      .then(({data})=>setWatches(data||[]));
+    if(!currentUser?.id||isOwn) return;
+    supabase.from("follows").select("id").eq("follower_id",currentUser.id).eq("following_id",profile.id).maybeSingle()
+      .then(({data})=>setFollowing(!!data));
+  },[profile.id, currentUser?.id]);
+
+  async function toggleFollow() {
+    if(!currentUser?.id) return;
+    setSaving(true);
+    if(following) {
+      await supabase.from("follows").delete().match({follower_id:currentUser.id,following_id:profile.id});
+      setFollowing(false);
+    } else {
+      await supabase.from("follows").insert({follower_id:currentUser.id,following_id:profile.id});
+      setFollowing(true);
+    }
+    setSaving(false);
+  }
+
+  const BRAND_COLORS = { rolex:"#006039", omega:"#c8a84b", patek:"#1a3a6b", ap:"#1a1a1a", iwc:"#8b0000", jlc:"#2c4a2e", tudor:"#6b0000", cartier:"#8b0000", breitling:"#1a3a6b", tag:"#c00000", vc:"#2c2c5e", hublot:"#2a2a2a", panerai:"#1a3020", gs:"#1a1a3a", zenith:"#1a2744" };
+  const bg = BRAND_COLORS[brandSlug]||"#1a2744";
+
+  return (
+    <div>
+      {/* Hero */}
+      <div style={{ height:180, background:`linear-gradient(135deg,${bg},${bg}88)`, borderRadius:12, marginBottom:0, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 40px", overflow:"hidden" }}>
+        <div>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+            <span style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"rgba(255,255,255,0.6)", fontFamily:"'DM Mono',monospace" }}>🏷️ Marca oficial</span>
+            {profile.verified_business&&<span style={{ fontSize:10, background:"#b8963e", color:"#fff", borderRadius:4, padding:"2px 6px", fontWeight:700 }}>✓ Verificada</span>}
+          </div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:28, fontWeight:700, color:"#fff", marginBottom:4 }}>{profile.name}</div>
+          {profile.location&&<div style={{ fontSize:13, color:"rgba(255,255,255,0.6)" }}>📍 {profile.location}</div>}
+        </div>
+      </div>
+
+      {/* Info */}
+      <div style={{ ...S.card, borderTopLeftRadius:0, borderTopRightRadius:0, borderTop:"none", marginBottom:16 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div style={{ display:"flex", gap:24 }}>
+            <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{profile.followers_count||0}</div><div style={S.muted}>seguidores</div></div>
+            <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{watches.length}</div><div style={S.muted}>relojes</div></div>
+          </div>
+          <div style={{ display:"flex", gap:8 }}>
+            {!isOwn&&currentUser&&<button style={S.btn(following?"outline":"primary")} onClick={toggleFollow} disabled={saving}>{following?"Siguiendo":"Seguir"}</button>}
+            {isOwn&&<button style={S.btn("outline")} onClick={()=>onNavigate("settings")}>⚙️ Editar perfil</button>}
+            {isOwn&&<button style={S.btn("primary")} onClick={()=>onNavigate("create-watch")}>+ Añadir reloj</button>}
+          </div>
+        </div>
+        {profile.bio&&<p style={{ fontSize:14, color:"#555", margin:"12px 0 0", lineHeight:1.6 }}>{profile.bio}</p>}
+        {profile.corporate_url&&<a href={profile.corporate_url.startsWith("http")?profile.corporate_url:`https://${profile.corporate_url}`} target="_blank" rel="noreferrer" style={{ fontSize:13, color:"#1a2744", display:"block", marginTop:8 }}>🌐 {profile.corporate_url}</a>}
+        {profile.pending_approval&&isOwn&&<div style={{ marginTop:12, padding:"8px 14px", background:"#fff8e8", borderRadius:6, fontSize:12, color:"#b8963e" }}>⏳ Tu cuenta está pendiente de verificación.</div>}
+      </div>
+
+      {/* Catálogo */}
+      {watches.length>0&&(
+        <div style={{ marginBottom:24 }}>
+          <h3 style={{ ...S.h2, marginBottom:12 }}>Catálogo</h3>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:12 }}>
+            {watches.map(w=>(
+              <div key={w.id} style={{ borderRadius:10, overflow:"hidden", border:"1px solid #ece9e2", background:"#fff", cursor:"pointer" }} onClick={()=>onNavigate("watch",w.slug)}>
+                <div style={{ height:110, background:`linear-gradient(135deg,${bg},${bg}88)`, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  {w.image_url?<img src={w.image_url} alt="" style={{ height:"85%", objectFit:"contain", filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.3))" }} onError={e=>e.target.style.display="none"} />:<span style={{ fontSize:28 }}>⌚</span>}
+                </div>
+                <div style={{ padding:"10px 12px" }}>
+                  <div style={{ fontWeight:700, fontSize:13 }}>{w.model}</div>
+                  {w.market_price&&<div style={{ fontSize:11, color:"#b8963e", marginTop:2 }}>{w.market_price}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Feed */}
+      <h3 style={{ ...S.h2, marginBottom:12 }}>Publicaciones</h3>
+      {posts.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin publicaciones aún.</div>}
+      {posts.map(p=><PostCard key={p.id} post={p} currentUser={currentUser} onNavigate={onNavigate} />)}
+    </div>
+  );
+}
+
 export function ProfilePage({ userId, currentUser, onNavigate }) {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
