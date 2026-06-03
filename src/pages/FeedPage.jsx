@@ -98,7 +98,7 @@ export function PostComposer({ user, onPosted }) {
     <div style={S.card}>
       {type==="news"&&showExtras&&<input style={{ ...S.input, marginBottom:8 }} placeholder="Título de la noticia" value={newsTitle} onChange={e=>setNewsTitle(e.target.value)} />}
       <textarea
-        placeholder="¿Qué reloj llevas hoy! Usa @ y la marca de tu reloj o el modelo para mencionar el tuyo, o simplemente comparte lo que piensas…"
+        placeholder="¿Qué hay en tu muñeca hoy? Usa @rolex_submariner para mencionar un reloj, o simplemente comparte lo que piensas…"
         value={content} onChange={e=>setContent(e.target.value)}
         style={{ width:"100%", border:"none", outline:"none", resize:"none", fontSize:15, fontFamily:"'DM Sans',sans-serif", background:"transparent", color:"#1a1a1a", boxSizing:"border-box" }} rows={3} />
 
@@ -121,7 +121,7 @@ export function PostComposer({ user, onPosted }) {
         </div>
       )}
       {showExtras&&type==="video"&&(
-        <input style={{ ...S.input, marginTop:8 }} placeholder="URL del vídeo " value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} />
+        <input style={{ ...S.input, marginTop:8 }} placeholder="URL del vídeo (YouTube...)" value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} />
       )}
       {showExtras&&type==="news"&&(
         <input style={{ ...S.input, marginTop:8 }} placeholder="Link de la noticia (opcional)" value={newsLink} onChange={e=>setNewsLink(e.target.value)} />
@@ -430,6 +430,35 @@ export function WeeklyThreadCard({ onNavigate, currentUser, onPosted }) {
   );
 }
 
+// ─── GARAGE ACTIVITY CARD ────────────────────────────────────────────────────
+export function GarageActivityCard({ reg, onNavigate }) {
+  if(!reg.watch||!reg.user) return null;
+  return (
+    <div style={{ background:"#fff", borderRadius:12, padding:"16px 20px", marginBottom:12, border:"1px solid #ece9e2", boxShadow:"0 1px 4px rgba(0,0,0,0.04)", cursor:"pointer" }}
+      onClick={()=>onNavigate("watch",reg.watch.slug)}>
+      <div style={{ display:"flex", gap:10, marginBottom:10 }}>
+        <div style={{ width:32, height:32, borderRadius:"50%", background:reg.user.avatar_color||"#1a2744", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:"#fff", fontFamily:"'DM Mono',monospace", flexShrink:0 }}>
+          {(reg.user.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
+        </div>
+        <div>
+          <span style={{ fontWeight:600, fontSize:13 }}>@{reg.user.handle}</span>
+          <span style={{ fontSize:12, color:"#888", marginLeft:6 }}>ha añadido un reloj a su Garage</span>
+        </div>
+      </div>
+      <div style={{ display:"flex", gap:12, alignItems:"center", padding:"12px 14px", background:"#f8f6f0", borderRadius:8 }}>
+        <div style={{ width:48, height:48, borderRadius:8, background:"linear-gradient(135deg,#1a2744,#2a3a5a)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+          {reg.watch.image_url?<img src={reg.watch.image_url} alt="" style={{ height:"85%", objectFit:"contain" }} onError={e=>e.target.style.display="none"} />:<span style={{ fontSize:20 }}>⌚</span>}
+        </div>
+        <div>
+          <div style={{ fontWeight:700, fontSize:14 }}>{reg.watch.model}</div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#aaa" }}>@{reg.watch.slug}</div>
+          {reg.watch.market_price&&<div style={{ fontSize:12, color:"#b8963e", marginTop:2 }}>{reg.watch.market_price}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── FORUM ACTIVITY CARD ─────────────────────────────────────────────────────
 export function ForumActivityCard({ thread, onNavigate }) {
   const bg = { debate:"#e8f0ff", pregunta:"#fef3c7", valoracion:"#f0fdf4", coleccion:"#fdf2f8", mantenimiento:"#fff7ed", compraventa:"#f0f9ff", novedad:"#fef2f2" };
@@ -503,6 +532,7 @@ export function FeedPage({ user, onNavigate }) {
       {loading?<Spinner />:buildFeed().map((item,i)=>{
         if(item.type==="post") {
           if(item.data._type==="forum") return <ForumActivityCard key={`f-${item.data.id}`} thread={item.data} onNavigate={onNavigate} />;
+          if(item.data._type==="garage") return <GarageActivityCard key={`g-${item.data.id}`} reg={item.data} onNavigate={onNavigate} />;
           return <PostCard key={`p-${item.data.id}`} post={item.data} currentUser={user} onNavigate={onNavigate} onReload={loadAll} />;
         }
         if(item.type==="ai") return <AINewsCard key={`ai-${i}`} item={item.data} currentUser={user} />;
