@@ -191,7 +191,10 @@ function WatchMaintDetail({ reg, services, todos: initialTodos, currentUser, onB
 
   return (
     <div>
-      <button style={{ ...S.btn("outline"), marginBottom:20, fontSize:12 }} onClick={onBack}>← Volver</button>
+      <div style={{ display:"flex", gap:8, marginBottom:20 }}>
+        <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={onBack}>← Mantenimiento</button>
+        <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("garage")}>⌚ Garage</button>
+      </div>
 
       {/* Hero */}
       <div style={{ height:160, background:`linear-gradient(135deg,${bg},${bg}88)`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 28px", marginBottom:20, overflow:"hidden" }}>

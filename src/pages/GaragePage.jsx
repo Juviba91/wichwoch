@@ -160,7 +160,7 @@ function WatchPassport({ registration, watch, currentUser, onBack, onUpdated, de
       )}
 
       <div style={{ display:"flex", gap:4, margin:"16px 0", flexWrap:"wrap" }}>
-        {[["mantenimiento","🔧 Mantenimiento"],["info","📋 Info"],["fotos","📷 Fotos"],["servicios","📅 Servicios"],["specs","⚙️ Specs"]].map(([id,label])=>(
+        {[["mantenimiento","🔧 Mantenimiento"],["info","📋 Info"],["fotos","📷 Fotos"],["specs","⚙️ Specs"]].map(([id,label])=>(
           <button key={id} onClick={()=>setActiveTab(id)} style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:activeTab===id?"#1a2744":"#f0ede6", color:activeTab===id?"#fff":"#666", fontWeight:activeTab===id?600:400 }}>{label}</button>
         ))}
       </div>
