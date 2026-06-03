@@ -286,7 +286,7 @@ export function AdminPage({ user, onNavigate }) {
                       <td style={{ padding:"10px 12px", color:"#888" }}>{u.location||"—"}</td>
                       <td style={{ padding:"10px 12px", color:"#888", fontSize:12 }}>{new Date(u.created_at).toLocaleDateString("es-ES")}</td>
                       <td style={{ padding:"10px 12px" }}>
-                        <div style={{ display:"flex", gap:4" }}>
+                        <div style={{ display:"flex", gap:4 }}>
                         {!u.suspended
                           ? <button style={{ background:"none", border:"1px solid #fcc", color:"#c00", borderRadius:4, padding:"2px 8px", fontSize:11, cursor:"pointer" }} onClick={()=>suspendUser(u.id)}>Suspender</button>
                           : <button style={{ background:"none", border:"1px solid #b3dfc4", color:"#16a34a", borderRadius:4, padding:"2px 8px", fontSize:11, cursor:"pointer" }} onClick={()=>unsuspendUser(u.id)}>Reactivar</button>
