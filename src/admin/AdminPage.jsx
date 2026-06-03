@@ -27,6 +27,7 @@ export function AdminPage({ user, onNavigate }) {
     if(tab==="contenido") await loadContent();
     if(tab==="relojes") await loadPendingWatches();
     if(tab==="empresas") await loadPendingBusinesses();
+    if(tab==="feedback") await loadFeedback();
     setLoading(false);
   }
 
@@ -70,6 +71,15 @@ export function AdminPage({ user, onNavigate }) {
   const [rejectReason, setRejectReason] = useState("");
 
   const [pendingBusinesses, setPendingBusinesses] = useState([]);
+
+  const [feedback, setFeedback] = useState([]);
+
+  async function loadFeedback() {
+    const {data}=await supabase.from("feedback")
+      .select("*, user:profiles(name,handle)")
+      .order("created_at",{ascending:false}).limit(50);
+    setFeedback(data||[]);
+  }
 
   async function loadPendingBusinesses() {
     const {data}=await supabase.from("profiles")
@@ -210,7 +220,7 @@ export function AdminPage({ user, onNavigate }) {
     </div>
   );
 
-  const TABS = [["metricas","📊 Métricas"],["usuarios","👥 Usuarios"],["contenido","📝 Contenido"],["relojes","⌚ Relojes pendientes"],["empresas","🏢 Empresas pendientes"]];
+  const TABS = [["metricas","📊 Métricas"],["usuarios","👥 Usuarios"],["contenido","📝 Contenido"],["relojes","⌚ Relojes pendientes"],["empresas","🏢 Empresas pendientes"],["feedback","💬 Feedback"]];
 
   return (
     <div>
