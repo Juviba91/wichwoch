@@ -84,12 +84,12 @@ function GaragePublicToggle({ userId }) {
 }
 
 // ─── WATCH PASSPORT ───────────────────────────────────────────────────────────
-function WatchPassport({ registration, watch, currentUser, onBack, onUpdated }) {
+function WatchPassport({ registration, watch, currentUser, onBack, onUpdated, defaultTab }) {
   const [services, setServices] = useState([]);
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [serviceForm, setServiceForm] = useState({ service_date:"", workshop:"", description:"", price:"", photo_url:"", invoice_url:"" });
   const [savingService, setSavingService] = useState(false);
-  const [activeTab, setActiveTab] = useState("info");
+  const [activeTab, setActiveTab] = useState(defaultTab||"mantenimiento");
   const [imgError, setImgError] = useState(false);
   const [lightbox, setLightbox] = useState(null);
 
@@ -160,11 +160,14 @@ function WatchPassport({ registration, watch, currentUser, onBack, onUpdated }) 
       )}
 
       <div style={{ display:"flex", gap:4, margin:"16px 0", flexWrap:"wrap" }}>
-        {[["info","📋 Info"],["fotos","📷 Fotos"],["servicios","🔧 Servicios"],["specs","⚙️ Specs"]].map(([id,label])=>(
+        {[["mantenimiento","🔧 Mantenimiento"],["info","📋 Info"],["fotos","📷 Fotos"],["servicios","📅 Servicios"],["specs","⚙️ Specs"]].map(([id,label])=>(
           <button key={id} onClick={()=>setActiveTab(id)} style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:activeTab===id?"#1a2744":"#f0ede6", color:activeTab===id?"#fff":"#666", fontWeight:activeTab===id?600:400 }}>{label}</button>
         ))}
       </div>
 
+      {activeTab==="mantenimiento"&&(
+        <WatchPassportMaint registration={registration} watch={watch} services={services} currentUser={currentUser} onAddService={()=>setActiveTab("servicios")} />
+      )}
       {activeTab==="info"&&(
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
           {[
@@ -281,6 +284,111 @@ function WatchPassport({ registration, watch, currentUser, onBack, onUpdated }) 
             : <p style={S.muted}>Sin especificaciones técnicas.</p>
           }
         </div>
+      )}
+    </div>
+  );
+}
+
+
+// ─── WATCH PASSPORT MAINT TAB ─────────────────────────────────────────────────
+function WatchPassportMaint({ registration, watch, services, currentUser, onAddService }) {
+  const INTERVALS = { rolex:10, omega:8, patek:5, ap:5, iwc:5, jlc:5, tudor:10, cartier:5, breitling:5, tag:5, vc:5, hublot:5, panerai:5, gs:5, zenith:5 };
+  const brandSlug = (watch?.slug||"").split("_")[0];
+  const interval = INTERVALS[brandSlug] || 5;
+
+  // Smart calculation: use last service OR purchase year
+  let lastDate = services[0]?.service_date || null;
+  let basedOn = "último servicio";
+  if(!lastDate && registration?.purchase_year) {
+    lastDate = `${registration.purchase_year}-01-01`;
+    basedOn = "año de compra";
+  }
+
+  let nextDate = null, yearsLeft = null, status = "sin_datos";
+  if(lastDate) {
+    const base = new Date(lastDate);
+    nextDate = new Date(base);
+    nextDate.setFullYear(nextDate.getFullYear() + interval);
+    const now = new Date();
+    const diffYears = (nextDate - now) / (1000*60*60*24*365);
+    yearsLeft = diffYears;
+    if(diffYears < 0) status = "vencido";
+    else if(diffYears < 0.5) status = "urgente";
+    else if(diffYears < 1) status = "proximo";
+    else status = "ok";
+  }
+
+  const statusConfig = {
+    vencido: { color:"#dc2626", label:"Revisión vencida", bg:"#fff5f5" },
+    urgente: { color:"#dc2626", label:"Revisión urgente", bg:"#fff5f5" },
+    proximo: { color:"#d97706", label:"Revisión próxima", bg:"#fff8e8" },
+    ok: { color:"#16a34a", label:"Al día", bg:"#f0fdf4" },
+    sin_datos: { color:"#aaa", label:"Sin datos", bg:"#f8f8f8" },
+  };
+  const sc = statusConfig[status];
+
+  return (
+    <div>
+      {/* Estado */}
+      <div style={{ background:sc.bg, borderRadius:10, padding:"16px 20px", marginBottom:16, borderLeft:`4px solid ${sc.color}` }}>
+        <div style={{ fontWeight:700, fontSize:16, color:sc.color, marginBottom:4 }}>{sc.label}</div>
+        {nextDate&&(
+          <div style={{ fontSize:13, color:"#555" }}>
+            {status==="vencido"
+              ? `Debería haberse revisado en ${nextDate.toLocaleDateString("es-ES",{year:"numeric",month:"long"})}`
+              : `Próxima revisión: ${nextDate.toLocaleDateString("es-ES",{year:"numeric",month:"long"})}`
+            }
+          </div>
+        )}
+        {lastDate&&<div style={{ fontSize:12, color:"#aaa", marginTop:4 }}>Basado en {basedOn}</div>}
+      </div>
+
+      {/* Datos clave */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
+        <div style={{ background:"#f8f6f0", borderRadius:8, padding:"12px 14px" }}>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#aaa", fontFamily:"'DM Mono',monospace", marginBottom:4 }}>Intervalo</div>
+          <div style={{ fontWeight:700, fontSize:15 }}>Cada {interval} años</div>
+        </div>
+        <div style={{ background:"#f8f6f0", borderRadius:8, padding:"12px 14px" }}>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#aaa", fontFamily:"'DM Mono',monospace", marginBottom:4 }}>{basedOn==="último servicio"?"Último servicio":"Año de compra"}</div>
+          <div style={{ fontWeight:700, fontSize:15 }}>{lastDate?.split("-")[0]||"—"}</div>
+        </div>
+        <div style={{ background:sc.bg, borderRadius:8, padding:"12px 14px", border:`1px solid ${sc.color}30` }}>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#aaa", fontFamily:"'DM Mono',monospace", marginBottom:4 }}>Años restantes</div>
+          <div style={{ fontWeight:700, fontSize:15, color:sc.color }}>{yearsLeft!==null?yearsLeft>0?`${Math.abs(yearsLeft).toFixed(1)} años`:"Vencido":"—"}</div>
+        </div>
+      </div>
+
+      {/* Acciones */}
+      <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16 }}>
+        <button style={{ background:"#1a2744", border:"none", color:"#fff", borderRadius:8, padding:"10px 18px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={onAddService}>
+          + Registrar servicio
+        </button>
+        {(status==="vencido"||status==="urgente"||status==="proximo")&&(
+          <a href="/talleres" style={{ background:"#b8963e", border:"none", color:"#fff", borderRadius:8, padding:"10px 18px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600, textDecoration:"none" }}>
+            🔧 Buscar taller
+          </a>
+        )}
+      </div>
+
+      {/* Historial mini */}
+      {services.length>0&&(
+        <div>
+          <div style={{ fontSize:12, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#aaa", fontFamily:"'DM Mono',monospace", marginBottom:10 }}>Historial</div>
+          {services.slice(0,3).map((s,i)=>(
+            <div key={s.id} style={{ display:"flex", gap:12, paddingBottom:10, marginBottom:10, borderBottom:i<Math.min(services.length,3)-1?"1px solid #f0ede6":"none" }}>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:"#b8963e", marginTop:5, flexShrink:0 }} />
+              <div>
+                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#b8963e" }}>{s.service_date}</div>
+                {s.workshop&&<div style={{ fontWeight:600, fontSize:13 }}>{s.workshop}</div>}
+                <div style={{ fontSize:12, color:"#666" }}>{s.description}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {services.length===0&&(
+        <div style={{ textAlign:"center", padding:"24px 0", color:"#aaa", fontSize:13 }}>Sin servicios registrados aún.</div>
       )}
     </div>
   );
@@ -517,7 +625,7 @@ export function GaragePage({ currentUser, onNavigate }) {
   if(loading) return <Spinner />;
 
   if(showPostInfo&&savedWatch) return <PostRegistrationInfo watch={savedWatch} onClose={()=>{ setShowPostInfo(false); setSavedWatch(null); }} />;
-  if(selectedRegistration) return <WatchPassport registration={selectedRegistration} watch={selectedRegistration.watch} currentUser={currentUser} onBack={()=>setSelectedRegistration(null)} onUpdated={load} />;
+  if(selectedRegistration) return <WatchPassport registration={selectedRegistration} watch={selectedRegistration.watch} currentUser={currentUser} onBack={()=>setSelectedRegistration(null)} onUpdated={load} defaultTab={selectedRegistration.defaultTab} />;
 
   return (
     <div>
@@ -549,14 +657,37 @@ export function GaragePage({ currentUser, onNavigate }) {
       {watches.length>0&&<GarageCarousel watches={watches} onSelect={setSelectedRegistration} />}
 
       {/* Stats */}
-      {watches.length>0&&(
-        <div style={{ display:"flex", gap:20, marginBottom:24, flexWrap:"wrap" }}>
-          <span style={{ fontSize:13, color:"#888" }}>⌚ <strong>{watches.length}</strong> relojes</span>
-          <span style={{ fontSize:13, color:"#888" }}>❤️ <strong>{wishlist.length}</strong> en wish list</span>
-          {topBrand&&<span style={{ fontSize:13, color:"#888" }}>🏆 <strong>{topBrand[0]}</strong> favorita</span>}
-          {topType&&<span style={{ fontSize:13, color:"#888", textTransform:"capitalize" }}>📊 <strong>{topType[0]}</strong></span>}
-        </div>
-      )}
+      {watches.length>0&&(()=>{
+        const totalValue = watches.reduce((s,w)=>{
+          if(!w.watch?.market_price) return s;
+          const num = parseInt(w.watch.market_price.replace(/[~€\s.]/g,"").replace(/,/g,""));
+          return s + (isNaN(num)?0:num);
+        },0);
+        return (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))", gap:12, marginBottom:24 }}>
+            <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"16px 12px" }}>
+              <div style={{ fontSize:24, marginBottom:4 }}>⌚</div>
+              <div style={{ fontWeight:700, fontSize:22 }}>{watches.length}</div>
+              <div style={S.muted}>{watches.length===1?"reloj":"relojes"}</div>
+            </div>
+            <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"16px 12px" }}>
+              <div style={{ fontSize:24, marginBottom:4 }}>❤️</div>
+              <div style={{ fontWeight:700, fontSize:22 }}>{wishlist.length}</div>
+              <div style={S.muted}>wish list</div>
+            </div>
+            {topBrand&&<div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"16px 12px" }}>
+              <div style={{ fontSize:24, marginBottom:4 }}>🏆</div>
+              <div style={{ fontWeight:700, fontSize:16, textTransform:"capitalize" }}>{topBrand[0]}</div>
+              <div style={S.muted}>marca favorita</div>
+            </div>}
+            {totalValue>0&&<div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"16px 12px" }}>
+              <div style={{ fontSize:24, marginBottom:4 }}>💰</div>
+              <div style={{ fontWeight:700, fontSize:16, color:"#b8963e" }}>{totalValue.toLocaleString()}€</div>
+              <div style={S.muted}>valor estimado</div>
+            </div>}
+          </div>
+        );
+      })()}
 
       {/* Wish List */}
       {wishlist.length>0&&(

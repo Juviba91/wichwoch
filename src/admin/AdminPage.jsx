@@ -178,11 +178,21 @@ export function AdminPage({ user, onNavigate }) {
 
   async function deleteUser(id) {
     if(!window.confirm("¿BORRAR esta cuenta completamente? Esta acción no se puede deshacer.")) return;
-    if(!window.confirm("¿Estás seguro? Se borrarán todos sus datos, posts y contenido.")) return;
-    await supabase.from("posts").delete().eq("author_id",id);
-    await supabase.from("forum_threads").delete().eq("author_id",id);
+    if(!window.confirm("¿Seguro? Se borrarán TODOS sus datos permanentemente.")) return;
+    // Delete all user data in order
+    await supabase.from("watch_service_history").delete().eq("user_id",id);
     await supabase.from("watch_registrations").delete().eq("user_id",id);
     await supabase.from("watch_wishlist").delete().eq("user_id",id);
+    await supabase.from("watch_reviews").delete().eq("author_id",id);
+    await supabase.from("watch_list_items").delete().in("list_id",
+      (await supabase.from("watch_lists").select("id").eq("user_id",id)).data?.map(l=>l.id)||[]
+    );
+    await supabase.from("watch_lists").delete().eq("user_id",id);
+    await supabase.from("forum_replies").delete().eq("author_id",id);
+    await supabase.from("forum_threads").delete().eq("author_id",id);
+    await supabase.from("posts").delete().eq("author_id",id);
+    await supabase.from("follows").delete().or(`follower_id.eq.${id},following_id.eq.${id}`);
+    await supabase.from("maintenance_todos").delete().eq("user_id",id);
     await supabase.from("profiles").delete().eq("id",id);
     await loadUsers();
   }

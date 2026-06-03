@@ -27,9 +27,9 @@ export function Footer({ onNavigate }) {
           {/* Empresa */}
           <div>
             <div style={{ fontWeight:700, fontSize:12, letterSpacing:2, textTransform:"uppercase", color:"rgba(255,255,255,0.4)", marginBottom:14, fontFamily:"'DM Mono',monospace" }}>Empresa</div>
-            <div style={{ marginBottom:8 }}><a href="mailto:hola@wichwoch.com" style={{ color:"rgba(255,255,255,0.6)", fontSize:13, textDecoration:"none" }}>Contacto</a></div>
-            <div style={{ marginBottom:8 }}><a href="mailto:marcas@wichwoch.com" style={{ color:"rgba(255,255,255,0.6)", fontSize:13, textDecoration:"none" }}>Para marcas</a></div>
-            <div style={{ marginBottom:8 }}><a href="mailto:talleres@wichwoch.com" style={{ color:"rgba(255,255,255,0.6)", fontSize:13, textDecoration:"none" }}>Para talleres</a></div>
+            <div style={{ marginBottom:8 }}><a href="mailto:jdevill@hotmail.com" target="_blank" rel="noreferrer" style={{ color:"rgba(255,255,255,0.6)", fontSize:13, textDecoration:"none" }}>Contacto</a></div>
+            <div style={{ marginBottom:8 }}><a href="mailto:jdevill@hotmail.com" target="_blank" rel="noreferrer" style={{ color:"rgba(255,255,255,0.6)", fontSize:13, textDecoration:"none" }}>Para marcas</a></div>
+            <div style={{ marginBottom:8 }}><a href="mailto:jdevill@hotmail.com" target="_blank" rel="noreferrer" style={{ color:"rgba(255,255,255,0.6)", fontSize:13, textDecoration:"none" }}>Para talleres</a></div>
           </div>
         </div>
         {/* Bottom */}
