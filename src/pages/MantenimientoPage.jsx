@@ -1,218 +1,147 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { S, brandColor, brandFromSlug, timeAgo } from "../data/constants";
+import { S, brandColor, brandFromSlug } from "../data/constants";
 import { Spinner } from "../components/UI";
 
 const SERVICE_INTERVALS = {
-  rolex: 10, omega: 8, patek: 5, ap: 5, iwc: 5,
-  jlc: 5, tudor: 10, cartier: 5, breitling: 5,
-  tag: 5, vc: 5, hublot: 5, panerai: 5, gs: 5, zenith: 5
+  rolex:10, omega:8, patek:5, ap:5, iwc:5, jlc:5, tudor:10,
+  cartier:5, breitling:5, tag:5, vc:5, hublot:5, panerai:5, gs:5, zenith:5
 };
 
-function getRecommendedInterval(slug) {
-  const brand = (slug||"").split("_")[0];
-  return SERVICE_INTERVALS[brand] || 5;
-}
+function getInterval(slug) { return SERVICE_INTERVALS[(slug||"").split("_")[0]] || 5; }
 
-function getNextServiceDate(lastServiceDate, slug) {
-  if(!lastServiceDate) return null;
-  const years = getRecommendedInterval(slug);
-  const d = new Date(lastServiceDate);
-  d.setFullYear(d.getFullYear() + years);
+function getNextService(lastDate, slug) {
+  if(!lastDate) return null;
+  const d = new Date(lastDate);
+  d.setFullYear(d.getFullYear() + getInterval(slug));
   return d;
 }
 
-function getServiceStatus(watch, lastService) {
-  const next = getNextServiceDate(lastService?.service_date, watch.slug);
-  if(!next) return { status:"sin_historial", label:"Sin historial", color:"#aaa" };
-  const now = new Date();
-  const diffMonths = (next - now) / (1000*60*60*24*30);
-  if(diffMonths < 0) return { status:"vencido", label:"Revisión vencida", color:"#dc2626", urgent:true };
-  if(diffMonths < 6) return { status:"proximo", label:"Revisión próxima", color:"#d97706", urgent:true };
-  return { status:"ok", label:"Al día", color:"#16a34a" };
+function getStatus(watch, lastSvc) {
+  const next = getNextService(lastSvc?.service_date, watch?.slug);
+  if(!next) return { status:"sin_historial", label:"Sin historial", color:"#aaa", urgent:false };
+  const months = (next - new Date()) / (1000*60*60*24*30);
+  if(months < 0) return { status:"vencido", label:"Revisión vencida", color:"#dc2626", urgent:true };
+  if(months < 6) return { status:"proximo", label:"Revisión próxima", color:"#d97706", urgent:true };
+  return { status:"ok", label:"Al día", color:"#16a34a", urgent:false };
 }
 
 export function MantenimientoPage({ currentUser, onNavigate }) {
   const [watches, setWatches] = useState([]);
   const [services, setServices] = useState({});
+  const [todos, setTodos] = useState({});
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
-  const [showAddService, setShowAddService] = useState(false);
-  const [serviceForm, setServiceForm] = useState({ service_date:"", workshop:"", description:"", price:"" });
-  const [saving, setSaving] = useState(false);
-  const setF = (k,v) => setServiceForm(f=>({...f,[k]:v}));
+  const [view, setView] = useState("overview"); // overview | detail
 
   useEffect(()=>{ load(); },[]);
 
   async function load() {
     setLoading(true);
     const {data:regs}=await supabase.from("watch_registrations")
-      .select("id, watch:watches(id,slug,model,reference,image_url,brand_slug)")
+      .select("id,watch:watches(id,slug,model,image_url,brand_slug,market_price)")
       .eq("user_id",currentUser.id);
-
-    const regIds = (regs||[]).map(r=>r.id);
+    const regIds=(regs||[]).map(r=>r.id);
     if(regIds.length>0) {
-      const {data:svcs}=await supabase.from("watch_service_history")
-        .select("*").in("registration_id",regIds)
-        .order("service_date",{ascending:false});
-
-      // Group by registration_id
-      const grouped = {};
-      (svcs||[]).forEach(s=>{ if(!grouped[s.registration_id]) grouped[s.registration_id]=s; });
-      setServices(grouped);
+      const [{data:svcs},{data:tdos}]=await Promise.all([
+        supabase.from("watch_service_history").select("*").in("registration_id",regIds).order("service_date",{ascending:false}),
+        supabase.from("maintenance_todos").select("*").eq("user_id",currentUser.id).order("created_at",{ascending:true}),
+      ]);
+      const svcMap = {};
+      (svcs||[]).forEach(s=>{ if(!svcMap[s.registration_id]) svcMap[s.registration_id]=s; });
+      const svcAllMap = {};
+      (svcs||[]).forEach(s=>{ if(!svcAllMap[s.registration_id]) svcAllMap[s.registration_id]=[]; svcAllMap[s.registration_id].push(s); });
+      setServices({...svcMap, _all:svcAllMap});
+      const todoMap = {};
+      (tdos||[]).forEach(t=>{ if(!todoMap[t.registration_id]) todoMap[t.registration_id]=[]; todoMap[t.registration_id].push(t); });
+      setTodos(todoMap);
     }
     setWatches(regs||[]);
     setLoading(false);
   }
 
-  async function addService() {
-    if(!serviceForm.description.trim()||!serviceForm.service_date) return;
-    setSaving(true);
-    await supabase.from("watch_service_history").insert({
-      registration_id: selected.id,
-      user_id: currentUser.id,
-      service_date: serviceForm.service_date,
-      workshop: serviceForm.workshop||null,
-      description: serviceForm.description.trim(),
-      price: serviceForm.price?parseInt(serviceForm.price):null,
-    });
-    setServiceForm({service_date:"",workshop:"",description:"",price:""});
-    setShowAddService(false);
-    await load();
-    setSaving(false);
-  }
+  const urgent = watches.filter(w=>getStatus(w.watch,services[w.id]).urgent);
+
 
   if(loading) return <Spinner />;
-
-  const urgent = watches.filter(w=>{
-    const s = getServiceStatus(w.watch, services[w.id]);
-    return s.urgent;
-  });
+  if(view==="detail"&&selected) return (
+    <WatchMaintDetail reg={selected} services={services._all?.[selected.id]||[]} todos={todos[selected.id]||[]} currentUser={currentUser} onBack={()=>{ setView("overview"); load(); }} onNavigate={onNavigate} />
+  );
 
   return (
     <div>
       <h2 style={{ ...S.h1, marginBottom:4 }}>🔧 Mantenimiento</h2>
-      <p style={{ ...S.muted, marginBottom:24 }}>Seguimiento del cuidado de tus relojes</p>
+      <p style={{ ...S.muted, marginBottom:20 }}>Seguimiento del cuidado de tu colección</p>
 
-      {/* Alertas urgentes */}
+      {/* Stats */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:12, marginBottom:24 }}>
+        <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:20 }}>
+          <div style={{ fontSize:28, marginBottom:4 }}>⌚</div>
+          <div style={{ fontWeight:700, fontSize:22 }}>{watches.length}</div>
+          <div style={S.muted}>relojes</div>
+        </div>
+
+        <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:20 }}>
+          <div style={{ fontSize:28, marginBottom:4 }}>✓</div>
+          <div style={{ fontWeight:700, fontSize:22, color:urgent.length>0?"#dc2626":"#16a34a" }}>{urgent.length}</div>
+          <div style={S.muted}>{urgent.length===1?"necesita atención":"necesitan atención"}</div>
+        </div>
+      </div>
+
+      {/* Alertas */}
       {urgent.length>0&&(
-        <div style={{ ...S.card, borderLeft:"4px solid #dc2626", background:"#fff5f5", marginBottom:24 }}>
-          <div style={{ fontWeight:700, fontSize:14, color:"#dc2626", marginBottom:8 }}>⚠️ {urgent.length} reloj{urgent.length>1?"es":""} {urgent.length>1?"necesitan":"necesita"} atención</div>
+        <div style={{ ...S.card, borderLeft:"4px solid #dc2626", background:"#fff5f5", marginBottom:20 }}>
+          <div style={{ fontWeight:700, fontSize:14, color:"#dc2626", marginBottom:10 }}>⚠️ Atención requerida</div>
           {urgent.map(w=>{
-            const s = getServiceStatus(w.watch, services[w.id]);
-            return <div key={w.id} style={{ fontSize:13, color:"#555", marginBottom:4 }}>• {w.watch?.model} — <span style={{ color:s.color, fontWeight:600 }}>{s.label}</span></div>;
+            const s=getStatus(w.watch,services[w.id]);
+            return (
+              <div key={w.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                <div>
+                  <span style={{ fontSize:13, fontWeight:600 }}>{w.watch?.model}</span>
+                  <span style={{ fontSize:12, color:s.color, marginLeft:8, fontWeight:600 }}>{s.label}</span>
+                </div>
+                <button style={{ ...S.btn("outline"), fontSize:11, padding:"3px 10px" }} onClick={()=>onNavigate("talleres")}>Buscar taller →</button>
+              </div>
+            );
           })}
         </div>
       )}
 
-      {/* Recomendación de taller */}
-      {urgent.length>0&&(
-        <div style={{ ...S.card, borderLeft:"4px solid #b8963e", background:"#fff8e8", marginBottom:20 }}>
-          <div style={{ fontWeight:700, fontSize:14, marginBottom:6 }}>🔧 ¿Necesitas un taller de confianza?</div>
-          <p style={{ fontSize:13, color:"#666", margin:"0 0 12px" }}>Tienes {urgent.length} reloj{urgent.length>1?"es que necesitan":"que necesita"} revisión. Te recomendamos buscar un taller verificado por la comunidad.</p>
-          <button style={S.btn("primary")} onClick={()=>onNavigate("talleres")}>Ver talleres →</button>
-        </div>
-      )}
-
+      {/* Relojes */}
       {watches.length===0&&(
         <div style={{ ...S.card, textAlign:"center", padding:48 }}>
           <div style={{ fontSize:48, marginBottom:16 }}>🔧</div>
           <div style={{ fontWeight:700, fontSize:18, marginBottom:8 }}>Sin relojes en tu Garage</div>
-          <p style={{ ...S.muted, marginBottom:20 }}>Añade relojes a tu Garage para hacer seguimiento de su mantenimiento</p>
           <button style={S.btn("primary")} onClick={()=>onNavigate("garage")}>Ir al Garage</button>
         </div>
       )}
 
-      {/* Lista de relojes */}
       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
         {watches.map(w=>{
-          const lastSvc = services[w.id];
-          const status = getServiceStatus(w.watch, lastSvc);
-          const next = getNextServiceDate(lastSvc?.service_date, w.watch?.slug);
-          const interval = getRecommendedInterval(w.watch?.slug);
-          const isOpen = selected?.id===w.id;
-          const bg = brandColor(w.watch?.slug||"");
+          const lastSvc=services[w.id];
+          const status=getStatus(w.watch,lastSvc);
+          const next=getNextService(lastSvc?.service_date,w.watch?.slug);
+          const interval=getInterval(w.watch?.slug);
+          const pendingTodos=(todos[w.id]||[]).filter(t=>!t.completed).length;
 
           return (
-            <div key={w.id} style={{ ...S.card, padding:0, overflow:"hidden" }}>
-              {/* Header */}
-              <div style={{ display:"flex", alignItems:"center", gap:14, padding:"16px 20px", cursor:"pointer" }}
-                onClick={()=>setSelected(isOpen?null:w)}>
-                <div style={{ width:48, height:48, borderRadius:10, background:`linear-gradient(135deg,${bg},${bg}99)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>⌚</div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontWeight:700, fontSize:15 }}>{w.watch?.model}</div>
-                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#aaa" }}>@{w.watch?.slug} · {brandFromSlug(w.watch?.slug||"")}</div>
-                </div>
-                <div style={{ textAlign:"right" }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:status.color, marginBottom:2 }}>{status.label}</div>
-                  {next&&<div style={{ fontSize:11, color:"#aaa" }}>Próx. revisión: {next.getFullYear()}</div>}
-                  {!lastSvc&&<div style={{ fontSize:11, color:"#aaa" }}>Sin servicios</div>}
-                </div>
-                <span style={{ color:"#aaa", fontSize:18, marginLeft:8 }}>{isOpen?"▲":"▼"}</span>
+            <div key={w.id} style={{ ...S.card, display:"flex", alignItems:"center", gap:14, cursor:"pointer" }}
+              onClick={()=>onNavigate("garage_watch", w.id)}>
+              <div style={{ width:52, height:52, borderRadius:10, background:`linear-gradient(135deg,${brandColor(w.watch?.slug||"")},${brandColor(w.watch?.slug||"")}88)`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                {w.watch?.image_url?<img src={w.watch.image_url} alt="" style={{ height:"85%", objectFit:"contain" }} onError={e=>e.target.style.display="none"} />:<span style={{ fontSize:22 }}>⌚</span>}
               </div>
-
-              {/* Detail panel */}
-              {isOpen&&(
-                <div style={{ borderTop:"1px solid #f0ede6", padding:"16px 20px" }}>
-                  {/* Info de mantenimiento */}
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:10, marginBottom:16 }}>
-                    <div style={{ background:"#f8f6f0", borderRadius:8, padding:"10px 14px" }}>
-                      <div style={S.label}>Intervalo recomendado</div>
-                      <div style={{ fontWeight:700 }}>Cada {interval} años</div>
-                    </div>
-                    <div style={{ background:"#f8f6f0", borderRadius:8, padding:"10px 14px" }}>
-                      <div style={S.label}>Último servicio</div>
-                      <div style={{ fontWeight:700 }}>{lastSvc?.service_date||"—"}</div>
-                    </div>
-                    {lastSvc?.workshop&&(
-                      <div style={{ background:"#f8f6f0", borderRadius:8, padding:"10px 14px" }}>
-                        <div style={S.label}>Taller</div>
-                        <div style={{ fontWeight:700 }}>{lastSvc.workshop}</div>
-                      </div>
-                    )}
-                    {next&&(
-                      <div style={{ background:status.urgent?"#fff5f5":"#f0fdf4", borderRadius:8, padding:"10px 14px", border:`1px solid ${status.urgent?"#fcc":"#b3dfc4"}` }}>
-                        <div style={S.label}>Próxima revisión</div>
-                        <div style={{ fontWeight:700, color:status.color }}>{next.toLocaleDateString("es-ES",{year:"numeric",month:"long"})}</div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Historial de servicios */}
-                  <div style={{ marginBottom:14 }}>
-                    <div style={{ ...S.row, justifyContent:"space-between", marginBottom:10 }}>
-                      <span style={{ fontWeight:600, fontSize:14 }}>Historial de servicios</span>
-                      <button style={{ ...S.btn("primary"), fontSize:12, padding:"5px 14px" }} onClick={()=>setShowAddService(true)}>+ Añadir</button>
-                    </div>
-
-                    {showAddService&&selected?.id===w.id&&(
-                      <div style={{ background:"#f8f6f0", borderRadius:8, padding:16, marginBottom:12 }}>
-                        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
-                          <div><span style={S.label}>Fecha</span><input style={S.input} type="date" value={serviceForm.service_date} onChange={e=>setF("service_date",e.target.value)} /></div>
-                          <div><span style={S.label}>Taller</span><input style={S.input} placeholder="Nombre del taller" value={serviceForm.workshop} onChange={e=>setF("workshop",e.target.value)} /></div>
-                        </div>
-                        <div style={{ marginBottom:10 }}><span style={S.label}>Descripción</span><textarea style={{ ...S.input, resize:"none" }} rows={2} placeholder="Revisión completa, cambio de correa..." value={serviceForm.description} onChange={e=>setF("description",e.target.value)} /></div>
-                        <div style={{ marginBottom:12 }}><span style={S.label}>Coste (€)</span><input style={S.input} type="number" placeholder="250" value={serviceForm.price} onChange={e=>setF("price",e.target.value)} /></div>
-                        <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
-                          <button style={S.btn("outline")} onClick={()=>setShowAddService(false)}>Cancelar</button>
-                          <button style={S.btn("primary")} onClick={addService} disabled={saving||!serviceForm.description.trim()||!serviceForm.service_date}>{saving?"Guardando…":"Guardar"}</button>
-                        </div>
-                      </div>
-                    )}
-
-                    <ServiceHistory registrationId={w.id} />
-                  </div>
-
-                  <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-                    <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("garage")}>Ver en Garage →</button>
-                    {getServiceStatus(w.watch, services[w.id]).urgent&&(
-                      <button style={{ ...S.btn("gold"), fontSize:12 }} onClick={()=>onNavigate("talleres")}>
-                        🔧 Buscar taller →
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
+              <div style={{ flex:1 }}>
+                <div style={{ fontWeight:700, fontSize:15 }}>{w.watch?.model}</div>
+                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#aaa" }}>{brandFromSlug(w.watch?.slug||"")}</div>
+                {pendingTodos>0&&<div style={{ fontSize:11, color:"#d97706", marginTop:2 }}>📋 {pendingTodos} tarea{pendingTodos>1?"s":""} pendiente{pendingTodos>1?"s":""}</div>}
+              </div>
+              <div style={{ textAlign:"right" }}>
+                <div style={{ fontSize:12, fontWeight:700, color:status.color }}>{status.label}</div>
+                {next&&<div style={{ fontSize:11, color:"#aaa" }}>Próx: {next.getFullYear()}</div>}
+                {!lastSvc&&<div style={{ fontSize:11, color:"#aaa" }}>Sin servicios</div>}
+                <div style={{ fontSize:11, color:"#aaa" }}>Cada {interval} años</div>
+              </div>
+              <span style={{ color:"#aaa", fontSize:16 }}>›</span>
             </div>
           );
         })}
@@ -221,31 +150,149 @@ export function MantenimientoPage({ currentUser, onNavigate }) {
   );
 }
 
-function ServiceHistory({ registrationId }) {
-  const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true);
+// ─── DETALLE DE MANTENIMIENTO POR RELOJ ──────────────────────────────────────
+function WatchMaintDetail({ reg, services, todos: initialTodos, currentUser, onBack, onNavigate }) {
+  const watch = reg.watch;
+  const [todos, setTodos] = useState(initialTodos);
+  const [newTodo, setNewTodo] = useState("");
+  const [addingTodo, setAddingTodo] = useState(false);
+  const status = getStatus(watch, services[0]);
+  const next = getNextService(services[0]?.service_date, watch?.slug);
+  const interval = getInterval(watch?.slug);
 
-  useEffect(()=>{
-    supabase.from("watch_service_history").select("*").eq("registration_id",registrationId)
-      .order("service_date",{ascending:false})
-      .then(({data})=>{ setServices(data||[]); setLoading(false); });
-  },[registrationId]);
+  async function addTodo() {
+    if(!newTodo.trim()) return;
+    const {data}=await supabase.from("maintenance_todos").insert({
+      user_id:currentUser.id, registration_id:reg.id, title:newTodo.trim()
+    }).select().single();
+    if(data) setTodos(t=>[...t,data]);
+    setNewTodo(""); setAddingTodo(false);
+  }
 
-  if(loading) return <div style={S.muted}>Cargando...</div>;
-  if(services.length===0) return <div style={{ fontSize:13, color:"#aaa", padding:"8px 0" }}>Sin servicios registrados aún.</div>;
+  async function toggleTodo(id, completed) {
+    await supabase.from("maintenance_todos").update({completed:!completed, completed_at:!completed?new Date().toISOString():null}).eq("id",id);
+    setTodos(t=>t.map(td=>td.id===id?{...td,completed:!completed}:td));
+  }
+
+  async function deleteTodo(id) {
+    await supabase.from("maintenance_todos").delete().eq("id",id);
+    setTodos(t=>t.filter(td=>td.id!==id));
+  }
+
+  const bg = brandColor(watch?.slug||"");
+  const BRAND_TIPS = {
+    rolex:"Los Rolex modernos son muy robustos. Revision recomendada cada 10 años o si notas pérdida de precisión.",
+    omega:"Omega recomienda revisión cada 8-10 años. Los Co-Axial son especialmente duraderos.",
+    patek:"Patek Philippe recomienda revisión cada 5 años para mantener la garantía y el valor.",
+    ap:"Audemars Piguet recomienda revisión cada 5 años. El Royal Oak es especialmente resistente.",
+  };
+  const brandSlug = (watch?.slug||"").split("_")[0];
+  const tip = BRAND_TIPS[brandSlug];
 
   return (
     <div>
-      {services.map(s=>(
-        <div key={s.id} style={{ padding:"10px 0", borderBottom:"1px solid #f5f3ef", display:"flex", justifyContent:"space-between" }}>
-          <div>
-            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#b8963e", marginBottom:2 }}>{s.service_date}</div>
-            {s.workshop&&<div style={{ fontWeight:600, fontSize:13, marginBottom:2 }}>{s.workshop}</div>}
-            <div style={{ fontSize:13, color:"#444" }}>{s.description}</div>
-          </div>
-          {s.price&&<div style={{ fontSize:13, color:"#888", flexShrink:0, marginLeft:12 }}>{s.price.toLocaleString()}€</div>}
+      <div style={{ display:"flex", gap:8, marginBottom:20 }}>
+        <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={onBack}>← Mantenimiento</button>
+        <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("garage")}>⌚ Garage</button>
+      </div>
+
+      {/* Hero */}
+      <div style={{ height:160, background:`linear-gradient(135deg,${bg},${bg}88)`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 28px", marginBottom:20, overflow:"hidden" }}>
+        <div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"rgba(255,255,255,0.5)", letterSpacing:2, textTransform:"uppercase", marginBottom:6 }}>{brandFromSlug(watch?.slug||"")}</div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:22, color:"#fff", fontWeight:700 }}>{watch?.model}</div>
+          <div style={{ marginTop:8, display:"inline-block", background:status.color, borderRadius:20, padding:"3px 12px", fontSize:12, color:"#fff", fontWeight:700 }}>{status.label}</div>
         </div>
-      ))}
+        {watch?.image_url&&<img src={watch.image_url} alt="" style={{ height:"80%", objectFit:"contain", filter:"drop-shadow(0 8px 24px rgba(0,0,0,0.4))" }} onError={e=>e.target.style.display="none"} />}
+      </div>
+
+      {/* Info rápida */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:20 }}>
+        <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:14 }}>
+          <div style={S.label}>Intervalo</div>
+          <div style={{ fontWeight:700 }}>Cada {interval} años</div>
+        </div>
+        <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:14 }}>
+          <div style={S.label}>Último servicio</div>
+          <div style={{ fontWeight:700 }}>{services[0]?.service_date||"—"}</div>
+        </div>
+        <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:14, background:status.urgent?"#fff5f5":"#fff" }}>
+          <div style={S.label}>Próxima revisión</div>
+          <div style={{ fontWeight:700, color:status.color }}>{next?next.getFullYear():"—"}</div>
+        </div>
+      </div>
+
+      {/* Tip de marca */}
+      {tip&&(
+        <div style={{ ...S.card, background:"#f8f6f0", marginBottom:20 }}>
+          <div style={{ fontWeight:700, fontSize:13, marginBottom:4 }}>💡 Consejo de mantenimiento</div>
+          <p style={{ fontSize:13, color:"#555", margin:0, lineHeight:1.6 }}>{tip}</p>
+        </div>
+      )}
+
+      {/* Timeline */}
+      <div style={{ ...S.card, marginBottom:20 }}>
+        <div style={{ ...S.row, justifyContent:"space-between", marginBottom:16 }}>
+          <h3 style={{ ...S.h2, marginBottom:0 }}>📅 Historial</h3>
+          <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("garage")}>+ Añadir servicio</button>
+        </div>
+        {services.length===0&&<p style={S.muted}>Sin servicios registrados.</p>}
+        <div style={{ position:"relative" }}>
+          {services.map((s,i)=>(
+            <div key={s.id} style={{ display:"flex", gap:14, marginBottom:i<services.length-1?20:0 }}>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
+                <div style={{ width:12, height:12, borderRadius:"50%", background:"#b8963e", flexShrink:0, marginTop:4 }} />
+                {i<services.length-1&&<div style={{ width:2, flex:1, background:"#e0ddd6", margin:"4px 0" }} />}
+              </div>
+              <div style={{ flex:1, paddingBottom:i<services.length-1?0:0 }}>
+                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#b8963e", marginBottom:2 }}>{s.service_date}</div>
+                {s.workshop&&<div style={{ fontWeight:600, fontSize:14 }}>{s.workshop}</div>}
+                <div style={{ fontSize:13, color:"#444" }}>{s.description}</div>
+                {s.price&&<div style={{ fontSize:12, color:"#888", marginTop:2 }}>{s.price.toLocaleString()}€</div>}
+                <div style={{ display:"flex", gap:8, marginTop:4 }}>
+                  {s.photo_url&&<a href={s.photo_url} target="_blank" rel="noreferrer" style={{ fontSize:11, color:"#1a2744" }}>📷 Foto</a>}
+                  {s.invoice_url&&<a href={s.invoice_url} target="_blank" rel="noreferrer" style={{ fontSize:11, color:"#1a2744" }}>📄 Factura</a>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {next&&(
+          <div style={{ display:"flex", gap:14, marginTop:services.length>0?20:0 }}>
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
+              <div style={{ width:12, height:12, borderRadius:"50%", background:status.urgent?"#dc2626":"#e0ddd6", flexShrink:0, marginTop:4, border:"2px dashed #b8963e" }} />
+            </div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:status.urgent?"#dc2626":"#aaa", marginBottom:2 }}>{next.toLocaleDateString("es-ES",{year:"numeric",month:"long"})}</div>
+              <div style={{ fontSize:13, color:status.urgent?"#dc2626":"#aaa", fontStyle:"italic" }}>Próxima revisión estimada</div>
+              {status.urgent&&<button style={{ ...S.btn("primary"), fontSize:12, marginTop:8 }} onClick={()=>onNavigate("talleres")}>🔧 Buscar taller →</button>}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* To-do list */}
+      <div style={S.card}>
+        <div style={{ ...S.row, justifyContent:"space-between", marginBottom:16 }}>
+          <h3 style={{ ...S.h2, marginBottom:0 }}>📋 Tareas pendientes</h3>
+          <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>setAddingTodo(true)}>+ Añadir</button>
+        </div>
+        {addingTodo&&(
+          <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+            <input style={{ ...S.input, flex:1 }} placeholder="Ej: Revisar corona, cambiar correa..." value={newTodo} onChange={e=>setNewTodo(e.target.value)} autoFocus onKeyDown={e=>e.key==="Enter"&&addTodo()} />
+            <button style={S.btn("primary")} onClick={addTodo}>Añadir</button>
+            <button style={S.btn("outline")} onClick={()=>{ setAddingTodo(false); setNewTodo(""); }}>✕</button>
+          </div>
+        )}
+        {todos.length===0&&!addingTodo&&<p style={S.muted}>Sin tareas. ¡Todo en orden!</p>}
+        {todos.map(t=>(
+          <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderBottom:"1px solid #f5f3ef" }}>
+            <input type="checkbox" checked={t.completed} onChange={()=>toggleTodo(t.id,t.completed)} style={{ width:16, height:16, cursor:"pointer", accentColor:"#1a2744" }} />
+            <span style={{ flex:1, fontSize:13, color:t.completed?"#aaa":"#1a1a1a", textDecoration:t.completed?"line-through":"none" }}>{t.title}</span>
+            <button style={{ background:"none", border:"none", cursor:"pointer", color:"#ddd", fontSize:14 }} onClick={()=>deleteTodo(t.id)}>🗑️</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

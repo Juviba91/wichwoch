@@ -27,6 +27,7 @@ export function AdminPage({ user, onNavigate }) {
     if(tab==="contenido") await loadContent();
     if(tab==="relojes") await loadPendingWatches();
     if(tab==="empresas") await loadPendingBusinesses();
+    if(tab==="feedback") await loadFeedback();
     setLoading(false);
   }
 
@@ -70,6 +71,15 @@ export function AdminPage({ user, onNavigate }) {
   const [rejectReason, setRejectReason] = useState("");
 
   const [pendingBusinesses, setPendingBusinesses] = useState([]);
+
+  const [feedback, setFeedback] = useState([]);
+
+  async function loadFeedback() {
+    const {data}=await supabase.from("feedback")
+      .select("*, user:profiles(name,handle)")
+      .order("created_at",{ascending:false}).limit(50);
+    setFeedback(data||[]);
+  }
 
   async function loadPendingBusinesses() {
     const {data}=await supabase.from("profiles")
@@ -176,6 +186,27 @@ export function AdminPage({ user, onNavigate }) {
     await loadUsers();
   }
 
+  async function deleteUser(id) {
+    if(!window.confirm("¿BORRAR esta cuenta completamente? Esta acción no se puede deshacer.")) return;
+    if(!window.confirm("¿Seguro? Se borrarán TODOS sus datos permanentemente.")) return;
+    // Delete all user data in order
+    await supabase.from("watch_service_history").delete().eq("user_id",id);
+    await supabase.from("watch_registrations").delete().eq("user_id",id);
+    await supabase.from("watch_wishlist").delete().eq("user_id",id);
+    await supabase.from("watch_reviews").delete().eq("author_id",id);
+    await supabase.from("watch_list_items").delete().in("list_id",
+      (await supabase.from("watch_lists").select("id").eq("user_id",id)).data?.map(l=>l.id)||[]
+    );
+    await supabase.from("watch_lists").delete().eq("user_id",id);
+    await supabase.from("forum_replies").delete().eq("author_id",id);
+    await supabase.from("forum_threads").delete().eq("author_id",id);
+    await supabase.from("posts").delete().eq("author_id",id);
+    await supabase.from("follows").delete().or(`follower_id.eq.${id},following_id.eq.${id}`);
+    await supabase.from("maintenance_todos").delete().eq("user_id",id);
+    await supabase.from("profiles").delete().eq("id",id);
+    await loadUsers();
+  }
+
   async function deleteWatch(id) {
     if(!window.confirm("¿Borrar este reloj del catálogo? Esta acción no se puede deshacer.")) return;
     await supabase.from("watches").delete().eq("id",id);
@@ -189,7 +220,7 @@ export function AdminPage({ user, onNavigate }) {
     </div>
   );
 
-  const TABS = [["metricas","📊 Métricas"],["usuarios","👥 Usuarios"],["contenido","📝 Contenido"],["relojes","⌚ Relojes pendientes"],["empresas","🏢 Empresas pendientes"]];
+  const TABS = [["metricas","📊 Métricas"],["usuarios","👥 Usuarios"],["contenido","📝 Contenido"],["relojes","⌚ Relojes pendientes"],["empresas","🏢 Empresas pendientes"],["feedback","💬 Feedback"]];
 
   return (
     <div>
@@ -275,10 +306,13 @@ export function AdminPage({ user, onNavigate }) {
                       <td style={{ padding:"10px 12px", color:"#888" }}>{u.location||"—"}</td>
                       <td style={{ padding:"10px 12px", color:"#888", fontSize:12 }}>{new Date(u.created_at).toLocaleDateString("es-ES")}</td>
                       <td style={{ padding:"10px 12px" }}>
+                        <div style={{ display:"flex", gap:4 }}>
                         {!u.suspended
-                        ? <button style={{ background:"none", border:"1px solid #fcc", color:"#c00", borderRadius:4, padding:"2px 8px", fontSize:11, cursor:"pointer" }} onClick={()=>suspendUser(u.id)}>Suspender</button>
-                        : <button style={{ background:"none", border:"1px solid #b3dfc4", color:"#16a34a", borderRadius:4, padding:"2px 8px", fontSize:11, cursor:"pointer" }} onClick={()=>unsuspendUser(u.id)}>Reactivar</button>
-                      }
+                          ? <button style={{ background:"none", border:"1px solid #fcc", color:"#c00", borderRadius:4, padding:"2px 8px", fontSize:11, cursor:"pointer" }} onClick={()=>suspendUser(u.id)}>Suspender</button>
+                          : <button style={{ background:"none", border:"1px solid #b3dfc4", color:"#16a34a", borderRadius:4, padding:"2px 8px", fontSize:11, cursor:"pointer" }} onClick={()=>unsuspendUser(u.id)}>Reactivar</button>
+                        }
+                        <button style={{ background:"none", border:"1px solid #fcc", color:"#c00", borderRadius:4, padding:"2px 8px", fontSize:11, cursor:"pointer" }} onClick={()=>deleteUser(u.id)}>Borrar</button>
+                      </div>
                       </td>
                     </tr>
                   ))}

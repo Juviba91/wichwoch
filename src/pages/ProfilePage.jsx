@@ -346,7 +346,6 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
               {!isOwn&&<button style={S.btn(isFollowing?"outline":"primary")} onClick={toggleFollow} disabled={followLoading}>{followLoading?"…":isFollowing?"✓ Siguiendo":"Seguir"}</button>}
               {isOwn&&<div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
             <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("garage")}>⌚ Garage</button>
-            <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("mantenimiento")}>🔧 Mantenimiento</button>
             <button style={{ ...S.btn("outline"), fontSize:12 }} onClick={()=>onNavigate("settings")}>⚙️ Ajustes</button>
           </div>}
             </div>

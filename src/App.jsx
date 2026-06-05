@@ -12,6 +12,8 @@ import { WristCheckPage } from "./pages/WristCheckPage";
 import { MantenimientoPage } from "./pages/MantenimientoPage";
 import { ListasPage } from "./pages/ListasPage";
 import { WorkshopsPage } from "./pages/WorkshopsPage";
+import { Footer } from "./components/Footer";
+import { FeedbackButton } from "./components/FeedbackButton";
 import { RankingPage } from "./pages/RankingPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { CreateWatchPage } from "./pages/CreateWatchPage";
@@ -99,8 +101,8 @@ export default function App() {
 
   const currentUser = session ? session.user : null;
   const NAV = session
-    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"},{id:"perfil",label:"Mi Perfil"}]
-    : [{id:"explore",label:"Explorar"},{id:"relojes",label:"Relojes"},{id:"foros",label:"Foros"}];
+    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"foros",label:"Foros"},{id:"miperfil",label:"Mi Perfil"}]
+    : [{id:"explore",label:"Explorar"},{id:"foros",label:"Foros"}];
 
   return (
     <div style={S.app}>
@@ -109,7 +111,7 @@ export default function App() {
       <nav style={S.nav}>
         <div style={{ cursor:"pointer" }} onClick={()=>navigate(session?"feed":"explore")}><Logo height={38} /></div>
         <div style={{ display:"flex", gap:4 }}>
-          {NAV.map(n=><button key={n.id} style={S.navLink(page.name===n.id||( n.id==="perfil"&&page.name==="profile"))} onClick={()=>n.id==="perfil"?navigate("profile",session?.user?.id):navigate(n.id)}>{n.label}</button>)}
+          {NAV.map(n=><button key={n.id} style={S.navLink(page.name===n.id||(n.id==="miperfil"&&page.name==="profile"))} onClick={()=>n.id==="miperfil"?navigate("profile",session?.user?.id):navigate(n.id)}>{n.label}</button>)}
           {session&&isAdmin(session?.user)&&<button style={{ ...S.navLink(page.name==="admin"), background:page.name==="admin"?"#b8963e":"rgba(255,255,255,0.1)" }} onClick={()=>navigate("admin")}>Admin</button>}
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:8, position:"relative" }}>
@@ -139,6 +141,7 @@ export default function App() {
         {page.name==="settings"&&session&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
         {page.name==="garage"&&session&&<GaragePage currentUser={session.user} onNavigate={navigate} />}
         {page.name==="mantenimiento"&&session&&<MantenimientoPage currentUser={session.user} onNavigate={navigate} />}
+        {page.name==="garage_watch"&&session&&<GaragePage currentUser={session.user} onNavigate={navigate} openWatchId={page.id} />}
         {page.name==="wristcheck"&&<WristCheckPage currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="listas"&&<ListasPage currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="talleres"&&<WorkshopsPage currentUser={currentUser} onNavigate={navigate} />}
@@ -146,6 +149,8 @@ export default function App() {
         {page.name==="create-watch"&&session&&<CreateWatchPage currentUser={session.user} onNavigate={navigate} />}
         {page.name==="admin"&&<AdminPage user={session?.user} onNavigate={navigate} />}
       </main>
+      {session&&<FeedbackButton userId={session.user.id} />}
+      <Footer onNavigate={navigate} />
     </div>
   );
 }

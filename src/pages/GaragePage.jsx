@@ -84,12 +84,12 @@ function GaragePublicToggle({ userId }) {
 }
 
 // ─── WATCH PASSPORT ───────────────────────────────────────────────────────────
-function WatchPassport({ registration, watch, currentUser, onBack, onUpdated }) {
+function WatchPassport({ registration, watch, currentUser, onBack, onUpdated, defaultTab }) {
   const [services, setServices] = useState([]);
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [serviceForm, setServiceForm] = useState({ service_date:"", workshop:"", description:"", price:"", photo_url:"", invoice_url:"" });
   const [savingService, setSavingService] = useState(false);
-  const [activeTab, setActiveTab] = useState("info");
+  const [activeTab, setActiveTab] = useState(defaultTab||"mantenimiento");
   const [imgError, setImgError] = useState(false);
   const [lightbox, setLightbox] = useState(null);
 
@@ -160,11 +160,14 @@ function WatchPassport({ registration, watch, currentUser, onBack, onUpdated }) 
       )}
 
       <div style={{ display:"flex", gap:4, margin:"16px 0", flexWrap:"wrap" }}>
-        {[["info","📋 Info"],["fotos","📷 Fotos"],["servicios","🔧 Servicios"],["specs","⚙️ Specs"]].map(([id,label])=>(
+        {[["mantenimiento","🔧 Mantenimiento"],["info","📋 Datos personales"],["fotos","📷 Fotos"],["specs","⚙️ Specs"]].map(([id,label])=>(
           <button key={id} onClick={()=>setActiveTab(id)} style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:activeTab===id?"#1a2744":"#f0ede6", color:activeTab===id?"#fff":"#666", fontWeight:activeTab===id?600:400 }}>{label}</button>
         ))}
       </div>
 
+      {activeTab==="mantenimiento"&&(
+        <WatchPassportMaint registration={registration} watch={watch} services={services} currentUser={currentUser} onAddService={()=>setActiveTab("servicios")} />
+      )}
       {activeTab==="info"&&(
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
           {[
@@ -281,6 +284,172 @@ function WatchPassport({ registration, watch, currentUser, onBack, onUpdated }) 
             : <p style={S.muted}>Sin especificaciones técnicas.</p>
           }
         </div>
+      )}
+    </div>
+  );
+}
+
+
+
+function InlineServiceForm({ registrationId, currentUser, onSaved }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
+  const [form, setForm] = useState({ service_type:"", service_date:"", workshop:"", description:"", price:"" });
+  const SERVICE_TYPES = ["Revisión completa / overhaul","Cambio de correa / brazalete","Ajuste de precisión","Reparación de cristal","Servicio de corona / impermeabilidad"];
+  const setF = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  async function submit() {
+    if(!form.service_date) return;
+    setSaving(true);
+    const desc = form.service_type ? `${form.service_type}${form.description?` — ${form.description}`:""}` : form.description;
+    await supabase.from("watch_service_history").insert({
+      registration_id:registrationId, user_id:currentUser.id,
+      service_date:form.service_date, workshop:form.workshop||null,
+      description:desc||"Servicio registrado",
+      price:form.price?parseInt(form.price):null,
+    });
+    setSaving(false); setDone(true);
+    setForm({service_type:"",service_date:"",workshop:"",description:"",price:""});
+    setTimeout(()=>{ setDone(false); setOpen(false); if(onSaved) onSaved(); }, 1500);
+  }
+
+  if(done) return <div style={{ background:"#f0fdf4", border:"1px solid #b3dfc4", borderRadius:8, padding:"12px 16px", marginBottom:16, color:"#16a34a", fontWeight:600 }}>✓ Servicio registrado</div>;
+
+  return (
+    <div style={{ marginBottom:16 }}>
+      {!open
+        ? <button style={{ background:"#1a2744", border:"none", color:"#fff", borderRadius:8, padding:"10px 18px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={()=>setOpen(true)}>+ Registrar servicio</button>
+        : (
+          <div style={{ background:"#f8f6f0", borderRadius:10, padding:16, border:"1px solid #e0ddd6" }}>
+            <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>Nuevo servicio</div>
+            <div style={{ marginBottom:10 }}>
+              <span style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:6, display:"block" }}>Tipo de servicio</span>
+              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                {SERVICE_TYPES.map(t=>(
+                  <label key={t} style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", padding:"8px 12px", borderRadius:6, border:`1px solid ${form.service_type===t?"#1a2744":"#e8e8e8"}`, background:form.service_type===t?"#f0f4ff":"#fff" }}>
+                    <input type="radio" name="stype" checked={form.service_type===t} onChange={()=>setF("service_type",t)} style={{ accentColor:"#1a2744" }} />
+                    <span style={{ fontSize:13 }}>{t}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+              <div><span style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:4, display:"block" }}>Fecha *</span><input style={{ width:"100%", border:"1px solid #e0ddd6", borderRadius:8, padding:"9px 12px", fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" }} type="date" value={form.service_date} onChange={e=>setF("service_date",e.target.value)} /></div>
+              <div><span style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:4, display:"block" }}>Taller</span><input style={{ width:"100%", border:"1px solid #e0ddd6", borderRadius:8, padding:"9px 12px", fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" }} placeholder="Nombre del taller" value={form.workshop} onChange={e=>setF("workshop",e.target.value)} /></div>
+            </div>
+            <div style={{ marginBottom:10 }}><span style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:4, display:"block" }}>Notas adicionales</span><textarea style={{ width:"100%", border:"1px solid #e0ddd6", borderRadius:8, padding:"9px 12px", fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"none", boxSizing:"border-box" }} rows={2} placeholder="Detalles del servicio..." value={form.description} onChange={e=>setF("description",e.target.value)} /></div>
+            <div style={{ marginBottom:14 }}><span style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:4, display:"block" }}>Coste (€)</span><input style={{ width:"100%", border:"1px solid #e0ddd6", borderRadius:8, padding:"9px 12px", fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" }} type="number" placeholder="350" value={form.price} onChange={e=>setF("price",e.target.value)} /></div>
+            <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+              <button style={{ background:"none", border:"1px solid #e0ddd6", borderRadius:8, padding:"8px 16px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif" }} onClick={()=>setOpen(false)}>Cancelar</button>
+              <button style={{ background:"#1a2744", border:"none", color:"#fff", borderRadius:8, padding:"8px 18px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={submit} disabled={saving||!form.service_date}>{saving?"Guardando…":"Guardar"}</button>
+            </div>
+          </div>
+        )
+      }
+    </div>
+  );
+}
+
+// ─── WATCH PASSPORT MAINT TAB ─────────────────────────────────────────────────
+function WatchPassportMaint({ registration, watch, services, currentUser, onAddService }) {
+  const INTERVALS = { rolex:10, omega:8, patek:5, ap:5, iwc:5, jlc:5, tudor:10, cartier:5, breitling:5, tag:5, vc:5, hublot:5, panerai:5, gs:5, zenith:5 };
+  const brandSlug = (watch?.slug||"").split("_")[0];
+  const interval = INTERVALS[brandSlug] || 5;
+
+  // Sort services by date descending to get most recent
+  const sortedServices = [...services].sort((a,b)=>new Date(b.service_date)-new Date(a.service_date));
+  // Smart calculation: use most recent service date OR purchase year
+  let lastDate = sortedServices[0]?.service_date || null;
+  let basedOn = "último servicio";
+  if(!lastDate && registration?.purchase_year) {
+    lastDate = `${registration.purchase_year}-01-01`;
+    basedOn = "año de compra";
+  }
+
+  let nextDate = null, yearsLeft = null, status = "sin_datos";
+  if(lastDate) {
+    const base = new Date(lastDate);
+    nextDate = new Date(base);
+    nextDate.setFullYear(nextDate.getFullYear() + interval);
+    const now = new Date();
+    const diffYears = (nextDate - now) / (1000*60*60*24*365);
+    yearsLeft = diffYears;
+    if(diffYears < 0) status = "vencido";
+    else if(diffYears < 0.5) status = "urgente";
+    else if(diffYears < 1) status = "proximo";
+    else status = "ok";
+  }
+
+  const statusConfig = {
+    vencido: { color:"#dc2626", label:"Revisión vencida", bg:"#fff5f5" },
+    urgente: { color:"#dc2626", label:"Revisión urgente", bg:"#fff5f5" },
+    proximo: { color:"#d97706", label:"Revisión próxima", bg:"#fff8e8" },
+    ok: { color:"#16a34a", label:"Al día", bg:"#f0fdf4" },
+    sin_datos: { color:"#aaa", label:"Sin datos", bg:"#f8f8f8" },
+  };
+  const sc = statusConfig[status];
+
+  return (
+    <div>
+      {/* Estado */}
+      <div style={{ background:sc.bg, borderRadius:10, padding:"16px 20px", marginBottom:16, borderLeft:`4px solid ${sc.color}` }}>
+        <div style={{ fontWeight:700, fontSize:16, color:sc.color, marginBottom:4 }}>{sc.label}</div>
+        {nextDate&&(
+          <div style={{ fontSize:13, color:"#555" }}>
+            {status==="vencido"
+              ? `Debería haberse revisado en ${nextDate.toLocaleDateString("es-ES",{year:"numeric",month:"long"})}`
+              : `Próxima revisión: ${nextDate.toLocaleDateString("es-ES",{year:"numeric",month:"long"})}`
+            }
+          </div>
+        )}
+        {lastDate&&<div style={{ fontSize:12, color:"#aaa", marginTop:4 }}>Basado en {basedOn}</div>}
+      </div>
+
+      {/* Datos clave */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
+        <div style={{ background:"#f8f6f0", borderRadius:8, padding:"12px 14px" }}>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#aaa", fontFamily:"'DM Mono',monospace", marginBottom:4 }}>Intervalo</div>
+          <div style={{ fontWeight:700, fontSize:15 }}>Cada {interval} años</div>
+        </div>
+        <div style={{ background:"#f8f6f0", borderRadius:8, padding:"12px 14px" }}>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#aaa", fontFamily:"'DM Mono',monospace", marginBottom:4 }}>{basedOn==="último servicio"?"Último servicio":"Año de compra"}</div>
+          <div style={{ fontWeight:700, fontSize:15 }}>{lastDate?.split("-")[0]||"—"}</div>
+        </div>
+        <div style={{ background:sc.bg, borderRadius:8, padding:"12px 14px", border:`1px solid ${sc.color}30` }}>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#aaa", fontFamily:"'DM Mono',monospace", marginBottom:4 }}>Años restantes</div>
+          <div style={{ fontWeight:700, fontSize:15, color:sc.color }}>{yearsLeft!==null?yearsLeft>0?`${Math.abs(yearsLeft).toFixed(1)} años`:"Vencido":"—"}</div>
+        </div>
+      </div>
+
+      {/* Acciones */}
+      <InlineServiceForm registrationId={registration.id} currentUser={currentUser} onSaved={onAddService} />
+      {(status==="vencido"||status==="urgente"||status==="proximo")&&(
+        <div style={{ marginBottom:16 }}>
+          <button style={{ background:"#b8963e", border:"none", color:"#fff", borderRadius:8, padding:"10px 18px", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={()=>{}}>
+            🔧 Buscar taller
+          </button>
+        </div>
+      )}
+
+      {/* Historial mini */}
+      {services.length>0&&(
+        <div>
+          <div style={{ fontSize:12, fontWeight:700, letterSpacing:1, textTransform:"uppercase", color:"#aaa", fontFamily:"'DM Mono',monospace", marginBottom:10 }}>Historial</div>
+          {sortedServices.slice(0,3).map((s,i)=>(
+            <div key={s.id} style={{ display:"flex", gap:12, paddingBottom:10, marginBottom:10, borderBottom:i<Math.min(services.length,3)-1?"1px solid #f0ede6":"none" }}>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:"#b8963e", marginTop:5, flexShrink:0 }} />
+              <div>
+                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#b8963e" }}>{s.service_date}</div>
+                {s.workshop&&<div style={{ fontWeight:600, fontSize:13 }}>{s.workshop}</div>}
+                <div style={{ fontSize:12, color:"#666" }}>{s.description}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {sortedServices.length===0&&(
+        <div style={{ textAlign:"center", padding:"24px 0", color:"#aaa", fontSize:13 }}>Sin servicios registrados aún.</div>
       )}
     </div>
   );
@@ -475,7 +644,7 @@ function PostRegistrationInfo({ watch, onClose }) {
 }
 
 // ─── GARAGE PAGE ──────────────────────────────────────────────────────────────
-export function GaragePage({ currentUser, onNavigate }) {
+export function GaragePage({ currentUser, onNavigate, openWatchId }) {
   const [watches, setWatches] = useState([]);
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -486,6 +655,13 @@ export function GaragePage({ currentUser, onNavigate }) {
   const [savedWatch, setSavedWatch] = useState(null);
 
   useEffect(()=>{ if(currentUser?.id) load(); },[currentUser]);
+
+  useEffect(()=>{
+    if(openWatchId&&watches.length>0) {
+      const found = watches.find(w=>w.id===openWatchId);
+      if(found) setSelectedRegistration({...found, defaultTab:"mantenimiento"});
+    }
+  },[openWatchId, watches]);
 
   async function load() {
     setLoading(true);
@@ -517,7 +693,7 @@ export function GaragePage({ currentUser, onNavigate }) {
   if(loading) return <Spinner />;
 
   if(showPostInfo&&savedWatch) return <PostRegistrationInfo watch={savedWatch} onClose={()=>{ setShowPostInfo(false); setSavedWatch(null); }} />;
-  if(selectedRegistration) return <WatchPassport registration={selectedRegistration} watch={selectedRegistration.watch} currentUser={currentUser} onBack={()=>setSelectedRegistration(null)} onUpdated={load} />;
+  if(selectedRegistration) return <WatchPassport registration={selectedRegistration} watch={selectedRegistration.watch} currentUser={currentUser} onBack={()=>setSelectedRegistration(null)} onUpdated={load} defaultTab={selectedRegistration.defaultTab} />;
 
   return (
     <div>
@@ -549,14 +725,37 @@ export function GaragePage({ currentUser, onNavigate }) {
       {watches.length>0&&<GarageCarousel watches={watches} onSelect={setSelectedRegistration} />}
 
       {/* Stats */}
-      {watches.length>0&&(
-        <div style={{ display:"flex", gap:20, marginBottom:24, flexWrap:"wrap" }}>
-          <span style={{ fontSize:13, color:"#888" }}>⌚ <strong>{watches.length}</strong> relojes</span>
-          <span style={{ fontSize:13, color:"#888" }}>❤️ <strong>{wishlist.length}</strong> en wish list</span>
-          {topBrand&&<span style={{ fontSize:13, color:"#888" }}>🏆 <strong>{topBrand[0]}</strong> favorita</span>}
-          {topType&&<span style={{ fontSize:13, color:"#888", textTransform:"capitalize" }}>📊 <strong>{topType[0]}</strong></span>}
-        </div>
-      )}
+      {watches.length>0&&(()=>{
+        const totalValue = watches.reduce((s,w)=>{
+          if(!w.watch?.market_price) return s;
+          const num = parseInt(w.watch.market_price.replace(/[~€\s.]/g,"").replace(/,/g,""));
+          return s + (isNaN(num)?0:num);
+        },0);
+        return (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))", gap:12, marginBottom:24 }}>
+            <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"16px 12px" }}>
+              <div style={{ fontSize:24, marginBottom:4 }}>⌚</div>
+              <div style={{ fontWeight:700, fontSize:22 }}>{watches.length}</div>
+              <div style={S.muted}>{watches.length===1?"reloj":"relojes"}</div>
+            </div>
+            <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"16px 12px" }}>
+              <div style={{ fontSize:24, marginBottom:4 }}>❤️</div>
+              <div style={{ fontWeight:700, fontSize:22 }}>{wishlist.length}</div>
+              <div style={S.muted}>wish list</div>
+            </div>
+            {topBrand&&<div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"16px 12px" }}>
+              <div style={{ fontSize:24, marginBottom:4 }}>🏆</div>
+              <div style={{ fontWeight:700, fontSize:16, textTransform:"capitalize" }}>{topBrand[0]}</div>
+              <div style={S.muted}>marca favorita</div>
+            </div>}
+            {totalValue>0&&<div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"16px 12px" }}>
+              <div style={{ fontSize:24, marginBottom:4 }}>💰</div>
+              <div style={{ fontWeight:700, fontSize:16, color:"#b8963e" }}>{totalValue.toLocaleString()}€</div>
+              <div style={S.muted}>valor estimado</div>
+            </div>}
+          </div>
+        );
+      })()}
 
       {/* Wish List */}
       {wishlist.length>0&&(

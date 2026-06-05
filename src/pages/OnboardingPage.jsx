@@ -66,6 +66,11 @@ export function OnboardingPage({ user, onComplete }) {
       bio: bio.trim()||null,
       avatar_color: avatarColor,
       onboarding_complete: true,
+      birth_year: birthYear ? parseInt(birthYear) : null,
+      country: country.trim()||null,
+      watch_count_range: watchCountRange||null,
+      brand_interests: brandInterests.length>0 ? brandInterests : null,
+      purchase_type: purchaseType||null,
     }).eq("id",user.id);
 
     // 2. Add watch to garage if selected
@@ -269,9 +274,8 @@ export function OnboardingPage({ user, onComplete }) {
           <div style={S.card}>
             <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#b8963e", letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}>Paso 3 de 4</div>
             <h2 style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:700, marginBottom:6 }}>Tu perfil</h2>
-            <p style={{ ...S.muted, marginBottom:20 }}>Cuéntanos un poco sobre ti.</p>
+            <p style={{ ...S.muted, marginBottom:20 }}>Cuéntanos sobre ti — esto nos ayuda a personalizar tu experiencia.</p>
 
-            {/* Avatar preview */}
             <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:20 }}>
               <Avatar name={name||user.email} size={60} color={avatarColor} />
               <div>
@@ -284,17 +288,44 @@ export function OnboardingPage({ user, onComplete }) {
               </div>
             </div>
 
-            <div style={{ marginBottom:12 }}>
-              <span style={S.label}>Tu nombre</span>
-              <input style={S.input} placeholder="Juan García" value={name} onChange={e=>setName(e.target.value)} autoFocus />
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
+              <div><span style={S.label}>Tu nombre</span><input style={S.input} placeholder="Juan García" value={name} onChange={e=>setName(e.target.value)} /></div>
+              <div><span style={S.label}>Año de nacimiento</span><input style={S.input} type="number" placeholder="1990" min="1940" max="2005" value={birthYear} onChange={e=>setBirthYear(e.target.value)} /></div>
+              <div><span style={S.label}>País</span><input style={S.input} placeholder="España" value={country} onChange={e=>setCountry(e.target.value)} /></div>
+              <div><span style={S.label}>Ciudad</span><input style={S.input} placeholder="Madrid" value={location} onChange={e=>setLocation(e.target.value)} /></div>
             </div>
-            <div style={{ marginBottom:12 }}>
-              <span style={S.label}>Ciudad</span>
-              <input style={S.input} placeholder="Madrid" value={location} onChange={e=>setLocation(e.target.value)} />
+
+            <div style={{ marginBottom:14 }}>
+              <span style={S.label}>¿Cuántos relojes tienes?</span>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                {[["0","Ninguno"],["1","1"],["2-5","2-5"],["6-10","6-10"],["10+","+10"]].map(([v,l])=>(
+                  <button key={v} onClick={()=>setWatchCountRange(v)} style={{ padding:"6px 14px", borderRadius:20, border:`1px solid ${watchCountRange===v?"#1a2744":"#e0ddd6"}`, background:watchCountRange===v?"#1a2744":"#fff", color:watchCountRange===v?"#fff":"#666", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif" }}>{l}</button>
+                ))}
+              </div>
             </div>
+
+            <div style={{ marginBottom:14 }}>
+              <span style={S.label}>¿Cómo compras relojes?</span>
+              <div style={{ display:"flex", gap:8 }}>
+                {[["nuevo","Nuevo"],["segunda_mano","Segunda mano"],["ambos","Ambos"]].map(([v,l])=>(
+                  <button key={v} onClick={()=>setPurchaseType(v)} style={{ padding:"6px 14px", borderRadius:20, border:`1px solid ${purchaseType===v?"#1a2744":"#e0ddd6"}`, background:purchaseType===v?"#1a2744":"#fff", color:purchaseType===v?"#fff":"#666", cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif" }}>{l}</button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom:14 }}>
+              <span style={S.label}>Marcas que te interesan</span>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                {["rolex","omega","patek","ap","iwc","jlc","tudor","cartier","breitling","tag","vc","hublot","panerai","gs","zenith"].map(b=>(
+                  <button key={b} onClick={()=>setBrandInterests(prev=>prev.includes(b)?prev.filter(x=>x!==b):[...prev,b])}
+                    style={{ padding:"5px 12px", borderRadius:20, border:`1px solid ${brandInterests.includes(b)?"#b8963e":"#e0ddd6"}`, background:brandInterests.includes(b)?"#b8963e":"#fff", color:brandInterests.includes(b)?"#fff":"#666", cursor:"pointer", fontSize:12, fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1 }}>{b}</button>
+                ))}
+              </div>
+            </div>
+
             <div style={{ marginBottom:20 }}>
               <span style={S.label}>Bio corta <span style={{ color:"#aaa",fontWeight:400 }}>(opcional)</span></span>
-              <textarea style={{ ...S.input, resize:"none" }} rows={2} placeholder="Coleccionista de relojes vintage. Apasionado de la relojería suiza." value={bio} onChange={e=>setBio(e.target.value)} />
+              <textarea style={{ ...S.input, resize:"none" }} rows={2} placeholder="Apasionado de la relojería suiza..." value={bio} onChange={e=>setBio(e.target.value)} />
             </div>
 
             <div style={{ display:"flex", justifyContent:"space-between" }}>
