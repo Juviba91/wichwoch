@@ -348,7 +348,6 @@ export function AdminPage({ user, onNavigate }) {
 
             <h3 style={{ ...S.h2, marginBottom:12, marginTop:8 }}>Relojes en catálogo</h3>
             {(()=>{
-              const [catalogWatches, setCatalogWatches] = React.useState([]);
               React.useEffect(()=>{
                 supabase.from("watches").select("id,slug,model,brand_slug,status").eq("status","approved").order("brand_slug").limit(50)
                   .then(({data})=>setCatalogWatches(data||[]));
