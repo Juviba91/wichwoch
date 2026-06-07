@@ -26,6 +26,10 @@ export function AdminPage({ user, onNavigate }) {
     if(tab==="usuarios") await loadUsers();
     if(tab==="contenido") await loadContent();
     if(tab==="relojes") await loadPendingWatches();
+    if(tab==="contenido") {
+      const {data}=await supabase.from("watches").select("id,slug,model,brand_slug").eq("status","approved").order("brand_slug").limit(50);
+      setCatalogWatches(data||[]);
+    }
     if(tab==="empresas") await loadPendingBusinesses();
     if(tab==="feedback") await loadFeedback();
     setLoading(false);
@@ -71,6 +75,7 @@ export function AdminPage({ user, onNavigate }) {
   const [rejectReason, setRejectReason] = useState("");
 
   const [pendingBusinesses, setPendingBusinesses] = useState([]);
+  const [catalogWatches, setCatalogWatches] = useState([]);
 
   const [feedback, setFeedback] = useState([]);
 
@@ -347,22 +352,13 @@ export function AdminPage({ user, onNavigate }) {
             ))}
 
             <h3 style={{ ...S.h2, marginBottom:12, marginTop:8 }}>Relojes en catálogo</h3>
-            {(()=>{
-              React.useEffect(()=>{
-                supabase.from("watches").select("id,slug,model,brand_slug,status").eq("status","approved").order("brand_slug").limit(50)
-                  .then(({data})=>setCatalogWatches(data||[]));
-              },[]);
-              return catalogWatches.map(w=>(
-                <div key={w.id} style={{ ...S.card, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <div>
-                    <div style={{ fontWeight:600 }}>{w.model}</div>
-                    <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#aaa" }}>@{w.slug}</div>
-                  </div>
-                  <button style={{ background:"none", border:"1px solid #fcc", color:"#c00", borderRadius:4, padding:"4px 10px", fontSize:12, cursor:"pointer" }} onClick={()=>deleteWatch(w.id)}>Borrar</button>
+            {catalogWatches.map(w=>(
+              <div key={w.id} style={{ ...S.card, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div>
+                  <div style={{ fontWeight:600 }}>{w.model}</div>
+                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#aaa" }}>@{w.slug}</div>
                 </div>
-              ));
-            })()}
-            <div style={{ display:"none" }}>
+                <button style={{ background:"none", border:"1px solid #fcc", color:"#c00", borderRadius:4, padding:"4px 10px", fontSize:12, cursor:"pointer" }} onClick={()=>deleteWatch(w.id)}>Borrar</button>
               </div>
             ))}
           </div>
