@@ -29,6 +29,25 @@ export const BRAND_LOGO_URLS = {
   zenith:`${STORAGE}/zenith.jpeg`,
 };
 
+const STORAGE = "https://kmxpachollvsiytppvyy.supabase.co/storage/v1/object/public/brand-logos";
+export const BRAND_LOGO_URLS = {
+  rolex:`${STORAGE}/rolex.jpeg`,
+  omega:`${STORAGE}/omega.jpeg`,
+  patek:`${STORAGE}/patek.jpeg`,
+  ap:`${STORAGE}/ap.jpeg`,
+  iwc:`${STORAGE}/iwc.jpeg`,
+  jlc:`${STORAGE}/jlc.jpeg`,
+  tudor:`${STORAGE}/tudor.jpeg`,
+  cartier:`${STORAGE}/cartier.jpeg`,
+  breitling:`${STORAGE}/breitling.jpeg`,
+  tag:`${STORAGE}/tag.jpeg`,
+  vc:`${STORAGE}/vc.jpeg`,
+  hublot:`${STORAGE}/hublot.jpeg`,
+  panerai:`${STORAGE}/panerai.jpeg`,
+  gs:`${STORAGE}/gs.jpeg`,
+  zenith:`${STORAGE}/zenith.jpeg`,
+};
+
 export const BRAND_NAMES = {
   rolex:"Rolex", omega:"Omega", patek:"Patek Philippe", ap:"Audemars Piguet",
   iwc:"IWC", jlc:"Jaeger-LeCoultre", tudor:"Tudor", cartier:"Cartier",
@@ -159,3 +178,51 @@ export const S = {
   success: { background:"#f0f9f4", border:"1px solid #b3dfc4", borderRadius:8, padding:"10px 14px", fontSize:13, color:"#2a7a4a", marginBottom:16 },
   navLink: (a) => ({ padding:"6px 14px", borderRadius:8, fontSize:13, cursor:"pointer", fontWeight:a?600:400, background:a?"rgba(255,255,255,0.15)":"transparent", color:a?"#fff":"rgba(255,255,255,0.7)", border:"none", fontFamily:"'DM Sans',sans-serif" }),
 };
+
+// ─── TRADUCCIONES ─────────────────────────────────────────────────────────────
+export const T = {
+  es: {
+    feed:"Feed", explore:"Explorar", forums:"Foros", profile:"Mi Perfil",
+    garage:"Garage", maintenance:"Mantenimiento", settings:"Ajustes",
+    logout:"Salir", notifications:"Notificaciones",
+    follow:"Seguir", following:"Siguiendo", followers:"seguidores",
+    watches:"relojes", wishlist:"Wish List",
+    addWatch:"+ Añadir reloj", addToGarage:"+ Añadir al Garage",
+    addToWishlist:"+ Wish List", inGarage:"✓ En tu Garage",
+    reviews:"Reseñas", writeReview:"✍️ Escribir reseña",
+    workshopContact:"📅 Pedir cita", verified:"✓ Verificado",
+    pending:"⏳ Pendiente de verificación",
+    serviceHistory:"Historial de servicios", addService:"+ Registrar servicio",
+    nextRevision:"Próxima revisión", lastService:"Último servicio",
+    brands:"Marcas", specialties:"Especialidades", posts:"Publicaciones",
+    noReviews:"Sin reseñas aún.", noPosts:"Sin publicaciones aún.",
+    save:"Guardar cambios", saving:"Guardando…", saved:"✓ Guardado",
+    cancel:"Cancelar", back:"← Volver",
+    feedback:"💬 Feedback", sendFeedback:"Enviar feedback",
+    feedbackPlaceholder:"Cuéntanos qué funciona, qué falla, o qué echarías de menos...",
+    thanks:"¡Gracias por tu feedback!",
+  },
+  en: {
+    feed:"Feed", explore:"Explore", forums:"Forums", profile:"My Profile",
+    garage:"Garage", maintenance:"Maintenance", settings:"Settings",
+    logout:"Sign out", notifications:"Notifications",
+    follow:"Follow", following:"Following", followers:"followers",
+    watches:"watches", wishlist:"Wish List",
+    addWatch:"+ Add watch", addToGarage:"+ Add to Garage",
+    addToWishlist:"+ Wish List", inGarage:"✓ In your Garage",
+    reviews:"Reviews", writeReview:"✍️ Write a review",
+    workshopContact:"📅 Book appointment", verified:"✓ Verified",
+    pending:"⏳ Pending verification",
+    serviceHistory:"Service history", addService:"+ Log service",
+    nextRevision:"Next service", lastService:"Last service",
+    brands:"Brands", specialties:"Specialties", posts:"Posts",
+    noReviews:"No reviews yet.", noPosts:"No posts yet.",
+    save:"Save changes", saving:"Saving…", saved:"✓ Saved",
+    cancel:"Cancel", back:"← Back",
+    feedback:"💬 Feedback", sendFeedback:"Send feedback",
+    feedbackPlaceholder:"Tell us what works, what doesn't, or what you miss...",
+    thanks:"Thanks for your feedback!",
+  }
+};
+
+export function t(lang, key) { return T[lang]?.[key] || T.es[key] || key; }

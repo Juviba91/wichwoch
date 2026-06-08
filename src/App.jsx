@@ -109,7 +109,7 @@ export default function App() {
 
   const currentUser = session ? session.user : null;
   const NAV = session
-    ? [{id:"feed",label:"Feed"},{id:"explore",label:"Explorar"},{id:"foros",label:"Foros"},{id:"miperfil",label:"Mi Perfil"}]
+    ? [{id:"feed",label:t(lang,"feed")},{id:"explore",label:t(lang,"explore")},{id:"foros",label:t(lang,"forums")},{id:"miperfil",label:t(lang,"profile")}]
     : [{id:"explore",label:"Explorar"},{id:"foros",label:"Foros"}];
 
   return (
@@ -131,7 +131,7 @@ export default function App() {
             {showNotifs&&<NotificationsPanel userId={session.user.id} onClose={()=>setShowNotifs(false)} onNavigate={navigate} />}
             <button style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.7)", fontSize:12, fontFamily:"'DM Mono',monospace", fontWeight:700, letterSpacing:1 }} onClick={toggleLang} title="Idioma">{lang==="es"?"EN":"ES"}</button>
             <button style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.7)", fontSize:18 }} onClick={()=>navigate("settings")} title="Ajustes">⚙️</button>
-            <button style={{ background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", color:"#fff", padding:"5px 12px", borderRadius:6, fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={signOut}>Salir</button>
+            <button style={{ background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", color:"#fff", padding:"5px 12px", borderRadius:6, fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={signOut}>{t(lang,"logout")}</button>
           </>) : (
             <button style={{ background:"#b8963e", border:"none", cursor:"pointer", color:"#fff", padding:"7px 16px", borderRadius:6, fontSize:13, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={()=>setGuestMode(false)}>Entrar</button>
           )}
@@ -148,8 +148,8 @@ export default function App() {
         {page.name==="thread"&&<ThreadPage threadId={page.id} currentUser={currentUser} onNavigate={navigate} onLoginRequired={()=>setGuestMode(false)} />}
         {page.name==="profile"&&<ProfilePage userId={page.id} currentUser={currentUser||{id:""}} onNavigate={navigate} />}
         {page.name==="settings"&&session&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
-        {page.name==="garage"&&session&&<GaragePage currentUser={session.user} onNavigate={navigate} />}
-        {page.name==="mantenimiento"&&session&&<MantenimientoPage currentUser={session.user} onNavigate={navigate} />}
+        {page.name==="garage"&&session&&<GaragePage currentUser={session.user} onNavigate={navigate} lang={lang} />}
+        {page.name==="mantenimiento"&&session&&<MantenimientoPage currentUser={session.user} onNavigate={navigate} lang={lang} />}
         {page.name==="garage_watch"&&session&&<GaragePage currentUser={session.user} onNavigate={navigate} openWatchId={page.id} />}
         {page.name==="wristcheck"&&<WristCheckPage currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="listas"&&<ListasPage currentUser={currentUser} onNavigate={navigate} />}
