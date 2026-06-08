@@ -144,7 +144,7 @@ export default function App() {
         {page.name==="relojes"&&<RelojesPage onNavigate={navigate} currentUser={currentUser} />}
         {page.name==="foros"&&<ForosPage currentUser={currentUser} onNavigate={navigate} onLoginRequired={()=>setGuestMode(false)} />}
         {page.name==="watch"&&<WatchPage slug={page.id} currentUser={currentUser} onNavigate={navigate} onLoginRequired={()=>setGuestMode(false)} />}
-        {page.name==="import { S, brandColor, brandFromSlug, timeAgo, t } from "./data/constants";"&&<BrandPage brandSlug={page.id} currentUser={currentUser} onNavigate={navigate} />}
+        {page.name==="brand"&&<BrandPage brandSlug={page.id} currentUser={currentUser} onNavigate={navigate} />}
         {page.name==="thread"&&<ThreadPage threadId={page.id} currentUser={currentUser} onNavigate={navigate} onLoginRequired={()=>setGuestMode(false)} />}
         {page.name==="profile"&&<ProfilePage userId={page.id} currentUser={currentUser||{id:""}} onNavigate={navigate} />}
         {page.name==="settings"&&session&&<SettingsPage user={session.user} onSaved={()=>{ loadProfile(session.user.id); navigate("profile",session.user.id); }} />}
