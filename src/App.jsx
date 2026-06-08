@@ -16,6 +16,8 @@ import { Footer } from "./components/Footer";
 import { FeedbackButton } from "./components/FeedbackButton";
 import { RankingPage } from "./pages/RankingPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
+import { OnboardingTaller } from "./pages/OnboardingTaller";
+import { OnboardingMarca } from "./pages/OnboardingMarca";
 import { CreateWatchPage } from "./pages/CreateWatchPage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { RelojesPage } from "./pages/RelojesPage";
@@ -38,6 +40,8 @@ export default function App() {
   const [guestMode, setGuestMode] = useState(false);
   const [isNewSignup, setIsNewSignup] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [lang, setLang] = useState(localStorage.getItem("ww_lang")||"es");
+  const toggleLang = () => { const nl = lang==="es"?"en":"es"; setLang(nl); localStorage.setItem("ww_lang",nl); };
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{
@@ -97,7 +101,11 @@ export default function App() {
   );
 
   if(!session && !guestMode) return <AuthPage onExplore={()=>{ setGuestMode(true); setPage({name:"explore"}); }} onNewSignup={()=>setIsNewSignup(true)} />;
-  if(session && isNewSignup && profile && !profile.onboarding_complete) return <OnboardingPage user={session.user} onComplete={()=>{ setIsNewSignup(false); loadProfile(session.user.id); setPage({name:"feed"}); }} />;
+  if(session && profile && !profile.onboarding_complete) {
+    if(profile.account_type==="taller") return <OnboardingTaller user={session.user} onComplete={()=>{ setIsNewSignup(false); loadProfile(session.user.id); setPage({name:"feed"}); }} />;
+    if(profile.account_type==="marca") return <OnboardingMarca user={session.user} onComplete={()=>{ setIsNewSignup(false); loadProfile(session.user.id); setPage({name:"feed"}); }} />;
+    return <OnboardingPage user={session.user} onComplete={()=>{ setIsNewSignup(false); loadProfile(session.user.id); setPage({name:"feed"}); }} />;
+  }
 
   const currentUser = session ? session.user : null;
   const NAV = session
@@ -121,6 +129,7 @@ export default function App() {
               {unreadCount>0&&<span style={{ position:"absolute", top:-4, right:-4, background:"#e11d48", color:"#fff", borderRadius:"50%", width:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700 }}>{unreadCount}</span>}
             </div>
             {showNotifs&&<NotificationsPanel userId={session.user.id} onClose={()=>setShowNotifs(false)} onNavigate={navigate} />}
+            <button style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.7)", fontSize:12, fontFamily:"'DM Mono',monospace", fontWeight:700, letterSpacing:1 }} onClick={toggleLang} title="Idioma">{lang==="es"?"EN":"ES"}</button>
             <button style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.7)", fontSize:18 }} onClick={()=>navigate("settings")} title="Ajustes">⚙️</button>
             <button style={{ background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", color:"#fff", padding:"5px 12px", borderRadius:6, fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }} onClick={signOut}>Salir</button>
           </>) : (

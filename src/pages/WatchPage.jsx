@@ -145,10 +145,13 @@ export function WatchPage({ slug, currentUser, onNavigate, onLoginRequired }) {
     if(!currentUser?.id||!watch) { onLoginRequired?.(); return; }
     const brandSlug = watch.slug.split("_")[0];
     if(myBrandVote===watch.id) {
+      // Remove vote
       await supabase.from("brand_watch_votes").delete().match({user_id:currentUser.id,brand_slug:brandSlug});
       setMyBrandVote(null);
     } else {
-      await supabase.from("brand_watch_votes").upsert({user_id:currentUser.id,watch_id:watch.id,brand_slug:brandSlug});
+      // Remove any existing vote for this brand first, then insert
+      await supabase.from("brand_watch_votes").delete().match({user_id:currentUser.id,brand_slug:brandSlug});
+      await supabase.from("brand_watch_votes").insert({user_id:currentUser.id,watch_id:watch.id,brand_slug:brandSlug});
       setMyBrandVote(watch.id);
     }
   }

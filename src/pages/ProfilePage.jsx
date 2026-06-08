@@ -93,12 +93,23 @@ function UserListasPreview({ userId, onNavigate }) {
 function TallerProfile({ profile, isOwn, currentUser, onNavigate, posts }) {
   const [following, setFollowing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [workshop, setWorkshop] = useState(null);
+  const [tab, setTab] = useState("info");
 
   useEffect(()=>{
     if(!currentUser?.id||isOwn) return;
     supabase.from("follows").select("id").eq("follower_id",currentUser.id).eq("following_id",profile.id).maybeSingle()
       .then(({data})=>setFollowing(!!data));
+    supabase.from("workshops").select("*").eq("owner_id",profile.id).maybeSingle()
+      .then(({data})=>setWorkshop(data));
   },[profile.id, currentUser?.id]);
+
+  useEffect(()=>{
+    if(isOwn) {
+      supabase.from("workshops").select("*").eq("owner_id",profile.id).maybeSingle()
+        .then(({data})=>setWorkshop(data));
+    }
+  },[isOwn]);
 
   async function toggleFollow() {
     if(!currentUser?.id) return;
@@ -113,40 +124,84 @@ function TallerProfile({ profile, isOwn, currentUser, onNavigate, posts }) {
     setSaving(false);
   }
 
+  const SPEC = { vintage:"⏳ Vintage", sport:"🏃 Sport", certificado:"✓ Certificado", restauracion:"🔨 Restauración", complicaciones:"⚙️ Complicaciones", diver:"🤿 Buceo", chrono:"⏱️ Cronógrafo", dress:"👔 Dress" };
+
   return (
     <div>
       {/* Hero */}
-      <div style={{ height:160, background:"linear-gradient(135deg,#1a2744,#2a3a5a)", borderRadius:12, marginBottom:0, position:"relative", overflow:"hidden", display:"flex", alignItems:"flex-end", padding:"0 28px 20px" }}>
-        <div>
+      <div style={{ height:200, background:"linear-gradient(135deg,#1a2744,#2a3a5a)", borderRadius:12, marginBottom:0, position:"relative", overflow:"hidden" }}>
+        {workshop?.photo_url&&<img src={workshop.photo_url} alt="" style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", objectFit:"cover", opacity:0.35 }} />}
+        <div style={{ position:"absolute", bottom:0, left:0, right:0, background:"linear-gradient(transparent,rgba(0,0,0,0.8))", padding:"32px 28px 20px" }}>
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
-            <span style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#b8963e", fontFamily:"'DM Mono',monospace" }}>🔧 Taller verificado</span>
-            {profile.verified_business&&<span style={{ fontSize:10, background:"#b8963e", color:"#fff", borderRadius:4, padding:"2px 6px", fontWeight:700 }}>✓</span>}
+            <span style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#b8963e", fontFamily:"'DM Mono',monospace" }}>🔧 Taller</span>
+            {profile.verified_business&&<span style={{ fontSize:10, background:"#b8963e", color:"#fff", borderRadius:4, padding:"2px 8px", fontWeight:700 }}>✓ Verificado</span>}
           </div>
-          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, fontWeight:700, color:"#fff" }}>{profile.name}</div>
-          {profile.location&&<div style={{ fontSize:13, color:"rgba(255,255,255,0.6)", marginTop:4 }}>📍 {profile.location}</div>}
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:26, fontWeight:700, color:"#fff" }}>{profile.name}</div>
+          {profile.location&&<div style={{ fontSize:13, color:"rgba(255,255,255,0.7)", marginTop:4 }}>📍 {profile.location}</div>}
         </div>
       </div>
 
-      {/* Actions */}
-      <div style={{ ...S.card, borderTopLeftRadius:0, borderTopRightRadius:0, borderTop:"none", marginBottom:16 }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+      {/* Stats + actions */}
+      <div style={{ ...S.card, borderTopLeftRadius:0, borderTopRightRadius:0, borderTop:"none", marginBottom:0 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ display:"flex", gap:24 }}>
-            <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:18 }}>{profile.followers_count||0}</div><div style={S.muted}>seguidores</div></div>
+            <div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:20 }}>{profile.followers_count||0}</div><div style={S.muted}>seguidores</div></div>
+            {workshop?.specialties?.length>0&&<div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:20 }}>{workshop.specialties.length}</div><div style={S.muted}>especialidades</div></div>}
+            {workshop?.brands?.length>0&&<div style={{ textAlign:"center" }}><div style={{ fontWeight:700, fontSize:20 }}>{workshop.brands.length}</div><div style={S.muted}>marcas</div></div>}
           </div>
           <div style={{ display:"flex", gap:8 }}>
             {!isOwn&&currentUser&&<button style={S.btn(following?"outline":"primary")} onClick={toggleFollow} disabled={saving}>{following?"Siguiendo":"Seguir"}</button>}
+            {!isOwn&&currentUser&&<button style={{ ...S.btn("gold") }} onClick={()=>onNavigate("talleres")}>📅 Pedir cita</button>}
             {isOwn&&<button style={S.btn("outline")} onClick={()=>onNavigate("settings")}>⚙️ Editar perfil</button>}
           </div>
         </div>
-        {profile.bio&&<p style={{ fontSize:14, color:"#555", margin:"12px 0 0", lineHeight:1.6 }}>{profile.bio}</p>}
-        {profile.corporate_url&&<a href={profile.corporate_url.startsWith("http")?profile.corporate_url:`https://${profile.corporate_url}`} target="_blank" rel="noreferrer" style={{ fontSize:13, color:"#1a2744", display:"block", marginTop:8 }}>🌐 {profile.corporate_url}</a>}
-        {profile.pending_approval&&isOwn&&<div style={{ marginTop:12, padding:"8px 14px", background:"#fff8e8", borderRadius:6, fontSize:12, color:"#b8963e" }}>⏳ Tu cuenta está pendiente de verificación. Te notificaremos en breve.</div>}
+        {profile.bio&&<p style={{ fontSize:14, color:"#555", margin:"0 0 8px", lineHeight:1.6 }}>{profile.bio}</p>}
+        <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
+          {profile.corporate_url&&<a href={profile.corporate_url.startsWith("http")?profile.corporate_url:`https://${profile.corporate_url}`} target="_blank" rel="noreferrer" style={{ fontSize:13, color:"#1a2744" }}>🌐 Web</a>}
+          {workshop?.phone&&<span style={{ fontSize:13, color:"#555" }}>📞 {workshop.phone}</span>}
+        </div>
+        {profile.pending_approval&&isOwn&&<div style={{ marginTop:12, padding:"8px 14px", background:"#fff8e8", borderRadius:6, fontSize:12, color:"#b8963e" }}>⏳ Pendiente de verificación.</div>}
       </div>
 
-      {/* Posts */}
-      <h3 style={{ ...S.h2, marginBottom:12 }}>Publicaciones</h3>
-      {posts.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin publicaciones aún.</div>}
-      {posts.map(p=><PostCard key={p.id} post={p} currentUser={currentUser} onNavigate={onNavigate} />)}
+      {/* Tabs */}
+      <div style={{ display:"flex", gap:4, margin:"16px 0" }}>
+        {[["info","Info"],["especialidades","Especialidades"],["posts","Publicaciones"]].map(([id,label])=>(
+          <button key={id} onClick={()=>setTab(id)} style={{ padding:"6px 16px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, background:tab===id?"#1a2744":"#f0ede6", color:tab===id?"#fff":"#666", fontWeight:tab===id?600:400 }}>{label}</button>
+        ))}
+      </div>
+
+      {tab==="info"&&(
+        <div style={S.card}>
+          {workshop?.address&&<div style={{ marginBottom:10 }}><span style={S.label}>Dirección</span><div style={{ fontSize:14 }}>📍 {workshop.address}</div></div>}
+          {workshop?.brands?.length>0&&<div>
+            <span style={S.label}>Marcas con las que trabajamos</span>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:6 }}>
+              {workshop.brands.map(b=><span key={b} style={{ padding:"4px 12px", background:"#1a2744", color:"#fff", borderRadius:20, fontSize:11, fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1 }}>{b}</span>)}
+            </div>
+          </div>}
+          {!workshop&&<p style={S.muted}>Sin información adicional aún.</p>}
+        </div>
+      )}
+
+      {tab==="especialidades"&&(
+        <div style={S.card}>
+          {workshop?.specialties?.length>0
+            ? <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                {workshop.specialties.map(s=>(
+                  <div key={s} style={{ background:"#f8f6f0", borderRadius:8, padding:"12px 16px", fontWeight:600, fontSize:14 }}>{SPEC[s]||s}</div>
+                ))}
+              </div>
+            : <p style={S.muted}>Sin especialidades registradas.</p>
+          }
+        </div>
+      )}
+
+      {tab==="posts"&&(
+        <div>
+          {posts.length===0&&<div style={{ ...S.card, textAlign:"center", color:"#888", padding:32 }}>Sin publicaciones aún.</div>}
+          {posts.map(p=><PostCard key={p.id} post={p} currentUser={currentUser} onNavigate={onNavigate} />)}
+        </div>
+      )}
     </div>
   );
 }
