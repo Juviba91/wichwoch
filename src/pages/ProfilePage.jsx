@@ -367,6 +367,9 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
 
   if(loading) return <Spinner />;
   if(!profile) return <div style={S.muted}>Perfil no encontrado.</div>;
+
+  if(profile.account_type==="repairer") return <TallerProfile profile={profile} isOwn={isOwn} currentUser={currentUser} onNavigate={onNavigate} posts={posts} />;
+  if(profile.account_type==="brand") return <MarcaProfile profile={profile} isOwn={isOwn} currentUser={currentUser} onNavigate={onNavigate} posts={posts} />;
   if(subPage==="followers") return <UserList title="Seguidores" users={followers} onNavigate={onNavigate} onBack={()=>setSubPage(null)} />;
   if(subPage==="following") return <UserList title="Siguiendo" users={followingList} onNavigate={onNavigate} onBack={()=>setSubPage(null)} />;
 
