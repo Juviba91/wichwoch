@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { S, timeAgo, brandColor } from "../data/constants";
 import { Spinner, Avatar, Badge, WatchCard } from "../components/UI";
 import { UserBadges } from "../components/UserBadges";
-import { PostCard } from "./FeedPage";
+import { PostCard, PostComposer } from "./FeedPage";
 
 // ─── USER LIST ────────────────────────────────────────────────────────────────
 function UserList({ title, users, onNavigate, onBack }) {
@@ -368,8 +368,8 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
   if(loading) return <Spinner />;
   if(!profile) return <div style={S.muted}>Perfil no encontrado.</div>;
 
-  if(profile.account_type==="repairer") return <TallerProfile profile={profile} isOwn={isOwn} currentUser={currentUser} onNavigate={onNavigate} posts={posts} />;
-  if(profile.account_type==="brand") return <MarcaProfile profile={profile} isOwn={isOwn} currentUser={currentUser} onNavigate={onNavigate} posts={posts} />;
+  if(profile.account_type==="taller") return <TallerProfile profile={profile} isOwn={isOwn} currentUser={currentUser} onNavigate={onNavigate} posts={posts} />;
+  if(profile.account_type==="marca") return <MarcaProfile profile={profile} isOwn={isOwn} currentUser={currentUser} onNavigate={onNavigate} posts={posts} />;
   if(subPage==="followers") return <UserList title="Seguidores" users={followers} onNavigate={onNavigate} onBack={()=>setSubPage(null)} />;
   if(subPage==="following") return <UserList title="Siguiendo" users={followingList} onNavigate={onNavigate} onBack={()=>setSubPage(null)} />;
 
@@ -412,8 +412,8 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
               <span style={{ fontSize:20, fontWeight:700 }}>{profile.name}</span>
               {profile.verified&&<Badge text="✓" bg="#2563eb" color="#fff" />}
-              {profile.account_type==="repairer"&&<Badge text="Taller" bg="#e8f4ec" color="#4a7c59" />}
-              {profile.account_type==="brand"&&<Badge text="Marca" bg="#f0f6ff" color="#2563eb" />}
+              {profile.account_type==="taller"&&<Badge text="Taller" bg="#e8f4ec" color="#4a7c59" />}
+              {profile.account_type==="marca"&&<Badge text="Marca" bg="#f0f6ff" color="#2563eb" />}
             </div>
             <div style={{ ...S.mono, fontSize:13, color:"#888", marginBottom:4 }}>@{profile.handle}</div>
             {profile.location&&<div style={{ fontSize:13, color:"#666", marginBottom:6 }}>📍 {profile.location}</div>}
@@ -436,7 +436,7 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
         ))}
       </div>
 
-      {tab==="posts"&&<div>{posts.length===0&&<p style={S.muted}>Sin publicaciones aún.</p>}{posts.map(p=><PostCard key={p.id} post={p} currentUser={currentUser} onNavigate={onNavigate} />)}</div>}
+      {tab==="posts"&&<div>{isOwn&&<PostComposer user={currentUser} onPosted={load} />}{posts.length===0&&<p style={S.muted}>Sin publicaciones aún.</p>}{posts.map(p=><PostCard key={p.id} post={p} currentUser={currentUser} onNavigate={onNavigate} onReload={load} />)}</div>}
 
       {tab==="garage"&&(
         <div>
