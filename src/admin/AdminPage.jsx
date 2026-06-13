@@ -80,9 +80,10 @@ export function AdminPage({ user, onNavigate }) {
   const [feedback, setFeedback] = useState([]);
 
   async function loadFeedback() {
-    const {data}=await supabase.from("feedback")
-      .select("*, user:profiles(name,handle)")
+    const {data,error}=await supabase.from("feedback")
+      .select("*")
       .order("created_at",{ascending:false}).limit(50);
+    if(error) console.error("feedback error:",error);
     setFeedback(data||[]);
   }
 
