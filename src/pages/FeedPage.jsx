@@ -524,7 +524,7 @@ export function FeedPage({ user, onNavigate }) {
   return (
     <div>
       <WeeklyThreadCard onNavigate={onNavigate} currentUser={user} onPosted={loadAll} />
-      <PostComposer user={user} onPosted={loadAll} />
+
       <div style={{ display:"flex", gap:4, marginBottom:20 }}>
         <button onClick={()=>setTab("all")} style={{ background:tab==="all"?"#1a2744":"#f0ede6", color:tab==="all"?"#fff":"#666", padding:"6px 16px", borderRadius:8, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:tab==="all"?600:400 }}>Todo</button>
         <button onClick={()=>setTab("following")} style={{ background:tab==="following"?"#1a2744":"#f0ede6", color:tab==="following"?"#fff":"#666", padding:"6px 16px", borderRadius:8, border:"none", fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:tab==="following"?600:400 }}>Siguiendo</button>
