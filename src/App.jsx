@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { supabase } from "./lib/supabase";
-import { S, brandColor, brandFromSlug, timeAgo, t } from "./data/constants";
+import { S } from "./data/constants";
 import { Logo, Avatar } from "./components/UI";
 import { AdminPage, isAdmin } from "./admin/AdminPage";
 
@@ -102,8 +102,8 @@ export default function App() {
 
   if(!session && !guestMode) return <AuthPage onExplore={()=>{ setGuestMode(true); setPage({name:"explore"}); }} onNewSignup={()=>setIsNewSignup(true)} />;
   if(session && profile && !profile.onboarding_complete) {
-    if(profile.account_type==="taller") return <OnboardingTaller user={session.user} onComplete={()=>{ setIsNewSignup(false); loadProfile(session.user.id); setPage({name:"feed"}); }} />;
-    if(profile.account_type==="marca") return <OnboardingMarca user={session.user} onComplete={()=>{ setIsNewSignup(false); loadProfile(session.user.id); setPage({name:"feed"}); }} />;
+    if(profile.account_type==="repairer") return <OnboardingTaller user={session.user} onComplete={()=>{ setIsNewSignup(false); loadProfile(session.user.id); setPage({name:"feed"}); }} />;
+    if(profile.account_type==="brand") return <OnboardingMarca user={session.user} onComplete={()=>{ setIsNewSignup(false); loadProfile(session.user.id); setPage({name:"feed"}); }} />;
     return <OnboardingPage user={session.user} onComplete={()=>{ setIsNewSignup(false); loadProfile(session.user.id); setPage({name:"feed"}); }} />;
   }
 

@@ -7,7 +7,7 @@ export function AuthPage({ onExplore, onNewSignup }) {
   const [mode, setMode] = useState("login");
   const [accountType, setAccountType] = useState("user");
   const [corporateUrl, setCorporateUrl] = useState("");
-  const [form, setForm] = useState({ email:"", password:"", name:"", handle:"", account_type:"collector" });
+  const [form, setForm] = useState({ email:"", password:"", name:"", handle:"", account_type:"collector", corporate_url:"" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -21,7 +21,7 @@ export function AuthPage({ onExplore, onNewSignup }) {
         if(error) throw error;
       } else {
         if(!form.handle.match(/^[a-z0-9_]{3,20}$/)) throw new Error("Handle: solo minúsculas, números y _ (3-20 caracteres)");
-        const {error}=await supabase.auth.signUp({email:form.email,password:form.password,options:{data:{name:form.name,handle:form.handle,account_type:form.account_type}}});
+        const {error}=await supabase.auth.signUp({email:form.email,password:form.password,options:{data:{name:form.name,handle:form.handle,account_type:form.account_type,corporate_url:form.corporate_url||null,pending_approval:form.account_type!=="collector"}}});
         if(error) throw error;
         setSuccess("¡Cuenta creada! Revisa tu email para confirmar.");
       }
@@ -49,6 +49,25 @@ export function AuthPage({ onExplore, onNewSignup }) {
           {success&&<div style={S.success}>{success}</div>}
           <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
             {mode==="register"&&(<>
+              {/* Tipo de cuenta - ARRIBA DEL TODO */}
+              <div style={{ marginBottom:16 }}>
+
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+                  {[{v:"collector",icon:"⌚",l:"Coleccionista"},{v:"repairer",icon:"🔧",l:"Taller"},{v:"brand",icon:"🏷️",l:"Marca"}].map(t=>(
+                    <button key={t.v} type="button" onClick={()=>set("account_type",t.v)}
+                      style={{ padding:"10px 8px", borderRadius:8, border:`2px solid ${form.account_type===t.v?"#1a2744":"#e0ddd6"}`, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:12, background:form.account_type===t.v?"#1a2744":"#fff", color:form.account_type===t.v?"#fff":"#444", fontWeight:form.account_type===t.v?700:400, textAlign:"center" }}>
+                      <div style={{ fontSize:20, marginBottom:4 }}>{t.icon}</div>{t.l}
+                    </button>
+                  ))}
+                </div>
+                {form.account_type!=="collector"&&(
+                  <div style={{ marginTop:10 }}>
+                    <span style={S.label}>Web o email corporativo</span>
+                    <input style={S.input} placeholder={form.account_type==="repairer"?"www.mitaller.com":"www.mimarca.com"} value={form.corporate_url||""} onChange={e=>set("corporate_url",e.target.value)} />
+                    <div style={{ fontSize:11, color:"#888", marginTop:4 }}>Necesario para verificación.</div>
+                  </div>
+                )}
+              </div>
               <div><span style={S.label}>Nombre</span><input style={S.input} placeholder="Juan García" value={form.name} onChange={e=>set("name",e.target.value)} /></div>
               <div><span style={S.label}>Handle</span><input style={S.input} placeholder="juan_garcia" value={form.handle} onChange={e=>set("handle",e.target.value.toLowerCase())} /></div>
               <div><span style={S.label}>Tipo de cuenta</span>

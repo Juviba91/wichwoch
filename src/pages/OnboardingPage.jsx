@@ -189,7 +189,7 @@ export function OnboardingPage({ user, onComplete }) {
             )}
 
             <div style={{ display:"flex", justifyContent:"space-between", marginTop:24, alignItems:"center" }}>
-              <button style={{ background:"none", border:"none", cursor:"pointer", color:"#aaa", fontSize:13, fontFamily:"'DM Sans',sans-serif" }} onClick={()=>setStep(2)}>
+              <button style={{ background:"none", border:"none", cursor:"pointer", color:"#aaa", fontSize:13, fontFamily:"'DM Sans',sans-serif" }} onClick={()=>{ setSelectedWatch(null); setStep(2); }}>
                 No tengo reloj ahora mismo →
               </button>
               <button style={S.btn("primary")} onClick={()=>setStep(2)} disabled={!selectedWatch}>
