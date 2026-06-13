@@ -92,28 +92,16 @@ function UserListasPreview({ userId, onNavigate }) {
 }
 
 function TallerProfileRedirect({ profile, isOwn, currentUser, onNavigate }) {
-  const [workshopId, setWorkshopId] = useState(null);
+  const [workshop, setWorkshop] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(()=>{
-    supabase.from("workshops").select("id").eq("owner_id", profile.id).maybeSingle()
-      .then(({data})=>{ setWorkshopId(data?.id||null); setLoading(false); });
+    supabase.from("workshops").select("*").eq("owner_id", profile.id).maybeSingle()
+      .then(({data})=>{ setWorkshop(data||null); setLoading(false); });
   },[profile.id]);
 
   if(loading) return <Spinner />;
-
-  // If has workshop entry, show it via WorkshopsPage workshop detail
-  const [workshop, setWorkshop] = useState(null);
-  const [wsLoaded, setWsLoaded] = useState(false);
-
-  useEffect(()=>{
-    if(!workshopId) return;
-    supabase.from("workshops").select("*").eq("id",workshopId).single()
-      .then(({data})=>{ setWorkshop(data); setWsLoaded(true); });
-  },[workshopId]);
-
-  if(workshopId && !wsLoaded) return <Spinner />;
-  if(workshopId && workshop) return <WorkshopDetail workshop={workshop} currentUser={currentUser} onBack={()=>onNavigate("talleres")} onNavigate={onNavigate} />;
+  if(workshop) return <WorkshopDetail workshop={workshop} currentUser={currentUser} onBack={()=>onNavigate("talleres")} onNavigate={onNavigate} />;
 
   // No workshop entry yet - show basic taller profile with prompt to complete
   return (
