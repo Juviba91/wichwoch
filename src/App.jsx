@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { supabase } from "./lib/supabase";
-import { S } from "./data/constants";
+import { S, brandColor, brandFromSlug, timeAgo, t } from "./data/constants";
 import { Logo, Avatar } from "./components/UI";
 import { AdminPage, isAdmin } from "./admin/AdminPage";
 
