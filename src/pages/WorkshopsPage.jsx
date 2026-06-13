@@ -26,7 +26,17 @@ export function WorkshopsPage({ currentUser, onNavigate }) {
   async function load() {
     setLoading(true);
     const {data}=await supabase.from("workshops").select("*").order("verified",{ascending:false}).order("name");
-    setWorkshops(data||[]);
+    // Also load taller profiles (account_type=taller, verified_business=true)
+    const {data:tallerProfiles}=await supabase.from("profiles").select("id,name,location,bio,corporate_url,verified_business,account_type").eq("account_type","taller");
+    // Merge - show workshop table entries + verified taller profiles not already in table
+    const workshopIds = new Set((data||[]).map(w=>w.name));
+    const extraTalleres = (tallerProfiles||[]).filter(p=>!workshopIds.has(p.name)).map(p=>({
+      id:p.id, name:p.name, city:p.location, description:p.bio,
+      website:p.corporate_url, verified:p.verified_business,
+      specialties:[], brands:[], _isProfile:true
+    }));
+    const allWorkshops = [...(data||[]), ...extraTalleres];
+    setWorkshops(allWorkshops);
     setLoading(false);
   }
 
@@ -97,7 +107,7 @@ export function WorkshopsPage({ currentUser, onNavigate }) {
   );
 }
 
-function WorkshopDetail({ workshop, currentUser, onBack, onNavigate }) {
+export function WorkshopDetail({ workshop, currentUser, onBack, onNavigate }) {
   const [reviews, setReviews] = useState([]);
   const [showAppointment, setShowAppointment] = useState(false);
   const [showReview, setShowReview] = useState(false);

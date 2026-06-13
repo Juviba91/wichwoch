@@ -4,6 +4,7 @@ import { S, timeAgo, brandColor } from "../data/constants";
 import { Spinner, Avatar, Badge, WatchCard } from "../components/UI";
 import { UserBadges } from "../components/UserBadges";
 import { PostCard, PostComposer } from "./FeedPage";
+import { WorkshopDetail } from "./WorkshopsPage";
 
 // ─── USER LIST ────────────────────────────────────────────────────────────────
 function UserList({ title, users, onNavigate, onBack }) {
@@ -86,6 +87,51 @@ function UserListasPreview({ userId, onNavigate }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function TallerProfileRedirect({ profile, isOwn, currentUser, onNavigate }) {
+  const [workshopId, setWorkshopId] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(()=>{
+    supabase.from("workshops").select("id").eq("owner_id", profile.id).maybeSingle()
+      .then(({data})=>{ setWorkshopId(data?.id||null); setLoading(false); });
+  },[profile.id]);
+
+  if(loading) return <Spinner />;
+
+  // If has workshop entry, show it via WorkshopsPage workshop detail
+  const [workshop, setWorkshop] = useState(null);
+  const [wsLoaded, setWsLoaded] = useState(false);
+
+  useEffect(()=>{
+    if(!workshopId) return;
+    supabase.from("workshops").select("*").eq("id",workshopId).single()
+      .then(({data})=>{ setWorkshop(data); setWsLoaded(true); });
+  },[workshopId]);
+
+  if(workshopId && !wsLoaded) return <Spinner />;
+  if(workshopId && workshop) return <WorkshopDetail workshop={workshop} currentUser={currentUser} onBack={()=>onNavigate("talleres")} onNavigate={onNavigate} />;
+
+  // No workshop entry yet - show basic taller profile with prompt to complete
+  return (
+    <div>
+      <div style={{ height:160, background:"linear-gradient(135deg,#1a2744,#2a3a5a)", borderRadius:12, display:"flex", alignItems:"flex-end", padding:"0 28px 20px", marginBottom:0 }}>
+        <div>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#b8963e", fontFamily:"'DM Mono',monospace", marginBottom:6 }}>🔧 Taller</div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, fontWeight:700, color:"#fff" }}>{profile.name}</div>
+          {profile.location&&<div style={{ fontSize:13, color:"rgba(255,255,255,0.6)", marginTop:4 }}>📍 {profile.location}</div>}
+        </div>
+      </div>
+      <div style={{ ...S.card, borderTopLeftRadius:0, borderTopRightRadius:0 }}>
+        {profile.pending_approval
+          ? <div style={{ padding:"12px 16px", background:"#fff8e8", borderRadius:6, fontSize:13, color:"#b8963e" }}>⏳ Tu perfil está pendiente de verificación por el equipo de Wich Woch.</div>
+          : <div style={{ padding:"12px 16px", background:"#f0fdf4", borderRadius:6, fontSize:13, color:"#16a34a" }}>✓ Perfil verificado</div>
+        }
+        {profile.bio&&<p style={{ fontSize:14, color:"#555", margin:"12px 0 0", lineHeight:1.6 }}>{profile.bio}</p>}
+      </div>
     </div>
   );
 }
@@ -368,7 +414,7 @@ export function ProfilePage({ userId, currentUser, onNavigate }) {
   if(loading) return <Spinner />;
   if(!profile) return <div style={S.muted}>Perfil no encontrado.</div>;
 
-  if(profile.account_type==="taller") return <TallerProfile profile={profile} isOwn={isOwn} currentUser={currentUser} onNavigate={onNavigate} posts={posts} />;
+  if(profile.account_type==="taller") return <TallerProfileRedirect profile={profile} isOwn={isOwn} currentUser={currentUser} onNavigate={onNavigate} />;
   if(profile.account_type==="marca") return <MarcaProfile profile={profile} isOwn={isOwn} currentUser={currentUser} onNavigate={onNavigate} posts={posts} />;
   if(subPage==="followers") return <UserList title="Seguidores" users={followers} onNavigate={onNavigate} onBack={()=>setSubPage(null)} />;
   if(subPage==="following") return <UserList title="Siguiendo" users={followingList} onNavigate={onNavigate} onBack={()=>setSubPage(null)} />;
